@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-05-21T02:51:04.953320+00:00",
+  "timestamp": "2026-05-24T02:47:57.089893+00:00",
   "repo": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
   "labels": [
     {
@@ -50,5 +50,32 @@
     }
   ],
   "issues": [],
-  "pulls": []
+  "pulls": [
+    {
+      "number": 1,
+      "id": "PR_kwDOSR4lzs7edz6Y",
+      "title": "Narrower client-instance assertion profile with an optional attestation-evidence path",
+      "url": "https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion/pull/1",
+      "state": "OPEN",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "Restructure as -01: dedicated client_instance_assertion parameter and layered composition with attestation-based client auth\r\n\r\nReplaces the prior reuse of actor_token / actor_token_type on non-token-exchange grants with a dedicated client_instance_assertion request parameter. Token-exchange continues to use actor_token per RFC 8693.\r\n\r\nRestructures the relationship with draft-ietf-oauth-attestation-based-client-auth from \"two orthogonal specs\" to a layered model: attestation-based deployments use that document as the wire mechanism with this profile applying surfacing rules on top via the new \u00a7Attestation-Based Instance Evidence path. Specifies cnf.jkt (JWK thumbprint per RFC 7638) as the fallback instance subject when no deployment-defined mapping is available.\r\n\r\nRenames the token_endpoint_auth_method value to\r\nclient_instance_assertion. Adds client_instance_assertion_supported and client_instance_attestation_evidence_supported AS metadata.\r\n\r\nDrops the generalized actor-token grant extension and the \u00a7Other Actor Token Types extension point; this profile no longer generalizes over arbitrary actor-token profiles. The grant extension can be revived as a companion spec if a second actor-token profile needs it.\r\n\r\nSee -01 Document History for the full change list.",
+      "createdAt": "2026-05-22T19:07:11Z",
+      "updatedAt": "2026-05-22T19:07:11Z",
+      "baseRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "baseRefName": "main",
+      "baseRefOid": "38549630bfa096eff28834fbc14ce3681cb4b6ec",
+      "headRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "headRefName": "client-instance-assertion-param",
+      "headRefOid": "2dfdfd3a8fca5a2bc10476e3087eec98b57fb5fe",
+      "closedAt": null,
+      "mergedAt": null,
+      "mergedBy": null,
+      "mergeCommit": null,
+      "comments": [],
+      "reviews": []
+    }
+  ]
 }
