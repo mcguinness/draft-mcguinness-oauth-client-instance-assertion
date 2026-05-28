@@ -183,7 +183,8 @@ Table of Contents
 
    *  the AS has completed [ATTEST-CLIENT-AUTH] validation for the
       request, which under DPoP combined mode includes verifying that
-      the DPoP public key matches the Client Attestation JWT cnf key.
+      the DPoP public key matches the Client Attestation JWT cnf
+      ([RFC7800]) key.
 
 4.1.  Deriving the Instance Subject
 
@@ -610,10 +611,10 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               attestation-based-client-auth-09>.
 
-   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion
-              Profile", May 2026, <https://mcguinness.github.io/draft-
-              mcguinness-oauth-client-instance-assertion/draft-
-              mcguinness-oauth-client-instance-assertion.html>.
+   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion", May
+              2026, <https://mcguinness.github.io/draft-mcguinness-
+              oauth-client-instance-assertion/draft-mcguinness-oauth-
+              client-instance-assertion.html>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,

@@ -2915,10 +2915,6 @@ Table of Contents
               RFC 7591, DOI 10.17487/RFC7591, July 2015,
               <https://www.rfc-editor.org/rfc/rfc7591>.
 
-   [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
-              Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
-              2015, <https://www.rfc-editor.org/rfc/rfc7638>.
-
    [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
               RFC 7662, DOI 10.17487/RFC7662, October 2015,
               <https://www.rfc-editor.org/rfc/rfc7662>.
@@ -3709,15 +3705,13 @@ Document History
       client_instance_assertion auth method, and SPIFFE JWT-SVID reuse.
       Inverted and expanded §Design Rationale.  Trimmed operational/
       deployment content not in scope for an OAuth protocol spec:
-      dropped §security-audit-logging; removed the "deployed practice"
-      enumeration in §per-instance-revocation and the cross-instance-
-      session-continuity recipes in §refresh; dropped the specific TTL
-      "recommended defaults" in §security-trust-withdrawal-latency;
-      removed the "Defer adoption" bullet from §Adoption; generalized
-      §Introduction use-case language; trimmed §rs-processing's
-      restatement of [ACTOR-PROFILE] to just the three additions this
-      profile makes.  Aligned the §instance-issuers example with the
-      worked examples (app.example.com/agent).
+      removed the cross-instance-session-continuity recipes in §refresh;
+      dropped the specific TTL "recommended defaults" in §security-
+      trust-withdrawal-latency; removed the "Defer adoption" bullet from
+      §Adoption; generalized §Introduction use-case language; trimmed
+      §rs-processing's restatement of [ACTOR-PROFILE] to just the three
+      additions this profile makes.  Aligned the §instance-issuers
+      example with the worked examples (app.example.com/agent).
 
 -00
 

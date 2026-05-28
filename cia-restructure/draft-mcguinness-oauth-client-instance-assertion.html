@@ -5001,10 +5001,6 @@ registration is contingent on the establishment of that registry.<a href="#secti
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Machulak, M.</span>, and <span class="refAuthor">P. Hunt</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Protocol"</span>, <span class="seriesInfo">RFC 7591</span>, <span class="seriesInfo">DOI 10.17487/RFC7591</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7591">https://www.rfc-editor.org/rfc/rfc7591</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="RFC7638">[RFC7638]</dt>
-        <dd>
-<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Key (JWK) Thumbprint"</span>, <span class="seriesInfo">RFC 7638</span>, <span class="seriesInfo">DOI 10.17487/RFC7638</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7638">https://www.rfc-editor.org/rfc/rfc7638</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="RFC7662">[RFC7662]</dt>
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
@@ -5917,16 +5913,14 @@ client-credentials, token-exchange, refresh (with and without a
 fresh CIA), the <code>client_instance_assertion</code> auth method, and
 SPIFFE JWT-SVID reuse. Inverted and expanded §Design Rationale.
 Trimmed operational/deployment content not in scope for an
-OAuth protocol spec: dropped §security-audit-logging; removed
-the "deployed practice" enumeration in §per-instance-revocation
-and the cross-instance-session-continuity recipes in §refresh;
-dropped the specific TTL "recommended defaults" in
-§security-trust-withdrawal-latency; removed the "Defer adoption"
-bullet from §Adoption; generalized §Introduction use-case
-language; trimmed §rs-processing's restatement of
-<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> to just the three additions this profile
-makes. Aligned the §instance-issuers example with the worked
-examples (<code>app.example.com/agent</code>).<a href="#appendix-C.1-1.10.1" class="pilcrow">¶</a></p>
+OAuth protocol spec: removed the cross-instance-session-continuity
+recipes in §refresh; dropped the specific TTL "recommended
+defaults" in §security-trust-withdrawal-latency; removed the
+"Defer adoption" bullet from §Adoption; generalized
+§Introduction use-case language; trimmed §rs-processing's
+restatement of <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> to just the three additions
+this profile makes. Aligned the §instance-issuers example with
+the worked examples (<code>app.example.com/agent</code>).<a href="#appendix-C.1-1.10.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>
