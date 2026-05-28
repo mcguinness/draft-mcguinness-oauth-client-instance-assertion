@@ -1282,7 +1282,16 @@ Before the steps below, the AS MUST reject the request with
 
 7. **Verify `client_id` binding.** If the instance assertion contains a
    `client_id` claim, it MUST exactly equal the authenticated
-   `client_id`; reject with `invalid_grant` otherwise. If the
+   `client_id`; reject with `invalid_grant` otherwise. "Exactly
+   equal" means octet-for-octet equality on the UTF-8 encoding of
+   the two values: ASes MUST NOT apply case folding, Unicode
+   normalization, percent-decoding, URI canonicalization, or other
+   string-equivalence transformations before comparison. The same
+   octet-equality rule applies wherever this document requires
+   `iss`, `sub`, `client_id`, `aud`, or `spiffe_id` values to "match"
+   or "exactly equal" another value, except where a specifically
+   cited matching rule (for example, the SPIFFE "/*" wildcard rule
+   in {{instance-issuers}}) defines a different comparison. If the
    instance assertion has no `client_id` claim, the AS MUST verify that the
    matched descriptor satisfies the SPIFFE compatibility conditions
    ({{spiffe-client-id-omission}}); if not, reject with
@@ -1290,28 +1299,40 @@ Before the steps below, the AS MUST reject the request with
    the AS MUST verify that the presented assertion's `sub` falls under the
    descriptor's SPIFFE scope: `spiffe_id` when present, otherwise the
    descriptor's `trust_domain`; if not, reject with `invalid_grant`.
-   After `client_id` binding succeeds, apply replay checking per
+
+8. **Verify proof-of-possession of the `cnf` key.** Verify
+   possession of the assertion's `cnf` key per
+   {{sender-constrained}}; reject with `invalid_request` if
+   verification fails. For raw JWT-SVIDs accepted under
+   {{spiffe-client-id-omission}}, establish the binding key per
+   {{spiffe-binding}} instead.
+
+9. **Apply replay checking.** After `client_id` binding and PoP
+   verification succeed, apply the replay check per
    {{security-replay}}; reject with `invalid_grant` if a previously
-   seen tuple is found. For raw JWT-SVIDs, this replay check applies
-   only when `jti` is present.
-   The replay check follows `client_id` binding so that an attacker
-   cannot burn a legitimate client's `jti` by presenting the assertion
-   under a mismatched `client_id`.
+   seen `(iss, jti)` tuple is found. For raw JWT-SVIDs, this replay
+   check applies only when `jti` is present. The replay check
+   follows `client_id` binding so that an attacker cannot burn a
+   legitimate client's `jti` by presenting the assertion under a
+   mismatched `client_id`. The replay check follows PoP
+   verification so that the `cnf`-bound reusable-mode optimization
+   in {{security-replay}} can be applied.
 
-8. **Enforce delegation policy.** Apply the AS's local maximum
-   delegation depth per {{ACTOR-PROFILE}}.
+10. **Enforce delegation policy.** Apply the AS's local maximum
+    delegation depth per {{ACTOR-PROFILE}}.
 
-9. **Check authorization-time consistency.** For grants that
-   originate from a prior authorization step (notably
-   authorization_code), apply the rules of
-   {{auth-time-consistency}}.
+11. **Check authorization-time consistency.** For grants that
+    originate from a prior authorization step (notably
+    authorization_code), apply the rules of
+    {{auth-time-consistency}}.
 
-10. **Bind the instance.** If issuance succeeds, represent the
-    instance in the access token per {{access-token}}, applying
-    {{sender-constrained}} for token binding. Reflect any prior
-    actor chain present in input tokens by nesting per
-    {{ACTOR-PROFILE}}; chain merging rules are given in
-    {{chain-merging}}.
+12. **Bind the instance to the issued access token.** If issuance
+    succeeds, represent the instance in the access token per
+    {{access-token}} and apply the sender-constraint binding per
+    {{sender-constrained}}, using the key whose possession was
+    verified in step 8. Reflect any prior actor chain present in
+    input tokens by nesting per {{ACTOR-PROFILE}}; chain merging
+    rules are given in {{chain-merging}}.
 
 If validation succeeds, the AS issues an access token (and optionally
 a refresh token) per the requested grant.
@@ -1383,29 +1404,31 @@ procedure:
 
 1. Resolve client metadata for `client_id` (per the registration
    model: dereference the CIMD URL or read stored registration data).
-2. Validate the presented assertion using the token-type check
-   (where applicable), instance issuer descriptor lookup, signature
-   verification, and JWT claim validation rules in {{as-processing}}.
+2. Validate the presented assertion using the descriptor lookup,
+   signature verification, and JWT claim validation rules in
+   {{as-processing}}.
 3. Verify that the presented assertion's `client_id` claim exactly
    equals the request's `client_id` parameter.
-4. Apply the replay check in {{security-replay}} after `client_id`
-   binding succeeds.
-5. Verify proof-of-possession of the presented assertion at
-   presentation per {{sender-constrained}}. In this mode the
-   assertion serves as the sole client authentication credential, so
-   the bearer-replay considerations in {{security-replay}} apply
-   with no fallback credential; ASes MUST reject requests in this
-   mode whose presented assertion lacks a `cnf` claim, and MUST
-   verify possession of the `cnf` key.
-6. Reject the request with `invalid_client` if any of the above fails.
+4. Verify that the presented assertion contains a `cnf` claim; this
+   mode does not permit a `cnf`-less assertion, because the
+   assertion serves as the sole client authentication credential
+   and the bearer-replay considerations in {{security-replay}}
+   apply with no fallback credential.
+5. Verify proof-of-possession of the assertion's `cnf` key per
+   {{sender-constrained}}.
+6. Apply the replay check in {{security-replay}} after `client_id`
+   binding and PoP verification succeed.
 7. Treat the client as authenticated. The validated assertion also
    satisfies this profile's assertion requirement and is used for
    instance representation per {{access-token}}.
 
-Because the presented assertion is the client authentication
-credential in this mode, validation failures that would otherwise be
-returned as `invalid_grant` under {{as-processing}} are returned as
-`invalid_client`.
+Any failure in steps 1-6 above is returned as `invalid_client` per
+{{errors}}; the assertion is the sole credential, so failures that
+would otherwise be returned as `invalid_grant` (assertion-validation
+failures) or `invalid_request` (sender-constraint failures, including
+a `cnf`-less assertion) are reclassified. Pre-condition failures of
+{{as-processing}} (malformed JWT, misplaced parameter) continue to
+return `invalid_request`.
 
 The presented assertion's `aud` claim serves both purposes (the
 {{RFC7523}} client-assertion audience and this profile's assertion
@@ -1418,13 +1441,13 @@ JWT is the sole client authentication credential, the assertion MUST
 contain the `client_id` claim and the AS MUST verify it exactly as
 described above.
 
-After this procedure completes, processing continues with step 8 of
-{{as-processing}} ("Enforce delegation policy") and onward, reusing
-the validated instance assertion. The AS MUST NOT re-apply the
-token-type check, descriptor lookup, signature verification, claim
-validation, or `client_id` binding checks to the same assertion in a
-way that would cause the request to fail replay detection for its
-own presentation.
+After this procedure completes, processing continues with the
+"Enforce delegation policy" step of {{as-processing}} and onward,
+reusing the validated instance assertion. The AS MUST NOT re-apply
+the token-type check, descriptor lookup, signature verification,
+claim validation, `client_id` binding, PoP, or replay checks to
+the same assertion in a way that would cause the request to fail
+replay detection for its own presentation.
 
 ## Authorization-Time Consistency {#auth-time-consistency}
 
@@ -1723,10 +1746,16 @@ before its `exp`) via the `client_instance_assertion` parameter
 
 * be bound to the same `cnf` key as the refresh token;
 * have `(iss, sub)` matching those recorded at the refresh token's
-  original issuance; and
+  original issuance;
 * pass the instance issuer descriptor lookup, signature
   verification, JWT claim validation, and `client_id` binding checks
-  defined in {{as-processing}}.
+  defined in {{as-processing}}; and
+* pass the replay check defined in {{security-replay}} against its
+  own `(iss, jti)` tuple. The bound `cnf` of the refresh token
+  prevents off-instance replay, but does not prevent an attacker
+  with the same refresh token from replaying a captured fresh
+  assertion across successive refreshes; the replay check closes
+  that window.
 
 If the presented assertion is a raw JWT-SVID without `cnf`, the AS
 MUST establish the binding key per {{spiffe-binding}} and verify
@@ -1957,7 +1986,12 @@ Section 2.2.2. This profile uses the existing OAuth error codes:
 * `invalid_client`: when the presented assertion is the client
   authentication credential under {{instance-assertion-auth}},
   validation failures that would otherwise be returned as
-  `invalid_grant` are returned as `invalid_client`.
+  `invalid_grant` (assertion-validation failures) or
+  `invalid_request` (sender-constraint failures, including a
+  `cnf`-less assertion) are returned as `invalid_client`. The
+  pre-condition failures of {{as-processing}} (malformed JWT,
+  misplaced parameter, mismatched grant/parameter) continue to be
+  returned as `invalid_request` even in this mode.
 
 The AS MAY return additional information via the error_description
 parameter; deployments MUST NOT include sensitive instance details
@@ -2286,6 +2320,14 @@ allowed clock skew. For raw JWT-SVIDs, this check applies only
 when `jti` is present; otherwise replay is bounded by
 sender-constraint, short SVID lifetimes, and audience restriction.
 
+The replay-cache key is `(iss, jti)`; ASes MUST NOT widen the key
+to include `client_id`. `jti` uniqueness is the responsibility of
+the instance issuer within its own `iss` namespace, so two
+different OAuth clients that list the same instance issuer share
+the same replay state for that issuer. The cache MUST be scoped at
+least to a single AS instance; distributed AS deployments share
+the cache or coordinate as specified below.
+
 An AS MAY skip the replay check for cnf-bound assertions that have
 been PoP-verified at presentation, treating them as reusable
 within their `exp` window, provided the deployment documents this
@@ -2297,10 +2339,12 @@ applies unconditionally to assertions without a verified `cnf`.
 
 Issuers SHOULD use short lifetimes (five minutes or less). On
 refresh ({{refresh}}), AS implementations SHOULD prefer requiring
-a fresh instance assertion. Distributed AS deployments MUST share
-the replay cache or coordinate to prevent cross-replica replay,
-except on cnf-bound paths in reusable mode where cnf+PoP
-verification is correctness-preserving across replicas.
+a fresh instance assertion; when a fresh assertion is presented,
+the AS MUST apply the replay check to its `(iss, jti)` per
+{{refresh}}. Distributed AS deployments MUST share the replay
+cache or coordinate to prevent cross-replica replay, except on
+cnf-bound paths in reusable mode where cnf+PoP verification is
+correctness-preserving across replicas.
 
 A compromised instance-issuer signing key creates a
 denial-of-service surface: an attacker can mint validly-signed
