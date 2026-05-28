@@ -764,10 +764,11 @@ management -- is the most widely deployed realization of this
 pattern; analogous flows exist for other platforms with hardware
 attestation.
 
-In this composition the ACME-issued device certificate (or a JWT
-re-minted from it by an Attester acting on the CA's behalf)
-becomes the Client Attestation, and the bound hardware key is the
-DPoP key per {{ATTEST-CLIENT-AUTH}} combined mode. A
+In this composition an Attester acting on the CA's behalf re-mints
+the ACME-issued device certificate into a Client Attestation JWT
+carrying the attested device identifier and a `cnf.jkt` to the
+same hardware-rooted key. The device signs a DPoP proof with that
+key for combined-mode validation per {{ATTEST-CLIENT-AUTH}}. A
 deployment-defined mapping extracts the attested device
 identifier:
 
@@ -775,8 +776,8 @@ identifier:
 Client Attestation claims (excerpt):
   "iss":             "https://attester.example.com" (the org CA)
   "sub":             "https://app.example.com/agent"
-  "cnf":             { "x5t#S256": "..." }
-                     (hardware-bound device certificate)
+  "cnf":             { "jkt": "QrS...XyZ" }
+                     (JWK thumbprint of hardware-rooted key)
   "device_serial":   "F2LQXXXXXXXX"
                      (attested permanent identifier)
   "hw_model":        "MacBookPro18,3"
@@ -789,9 +790,13 @@ The mapping rule: extract the attested permanent identifier from
 the Client Attestation (a serial number, hardware-module identifier,
 or other identifier the underlying attestation guarantees) and
 emit it under a registered URN namespace. Sender-constraint
-binding is established by the hardware-rooted key, either through
-the device certificate at TLS ({{RFC8705}}) or through a DPoP
-proof using the same key.
+binding is the DPoP proof signed by the hardware-rooted key, per
+{{ATTEST-CLIENT-AUTH}} combined-mode rules and {{RFC9449}}.
+
+Deployments that prefer to bind the access token to the device's
+X.509 certificate at TLS ({{RFC8705}}) rather than to a DPoP key
+fall outside this composition, which is scoped to
+{{ATTEST-CLIENT-AUTH}}'s DPoP combined mode.
 
 This shape is well suited to enterprise device fleets and other
 deployments where the trust assumption is that a specific physical
