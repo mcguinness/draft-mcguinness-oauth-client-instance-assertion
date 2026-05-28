@@ -6,6 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-attestation-evidence-latest
 submissiontype: IETF
 stand_alone: yes
+date: 2026-05-28
 ipr: trust200902
 area: "Security"
 workgroup: "Web Authorization Protocol"
@@ -38,7 +39,7 @@ normative:
   RFC9449:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
   CIA-CORE:
-    title: "OAuth 2.0 Client Instance Assertion Profile"
+    title: "OAuth 2.0 Client Instance Assertion"
     target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-assertion.html
     author:
       -
@@ -135,7 +136,8 @@ when both of the following conditions hold:
   attestation proof of possession is a DPoP proof ({{RFC9449}}); and
 * the AS has completed {{ATTEST-CLIENT-AUTH}} validation for the
   request, which under DPoP combined mode includes verifying that
-  the DPoP public key matches the Client Attestation JWT `cnf` key.
+  the DPoP public key matches the Client Attestation JWT `cnf`
+  ({{RFC7800}}) key.
 
 ## Deriving the Instance Subject {#attestation-evidence-subject}
 
