@@ -36,12 +36,14 @@ normative:
   RFC6755:
   RFC7515:
   RFC7517:
+  RFC7518:
   RFC7519:
   RFC7523:
   RFC7591:
   RFC7638:
   RFC7662:
   RFC7800:
+  RFC8126:
   RFC8414:
   RFC8693:
   RFC8705:
@@ -49,13 +51,14 @@ normative:
   RFC9068:
   RFC9449:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
+  CIMD: I-D.ietf-oauth-client-id-metadata-document
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
   SPIFFE-CLIENT-AUTH: I-D.ietf-oauth-spiffe-client-auth
 
 informative:
   RFC7009:
+  RFC8037:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
-  CIMD: I-D.ietf-oauth-client-id-metadata-document
   WIMSE-ARCH: I-D.ietf-wimse-arch
   WIMSE-CREDS: I-D.ietf-wimse-workload-creds
   SPIFFE:
@@ -566,10 +569,14 @@ assertion usable as the client credential under
 The AS treats the registered `instance_issuers` list as
 authoritative: it derives its trust in an instance assertion solely
 from the descriptor whose issuer member matches the instance
-assertion's `iss` claim. This document
-does not define out-of-band or AS-side configuration of additional
-instance issuers for a `client_id`; deployments requiring such
-configuration MUST do so via a separate specification.
+assertion's `iss` claim. AS-side configuration that augments or
+overrides the registered list (for example, an AS-operator-managed
+allow-list of additional instance issuers) is out of scope for
+this document. Deployments that introduce such configuration
+SHOULD document the resulting trust model and ensure it is
+consistent with the per-client trust the registered metadata
+expresses; in particular, AS-side issuer additions weaken the
+client's ability to audit who can act on its behalf.
 
 ### Trust Lifecycle {#trust-lifecycle}
 
@@ -637,6 +644,13 @@ or is present as an empty array, the AS MUST NOT accept instance assertions
 of type `urn:ietf:params:oauth:token-type:client-instance-jwt` for this
 client; the AS SHOULD treat an empty array as a metadata error and
 log it for the client operator.
+
+The set of accepted instance issuers for a given `client_id` is a
+trust boundary: any listed issuer can mint assertions that the AS
+accepts under this client. Deployments that place workloads
+belonging to distinct organizations or tenants under a single
+`client_id` should consult {{security-multi-tenancy}} for the
+trust-aggregation implications.
 
 An instance issuer descriptor has the following members:
 
@@ -892,12 +906,8 @@ The following claims are defined for client instance assertions.
 
 `client_id` (REQUIRED unless the SPIFFE compatibility conditions of {{spiffe-client-id-omission}} are met):
 : The `client_id` of the client to which this instance belongs.
-  This claim uses the JSON Web Token `client_id` claim registered
-  by {{RFC9068}} Section 2.2 (which itself defers to {{RFC8693}}
-  Section 4.3 for the underlying definition). Note that RFC 9068
-  defines `client_id` as the OAuth client to which a JWT access
-  token was issued; in this profile, the claim instead names the
-  OAuth client to which the asserted instance belongs.
+  This claim uses the JWT `client_id` claim defined in
+  {{RFC8693}} Section 4.3.
 
   The claim binds the actor token to a specific client and is not
   part of the actor's identity (per {{ACTOR-PROFILE}}, `client_id`
@@ -1608,6 +1618,25 @@ access token MUST be sender-constrained per {{sender-constrained}},
 and any upstream actor chain MUST be preserved by nesting per
 {{ACTOR-PROFILE}} (merge rules in {{chain-merging}}).
 
+Access tokens issued under this profile MUST include the following
+top-level claims, populated by the AS at issuance time, regardless
+of grant or classification:
+
+* `iss` -- the AS's issuer identifier;
+* `aud` -- the resource indicator(s) the access token is intended
+  for, per {{RFC9068}};
+* `client_id` -- the OAuth client to which the token was issued;
+* `iat` and `exp` -- the issued-at and expiration timestamps;
+* `cnf` -- the sender-constraint binding per {{sender-constrained}};
+* `scope` -- when applicable per {{RFC6749}};
+* `sub` and, when applicable, `act` and `sub_profile` per the
+  classification rules below.
+
+For JWT access tokens, the requirements of {{RFC9068}} additionally
+apply; this profile does not relax any {{RFC9068}} requirement.
+For opaque (reference) access tokens, the same claim set is surfaced
+through introspection per {{rs-processing-introspection}}.
+
 ### Classification {#access-token-classification}
 
 The AS classifies the request based on whether the grant produces
@@ -1702,13 +1731,19 @@ A client that lists multiple instance issuers MUST ensure those
 issuers' `sub` spaces do not collide (for example, by using
 disjoint naming conventions, prefixes, or a SPIFFE trust-domain
 split); when the client cannot guarantee disjointness, the AS
-SHOULD apply namespacing (e.g., prefixing `sub` with the
-descriptor's issuer such as `<issuer>#<sub>`) to prevent a
-compromised issuer from spoofing another's `sub`. Such namespacing
-is a deployment-side choice and does not affect the wire format of
-the Client Instance Assertion. AS-applied namespacing produces an AS-scoped
-subject identifier; resource-server policy and audit tooling need
-to treat it as AS-issued rather than issuer-native.
+SHOULD apply AS-scoped namespacing that incorporates both the
+matched descriptor's `issuer` and the original `sub` value, to
+prevent a compromised issuer from spoofing another's `sub`. The
+specific encoding is a deployment choice; ASes MUST pick a form
+that is unambiguously parseable and does not collide with
+issuer-native subject forms an RS might also see (in particular,
+ad-hoc separators such as `#` are not appropriate when issuer
+identifiers are URIs, because `#` is the URI fragment delimiter).
+Such namespacing is a deployment-side choice and does not affect
+the wire format of the Client Instance Assertion. AS-applied
+namespacing produces an AS-scoped subject identifier; resource-
+server policy and audit tooling need to treat it as AS-issued
+rather than issuer-native.
 
 For a worked example see {{appendix-examples-client-credentials}}.
 
@@ -1806,7 +1841,14 @@ certificate thumbprint MAY serve as `cnf.x5t#S256` in either the
 re-minted assertion or the issued access token's binding.
 
 The AS MUST select exactly one validation mode before accepting the
-assertion and MUST apply that mode's rules exclusively:
+assertion and MUST apply that mode's rules exclusively. Selection
+is determined by whether the assertion contains a `client_id`
+claim: presence selects re-minted mode unconditionally, even when
+the descriptor's SPIFFE conditions would otherwise have permitted
+raw mode. This means an OAuth-aware adapter that mints a
+Client Instance Assertion with a SPIFFE-formatted `sub` together
+with a `client_id` claim is always processed as re-minted, and
+the `client_id` value is verified per {{as-processing}}.
 
 | Mode | Selected when | Key source | Claim requirements | Binding |
 | --- | --- | --- | --- | --- |
@@ -2032,6 +2074,48 @@ presence or absence of `act`, not on the format of `sub`.
 Policies that authorize solely on `client_id` lose the
 instance-level distinction this profile is designed to provide.
 
+## Introspection Responses {#rs-processing-introspection}
+
+When the AS issues opaque (reference) access tokens under this
+profile, the set of profile-defined claims in the introspection
+response ({{RFC7662}}) MUST be identical to the set that would
+appear in the payload of a JWT access token for the same grant,
+including `act` (when applicable), `sub`, `sub_profile`, `client_id`,
+`cnf`, and any actor-chain members defined by {{ACTOR-PROFILE}}.
+Resource servers that consume introspection apply the same
+processing as for JWT access tokens described above; the
+representational difference is only in where the claims arrive
+(token payload versus introspection response).
+
+The following example shows an introspection response for an
+opaque access token issued under the authorization_code grant
+({{appendix-examples-auth-code}}). The corresponding self-acting
+case ({{appendix-examples-client-credentials}}) and token-exchange
+case ({{appendix-examples-token-exchange}}) follow the same
+pattern: the top-level claims and any `act` chain appear in the
+response exactly as they would in a JWT access token payload.
+
+~~~ json
+{
+  "active":      true,
+  "iss":         "https://as.example.com",
+  "aud":         "https://api.example.com",
+  "sub":         "user:alice@example.com",
+  "client_id":   "https://app.example.com/agent",
+  "scope":       "repo.write",
+  "iat":         1770000005,
+  "exp":         1770001805,
+  "token_type":  "DPoP",
+  "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "act": {
+    "iss":         "https://workload.app.example.com",
+    "sub":         "https://workload.app.example.com/inst-01",
+    "sub_profile": "client_instance",
+    "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
+  }
+}
+~~~
+
 # Adoption and Migration {#adoption}
 
 This profile is designed for incremental adoption. Existing client
@@ -2149,7 +2233,14 @@ instances of the named client. Clients SHOULD list only
 instance issuers under their own administrative control (or
 contractually equivalent), and SHOULD set `spiffe_id`,
 `trust_domain`, and `signing_alg_values_supported` to bound what
-each issuer is allowed to assert. Clients using SPIFFE SHOULD include
+each issuer is allowed to assert. Deployments hosting workloads
+from multiple tenants under a single `client_id` aggregate those
+tenants' trust roots into a single `instance_issuers` list; see
+{{security-multi-tenancy}} for the resulting blast-radius
+considerations and the recommendation to issue per-tenant
+`client_id` values where tenants are independent trust boundaries.
+
+Clients using SPIFFE SHOULD include
 `spiffe_id`; omitting it delegates the whole SPIFFE trust domain and
 is appropriate only when every workload in that trust domain is
 authorized to act as an instance of the client. After a client
@@ -2157,6 +2248,16 @@ detaches a compromised issuer, tokens
 minted under the prior trust may continue to validate up to the
 trust-withdrawal latency bound in {{security-trust-withdrawal-latency}};
 operators SHOULD plan incident response around this window.
+
+The per-client minting requirement of {{issuer-obligations}} is
+an operational obligation on the instance issuer, not a check the
+AS performs in-band. The AS verifies that a presented assertion's
+`client_id` claim matches the authenticated client, but it cannot
+detect an issuer that violates its obligation by minting for
+runtimes outside the authorized set; such assertions are accepted
+as valid. Clients SHOULD list only issuers whose minting policy
+they have audited and whose operational practice they trust to
+honor {{issuer-obligations}}.
 
 Client metadata is itself trust-affecting: an attacker who can
 modify it can add a new instance issuer under their control.
@@ -2292,11 +2393,9 @@ AS has adopted updated client metadata that removes an instance
 issuer or narrows a descriptor's scope so that an issued access
 token's `act` (or, for self-acting tokens, `sub`) is no longer
 endorsed, introspection responses for that access token MUST return
-active = false once the AS has applied the update. Active
-introspection responses SHOULD include the access token's top-level
-`cnf` so that introspection-based PoP has the binding key
-(delegation case follows {{ACTOR-PROFILE}}); for self-acting
-tokens, `sub_profile` and `cnf` SHOULD also be returned.
+active = false once the AS has applied the update. The claim set
+returned in active introspection responses is specified by
+{{rs-processing-introspection}}.
 
 ### Revocation and Refresh Tokens {#revocation-refresh}
 
@@ -2386,6 +2485,36 @@ invalidates client authentications that depended on that issuer's
 endorsement, and the AS MUST stop accepting `client_instance_assertion`
 authentications via the removed or narrowed issuer once it has
 applied the metadata update ({{trust-lifecycle}}).
+
+## Multi-Tenancy Under a Single Client {#security-multi-tenancy}
+
+The class-and-instance model in {{client-instance-model}} is a
+two-level model: the OAuth client (class) and its runtime
+instances. It does not model tenancy as a third dimension.
+Deployments that aggregate workloads from distinct trust domains
+under a single OAuth `client_id` concentrate those tenants' trust
+roots into one `instance_issuers` list. Compromise of any listed
+issuer extends to every tenant whose workloads it authenticates.
+
+This profile RECOMMENDS issuing a separate `client_id` per tenant
+when tenants need to be isolated as trust boundaries. Per-tenant
+`client_id`s give each tenant its own `instance_issuers` list, its
+own descriptor scope, and its own revocation surface, and align
+this profile's trust model with the deployment's tenancy
+boundaries.
+
+Where per-tenant `client_id`s are not practical, deployments SHOULD
+use tight per-issuer constraints in `instance_issuers` (per-tenant
+`spiffe_id` paths, per-tenant `trust_domain` values, or
+descriptor-level scope members that constrain accepted `sub`
+values to a specific tenant) and treat the cross-tenant blast
+radius as a known operational risk. Tenant isolation in such
+deployments is enforced by the breadth of these per-issuer
+constraints, not by the OAuth client identity.
+
+This profile does not define a tenant identifier as a first-class
+claim. Future profiles MAY introduce one if cross-deployment
+interoperability of tenant scoping becomes necessary.
 
 ## Mode-Switch Between Delegation and Self-Acting {#security-mode-switch}
 
@@ -2517,6 +2646,41 @@ Change Controller:
 
 Specification Document(s):
 : This document
+
+## OAuth Client Instance Subject Syntaxes {#iana-subject-syntax}
+
+IANA is requested to create a new sub-registry titled "OAuth Client
+Instance Subject Syntaxes" under the "OAuth Parameters" registry
+group established by {{RFC6749}}. Registration policy is
+Specification Required {{RFC8126}}.
+
+A Client Instance Subject Syntax is a short identifier appearing in
+the `subject_syntax` member of an instance issuer descriptor
+({{instance-issuers}}). It declares the syntactic form of the `sub`
+claim used by the issuer and selects validation rules the AS
+applies to that claim.
+
+Registry fields:
+
+Syntax Identifier:
+: A short label used as the `subject_syntax` value. ABNF:
+  1*( ALPHA / DIGIT / "-" ).
+
+Description:
+: A short description of the subject form.
+
+Change Controller:
+: As required by Specification Required policy.
+
+Specification Document(s):
+: The defining specification.
+
+IANA is requested to register the following initial values:
+
+| Syntax Identifier | Description | Change Controller | Specification |
+| --- | --- | --- | --- |
+| `uri` | Arbitrary StringOrURI {{RFC7519}} subject (the default when `subject_syntax` is absent). | IETF | {{instance-issuers}} of this document |
+| `spiffe` | SPIFFE ID {{SPIFFE}}. Triggers SPIFFE-specific descriptor members (`trust_domain`, `spiffe_id`) and SPIFFE compatibility ({{spiffe-compatibility}}). | IETF | {{instance-issuers}} of this document |
 
 ## OAuth Parameters Registration {#iana-token-params}
 
@@ -3112,6 +3276,171 @@ the parent agent agent-orchestrator-alpha, which acted on behalf of
 user alice. Each `act` layer names a distinct runtime; resource
 servers and audit pipelines can attribute the request to the
 specific sub-agent that performed it.
+
+## Refresh with a Fresh Instance Assertion {#appendix-examples-refresh}
+{:numbered="false"}
+
+Some time after the authorization-code example
+({{appendix-examples-auth-code}}), instance inst-01's original
+access token approaches expiry. The original Client Instance
+Assertion has also expired, so the client mints a fresh assertion
+(same `iss`, `sub`, and `cnf`) and presents it on the refresh
+request. The refresh token is sender-constrained to the same DPoP
+key per {{refresh}}.
+
+Token request:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-01's key>
+
+grant_type=refresh_token
+&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_assertion_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
+&client_assertion=eyJhbGciOiJFUzI1NiIs... (private_key_jwt)
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Decoded fresh `client_instance_assertion`:
+
+~~~ json
+{
+  "iss":         "https://workload.app.example.com",
+  "sub":         "https://workload.app.example.com/inst-01",
+  "aud":         "https://as.example.com",
+  "client_id":   "https://app.example.com/agent",
+  "sub_profile": "client_instance",
+  "iat":         1770001700,
+  "exp":         1770002000,
+  "jti":         "rf-1a2b3c",
+  "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
+}
+~~~
+
+AS validation per {{refresh}}:
+
+1. Authenticate the client (`private_key_jwt`).
+2. Verify the refresh token belongs to this client and is bound to
+   the presented DPoP key.
+3. Validate the fresh assertion per {{as-processing}}; in particular
+   verify that its `(iss, sub)` match those recorded at original
+   issuance and its `cnf` matches the refresh-token binding key.
+4. Inherit the original grant's classification (delegation), per
+   {{access-token-classification}}.
+5. Issue a new sender-constrained access token with the same
+   `act` chain.
+
+The refreshed access token is identical in shape to the original
+({{appendix-examples-auth-code}}), with updated `iat` and `exp`.
+
+A second variant of this flow omits the fresh assertion entirely:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-01's key>
+
+grant_type=refresh_token
+&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_assertion_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
+&client_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Without a fresh `client_instance_assertion`, the AS still
+inherits the original delegation classification and the original
+`act` chain (sender-constrained to the same DPoP key, since the
+refresh token was bound to it). This is the common case when
+instance identity has not changed since issuance; the issued
+access token's `act` claim is unchanged from
+{{appendix-examples-auth-code}} (with updated `iat` and `exp`).
+Refresh does not introduce a new instance identity.
+
+## Client Authenticated via Instance Assertion {#appendix-examples-instance-auth}
+{:numbered="false"}
+
+A workload's OAuth client is registered with
+`token_endpoint_auth_method` = `client_instance_assertion`
+({{instance-assertion-auth}}). The workload presents no separate
+client credential; the Client Instance Assertion authenticates
+both the client (through the registered endorsement of its
+issuer) and the instance.
+
+Token request:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-04's key>
+
+grant_type=client_credentials
+&scope=repo.write
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Decoded `client_instance_assertion`:
+
+~~~ json
+{
+  "iss":         "https://workload.app.example.com",
+  "sub":         "https://workload.app.example.com/inst-04",
+  "aud":         "https://as.example.com",
+  "client_id":   "https://app.example.com/agent",
+  "sub_profile": "client_instance",
+  "iat":         1770000100,
+  "exp":         1770000400,
+  "jti":         "ia-4d5e6f",
+  "cnf":         { "jkt": "QrS...789" }
+}
+~~~
+
+AS validation per {{instance-assertion-auth-validation}}:
+
+1. Resolve the registered metadata for `client_id`
+   (`token_endpoint_auth_method` is `client_instance_assertion`,
+   so no separate client credential is expected and none is
+   accepted on this request).
+2. Validate the assertion using the descriptor lookup, signature
+   verification, and JWT claim validation rules in
+   {{as-processing}} (token-type matching does not apply on
+   `client_credentials`).
+3. Verify the assertion's `client_id` claim equals the request's
+   `client_id` parameter.
+4. Verify the assertion contains a `cnf` claim.
+5. Verify possession of the `cnf` key against the DPoP proof per
+   {{sender-constrained}}.
+6. Apply the replay check ({{security-replay}}).
+7. Treat the client as authenticated. The validated assertion
+   represents the instance for {{access-token}}.
+
+Any failure in steps 1-6 above is returned as `invalid_client` per
+{{errors}}; the assertion is the sole credential, so failures that
+would otherwise be `invalid_grant` or `invalid_request` are
+reclassified.
+
+Self-acting access token issued by the AS:
+
+~~~ json
+{
+  "iss":         "https://as.example.com",
+  "aud":         "https://api.example.com",
+  "sub":         "https://workload.app.example.com/inst-04",
+  "sub_profile": "client_instance",
+  "client_id":   "https://app.example.com/agent",
+  "scope":       "repo.write",
+  "iat":         1770000105,
+  "exp":         1770001905,
+  "cnf":         { "jkt": "QrS...789" }
+}
+~~~
 
 ## SPIFFE Workload (Self-Acting, JWT-SVID Reuse with X.509-SVID Binding) {#appendix-examples-spiffe}
 {:numbered="false"}
