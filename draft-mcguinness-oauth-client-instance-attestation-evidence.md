@@ -46,6 +46,15 @@ normative:
         fullname: Karl McGuinness
     date: 2026-05
 
+informative:
+  ACME-DEVICE-ATTEST: I-D.ietf-acme-device-attest
+  OPENID4VCI:
+    title: "OpenID for Verifiable Credential Issuance"
+    target: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html
+    author:
+      org: OpenID Foundation
+    date: 2025
+
 --- abstract
 
 This specification defines a composition between OAuth
@@ -688,6 +697,122 @@ the URN subject from `cnf.jkt`, classifies as delegation (per
 Client Attestation; the URN in `act.sub` is the same form as the
 self-acting example above.
 
+# Example Mapping Shapes {#appendix-mapping-shapes}
+{:numbered="false"}
+
+This appendix sketches two non-normative mapping shapes anchored
+in existing real-world attestation ecosystems, illustrating what
+the "deployment-defined or companion-profile-defined mapping"
+path of {{attestation-evidence-subject}} could look like in
+practice. The mappings shown here are illustrative; concrete
+Attester profiles intending cross-deployment interoperability
+register their resulting URN type in {{iana-instance-subject}}
+with their own normative rules.
+
+In all cases the AS sets `sub_profile` to `client_instance` unless
+the mapping supplies a different subject profile.
+
+## Wallet Attestation Mapping (OpenID4VCI) {#appendix-mapping-wallet}
+{:numbered="false"}
+
+OpenID for Verifiable Credential Issuance ({{OPENID4VCI}}) and
+related wallet-attestation work in the OpenID Foundation
+(including the EU Digital Identity Wallet architecture under
+eIDAS 2.0) issue per-wallet-installation attestations. An
+Attester at the wallet ecosystem level mints a Client Attestation
+identifying the specific installed wallet instance. A
+deployment-defined mapping consumes a wallet-instance identifier
+emitted by the Attester:
+
+~~~
+Client Attestation claims (excerpt):
+  "iss":           "https://attester.wallet.example.eu"
+  "sub":           "https://wallet.example.com/eu-wallet"
+  "cnf":           { "jkt": "QrS...XyZ" }
+  "wallet_name":   "ExampleWallet v1.4"
+  "wallet_link":   "https://wallet.example.com/instance/9f2c..."
+
+Derived sub:
+  urn:example:wallet:9f2c1b40-7c4a-4f3a-a2a5-65f2b6b9c1ed
+~~~
+
+The mapping rule: extract a wallet-instance identifier from the
+Attester-supplied claim space (the exact claim name depends on
+the wallet profile in use) and emit it under a registered URN
+namespace. The wallet attestation ecosystem provides
+installation-level identifiers that survive key rotation within
+the wallet's lifetime, which fits the cross-session audit
+expectations of credential-issuance flows.
+
+Per-tenant or per-eIDAS-LoA-scoped variants combine the wallet
+instance identifier with an enrollment, tenant, or assurance-level
+claim from the Attester payload.
+
+## ACME Device Attestation Mapping {#appendix-mapping-acme-mda}
+{:numbered="false"}
+
+ACME device attestation ({{ACME-DEVICE-ATTEST}}) defines the
+`device-attest-01` challenge that lets a device prove a
+hardware-rooted permanent identifier (typically a serial number)
+to an ACME CA, with the proof carried in a WebAuthn-format
+attestation statement. The CA issues a client certificate bound
+to a hardware-rooted key (in a Secure Enclave, TPM, or equivalent)
+and carrying the attested identifier. Apple's Managed Device
+Attestation -- available on iOS/iPadOS/macOS devices under MDM
+management -- is the most widely deployed realization of this
+pattern; analogous flows exist for other platforms with hardware
+attestation.
+
+In this composition the ACME-issued device certificate (or a JWT
+re-minted from it by an Attester acting on the CA's behalf)
+becomes the Client Attestation, and the bound hardware key is the
+DPoP key per {{ATTEST-CLIENT-AUTH}} combined mode. A
+deployment-defined mapping extracts the attested device
+identifier:
+
+~~~
+Client Attestation claims (excerpt):
+  "iss":             "https://attester.example.com" (the org CA)
+  "sub":             "https://app.example.com/agent"
+  "cnf":             { "x5t#S256": "..." }
+                     (hardware-bound device certificate)
+  "device_serial":   "F2LQXXXXXXXX"
+                     (attested permanent identifier)
+  "hw_model":        "MacBookPro18,3"
+
+Derived sub:
+  urn:example:acme-device:serial:F2LQXXXXXXXX
+~~~
+
+The mapping rule: extract the attested permanent identifier from
+the Client Attestation (a serial number, hardware-module identifier,
+or other identifier the underlying attestation guarantees) and
+emit it under a registered URN namespace. Sender-constraint
+binding is established by the hardware-rooted key, either through
+the device certificate at TLS ({{RFC8705}}) or through a DPoP
+proof using the same key.
+
+This shape is well suited to enterprise device fleets and other
+deployments where the trust assumption is that a specific physical
+device, not just a software installation, is the unit of identity.
+The permanence of the device identifier has privacy implications;
+see {{security-attestation-evidence-subject}} regarding per-instance
+linkability, which apply with particular force to hardware-rooted
+permanent identifiers.
+
+## Registering a Mapping {#appendix-mapping-registration}
+{:numbered="false"}
+
+Either mapping above could be the basis for a registered subject
+URN type ({{iana-instance-subject}}) when intended for
+cross-deployment interoperability. The registration entry would
+specify which Client Attestation claim is consumed, the URN
+encoding of the claim value, and the security and privacy
+considerations specific to the underlying attestation ecosystem.
+Deployments operating a mapping without registration use a
+deployment-local URN namespace and document their mapping
+out of band.
+
 # Document History
 {:numbered="false"}
 
@@ -711,6 +836,12 @@ self-acting example above.
   Types" sub-registry (Specification Required), seeded with
   `jkt`, and the AS metadata parameter
   `client_instance_attestation_evidence_supported`.
+* Includes a non-normative §Example Mapping Shapes appendix
+  illustrating two deployment-defined mapping shapes anchored
+  in existing real-world attestation ecosystems: OpenID4VCI
+  wallet attestation ({{OPENID4VCI}}) and ACME device
+  attestation ({{ACME-DEVICE-ATTEST}}; including its Apple
+  Managed Device Attestation realization).
 * The composition references to {{ATTEST-CLIENT-AUTH}} match the
   semantics of that document at the time of writing; subsequent
   revisions of {{ATTEST-CLIENT-AUTH}} that change DPoP-combined-
