@@ -821,33 +821,7 @@ out of band.
 ## -00 {#history-00}
 {:numbered="false"}
 
-* Initial publication. The substantive content of this document
-  was previously the §Attestation-Based Instance Evidence section
-  (and its security and IANA subsections) of
-  draft-mcguinness-oauth-client-instance-assertion-01; the split
-  is editorial -- the composition is OPTIONAL to either core
-  spec.
-* Defines a precedence rule for token requests that present both
-  attestation-based evidence and an explicit Client Instance
-  Assertion: the Client Instance Assertion is authoritative for
-  instance identity, and the AS MUST verify the two evidence
-  sources name the same binding key.
-* Establishes the IANA "OAuth Client Instance Derived Subject URN
-  Types" sub-registry (Specification Required), seeded with
-  `jkt`, and the AS metadata parameter
-  `client_instance_attestation_evidence_supported`.
-* Includes a non-normative §Example Mapping Shapes appendix
-  illustrating two deployment-defined mapping shapes anchored
-  in existing real-world attestation ecosystems: OpenID4VCI
-  wallet attestation ({{OPENID4VCI}}) and ACME device
-  attestation ({{ACME-DEVICE-ATTEST}}; including its Apple
-  Managed Device Attestation realization).
-* The composition references to {{ATTEST-CLIENT-AUTH}} match the
-  semantics of that document at the time of writing; subsequent
-  revisions of {{ATTEST-CLIENT-AUTH}} that change DPoP-combined-
-  mode validation, the location of the bound key (`cnf`), or the
-  Attester's `sub` semantics may require corresponding updates to
-  this document.
+* Initial publication.
 
 # Acknowledgments
 {:numbered="false"}
