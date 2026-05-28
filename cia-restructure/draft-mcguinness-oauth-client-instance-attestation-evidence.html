@@ -2193,10 +2193,11 @@ Attestation -- available on iOS/iPadOS/macOS devices under MDM
 management -- is the most widely deployed realization of this
 pattern; analogous flows exist for other platforms with hardware
 attestation.<a href="#appendix-B.2-1" class="pilcrow">¶</a></p>
-<p id="appendix-B.2-2">In this composition the ACME-issued device certificate (or a JWT
-re-minted from it by an Attester acting on the CA's behalf)
-becomes the Client Attestation, and the bound hardware key is the
-DPoP key per <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> combined mode. A
+<p id="appendix-B.2-2">In this composition an Attester acting on the CA's behalf re-mints
+the ACME-issued device certificate into a Client Attestation JWT
+carrying the attested device identifier and a <code>cnf.jkt</code> to the
+same hardware-rooted key. The device signs a DPoP proof with that
+key for combined-mode validation per <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>. A
 deployment-defined mapping extracts the attested device
 identifier:<a href="#appendix-B.2-2" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="appendix-B.2-3">
@@ -2204,8 +2205,8 @@ identifier:<a href="#appendix-B.2-2" class="pilcrow">¶</a></p>
 Client Attestation claims (excerpt):
   "iss":             "https://attester.example.com" (the org CA)
   "sub":             "https://app.example.com/agent"
-  "cnf":             { "x5t#S256": "..." }
-                     (hardware-bound device certificate)
+  "cnf":             { "jkt": "QrS...XyZ" }
+                     (JWK thumbprint of hardware-rooted key)
   "device_serial":   "F2LQXXXXXXXX"
                      (attested permanent identifier)
   "hw_model":        "MacBookPro18,3"
@@ -2218,16 +2219,19 @@ Derived sub:
 the Client Attestation (a serial number, hardware-module identifier,
 or other identifier the underlying attestation guarantees) and
 emit it under a registered URN namespace. Sender-constraint
-binding is established by the hardware-rooted key, either through
-the device certificate at TLS (<span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>) or through a DPoP
-proof using the same key.<a href="#appendix-B.2-4" class="pilcrow">¶</a></p>
-<p id="appendix-B.2-5">This shape is well suited to enterprise device fleets and other
+binding is the DPoP proof signed by the hardware-rooted key, per
+<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> combined-mode rules and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>.<a href="#appendix-B.2-4" class="pilcrow">¶</a></p>
+<p id="appendix-B.2-5">Deployments that prefer to bind the access token to the device's
+X.509 certificate at TLS (<span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>) rather than to a DPoP key
+fall outside this composition, which is scoped to
+<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>'s DPoP combined mode.<a href="#appendix-B.2-5" class="pilcrow">¶</a></p>
+<p id="appendix-B.2-6">This shape is well suited to enterprise device fleets and other
 deployments where the trust assumption is that a specific physical
 device, not just a software installation, is the unit of identity.
 The permanence of the device identifier has privacy implications;
 see <a href="#security-attestation-evidence-subject" class="auto internal xref">Section 8.1</a> regarding per-instance
 linkability, which apply with particular force to hardware-rooted
-permanent identifiers.<a href="#appendix-B.2-5" class="pilcrow">¶</a></p>
+permanent identifiers.<a href="#appendix-B.2-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="appendix-mapping-registration">
