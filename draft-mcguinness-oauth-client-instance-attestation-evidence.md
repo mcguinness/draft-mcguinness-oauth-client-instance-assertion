@@ -36,6 +36,7 @@ normative:
   RFC7800:
   RFC8126:
   RFC8414:
+  RFC8705:
   RFC9449:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
   CIA-CORE:
