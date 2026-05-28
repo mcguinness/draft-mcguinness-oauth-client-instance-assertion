@@ -93,10 +93,16 @@ Table of Contents
    9.  IANA Considerations
      9.1.  OAuth Client Instance Derived Subject URN Types
      9.2.  OAuth Authorization Server Metadata
-   10. Normative References
+   10. References
+     10.1.  Normative References
+     10.2.  Informative References
    Worked Examples
      Client Credentials with cnf.jkt Fallback
      Token-Exchange Variant
+   Example Mapping Shapes
+     Wallet Attestation Mapping (OpenID4VCI)
+     ACME Device Attestation Mapping
+     Registering a Mapping
    Document History
      -00
    Acknowledgments
@@ -573,7 +579,9 @@ Table of Contents
 
    Specification Document(s):  Section 4.4 of this document
 
-10.  Normative References
+10.  References
+
+10.1.  Normative References
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
@@ -597,6 +605,12 @@ Table of Contents
               Authorization Server Metadata", RFC 8414,
               DOI 10.17487/RFC8414, June 2018,
               <https://www.rfc-editor.org/rfc/rfc8414>.
+
+   [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
+              Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
+              and Certificate-Bound Access Tokens", RFC 8705,
+              DOI 10.17487/RFC8705, February 2020,
+              <https://www.rfc-editor.org/rfc/rfc8705>.
 
    [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
               Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
@@ -624,6 +638,21 @@ Table of Contents
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+10.2.  Informative References
+
+   [ACME-DEVICE-ATTEST]
+              Weeks, B., Mallaya, G., Rajala, S., Bonnell, C., and R.
+              Hurst, "Automated Certificate Management Environment
+              (ACME) Device Attestation Extension", Work in Progress,
+              Internet-Draft, draft-ietf-acme-device-attest-05, 19 May
+              2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
+              acme-device-attest-05>.
+
+   [OPENID4VCI]
+              OpenID Foundation, "OpenID for Verifiable Credential
+              Issuance", 2025, <https://openid.net/specs/openid-4-
+              verifiable-credential-issuance-1_0.html>.
 
 Worked Examples
 
@@ -756,34 +785,115 @@ Token-Exchange Variant
    Attestation; the URN in act.sub is the same form as the self-acting
    example above.
 
+Example Mapping Shapes
+
+   This appendix sketches two non-normative mapping shapes anchored in
+   existing real-world attestation ecosystems, illustrating what the
+   "deployment-defined or companion-profile-defined mapping" path of
+   Section 4.1 could look like in practice.  The mappings shown here are
+   illustrative; concrete Attester profiles intending cross-deployment
+   interoperability register their resulting URN type in Section 9.1
+   with their own normative rules.
+
+   In all cases the AS sets sub_profile to client_instance unless the
+   mapping supplies a different subject profile.
+
+Wallet Attestation Mapping (OpenID4VCI)
+
+   OpenID for Verifiable Credential Issuance ([OPENID4VCI]) and related
+   wallet-attestation work in the OpenID Foundation (including the EU
+   Digital Identity Wallet architecture under eIDAS 2.0) issue per-
+   wallet-installation attestations.  An Attester at the wallet
+   ecosystem level mints a Client Attestation identifying the specific
+   installed wallet instance.  A deployment-defined mapping consumes a
+   wallet-instance identifier emitted by the Attester:
+
+   Client Attestation claims (excerpt):
+     "iss":           "https://attester.wallet.example.eu"
+     "sub":           "https://wallet.example.com/eu-wallet"
+     "cnf":           { "jkt": "QrS...XyZ" }
+     "wallet_name":   "ExampleWallet v1.4"
+     "wallet_link":   "https://wallet.example.com/instance/9f2c..."
+
+   Derived sub:
+     urn:example:wallet:9f2c1b40-7c4a-4f3a-a2a5-65f2b6b9c1ed
+
+   The mapping rule: extract a wallet-instance identifier from the
+   Attester-supplied claim space (the exact claim name depends on the
+   wallet profile in use) and emit it under a registered URN namespace.
+   The wallet attestation ecosystem provides installation-level
+   identifiers that survive key rotation within the wallet's lifetime,
+   which fits the cross-session audit expectations of credential-
+   issuance flows.
+
+   Per-tenant or per-eIDAS-LoA-scoped variants combine the wallet
+   instance identifier with an enrollment, tenant, or assurance-level
+   claim from the Attester payload.
+
+ACME Device Attestation Mapping
+
+   ACME device attestation ([ACME-DEVICE-ATTEST]) defines the device-
+   attest-01 challenge that lets a device prove a hardware-rooted
+   permanent identifier (typically a serial number) to an ACME CA, with
+   the proof carried in a WebAuthn-format attestation statement.  The CA
+   issues a client certificate bound to a hardware-rooted key (in a
+   Secure Enclave, TPM, or equivalent) and carrying the attested
+   identifier.  Apple's Managed Device Attestation -- available on
+   iOS/iPadOS/macOS devices under MDM management -- is the most widely
+   deployed realization of this pattern; analogous flows exist for other
+   platforms with hardware attestation.
+
+   In this composition the ACME-issued device certificate (or a JWT re-
+   minted from it by an Attester acting on the CA's behalf) becomes the
+   Client Attestation, and the bound hardware key is the DPoP key per
+   [ATTEST-CLIENT-AUTH] combined mode.  A deployment-defined mapping
+   extracts the attested device identifier:
+
+   Client Attestation claims (excerpt):
+     "iss":             "https://attester.example.com" (the org CA)
+     "sub":             "https://app.example.com/agent"
+     "cnf":             { "x5t#S256": "..." }
+                        (hardware-bound device certificate)
+     "device_serial":   "F2LQXXXXXXXX"
+                        (attested permanent identifier)
+     "hw_model":        "MacBookPro18,3"
+
+   Derived sub:
+     urn:example:acme-device:serial:F2LQXXXXXXXX
+
+   The mapping rule: extract the attested permanent identifier from the
+   Client Attestation (a serial number, hardware-module identifier, or
+   other identifier the underlying attestation guarantees) and emit it
+   under a registered URN namespace.  Sender-constraint binding is
+   established by the hardware-rooted key, either through the device
+   certificate at TLS ([RFC8705]) or through a DPoP proof using the same
+   key.
+
+   This shape is well suited to enterprise device fleets and other
+   deployments where the trust assumption is that a specific physical
+   device, not just a software installation, is the unit of identity.
+   The permanence of the device identifier has privacy implications; see
+   Section 8.1 regarding per-instance linkability, which apply with
+   particular force to hardware-rooted permanent identifiers.
+
+Registering a Mapping
+
+   Either mapping above could be the basis for a registered subject URN
+   type (Section 9.1) when intended for cross-deployment
+   interoperability.  The registration entry would specify which Client
+   Attestation claim is consumed, the URN encoding of the claim value,
+   and the security and privacy considerations specific to the
+   underlying attestation ecosystem.  Deployments operating a mapping
+   without registration use a deployment-local URN namespace and
+   document their mapping out of band.
+
 Document History
 
    _RFC EDITOR: please remove this section before publication._
 
 -00
 
-   *  Initial publication.  The substantive content of this document was
-      previously the §Attestation-Based Instance Evidence section (and
-      its security and IANA subsections) of draft-mcguinness-oauth-
-      client-instance-assertion-01; the split is editorial -- the
-      composition is OPTIONAL to either core spec.
-
-   *  Defines a precedence rule for token requests that present both
-      attestation-based evidence and an explicit Client Instance
-      Assertion: the Client Instance Assertion is authoritative for
-      instance identity, and the AS MUST verify the two evidence sources
-      name the same binding key.
-
-   *  Establishes the IANA "OAuth Client Instance Derived Subject URN
-      Types" sub-registry (Specification Required), seeded with jkt, and
-      the AS metadata parameter
-      client_instance_attestation_evidence_supported.
-
-   *  The composition references to [ATTEST-CLIENT-AUTH] match the
-      semantics of that document at the time of writing; subsequent
-      revisions of [ATTEST-CLIENT-AUTH] that change DPoP-combined- mode
-      validation, the location of the bound key (cnf), or the Attester's
-      sub semantics may require corresponding updates to this document.
+   *  Initial publication.
 
 Acknowledgments
 
