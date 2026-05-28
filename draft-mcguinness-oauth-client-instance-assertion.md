@@ -6,7 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-assertion-latest
 submissiontype: IETF
 number:
-date: 2026-05-05
+date: 2026-05-28
 v: 3
 ipr: trust200902
 area: "Security"
@@ -99,15 +99,13 @@ sender-constrained to a key the instance possesses.
 
 # Introduction
 
-OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a client.
-In modern deployments such as agentic workloads, autoscaled services,
-and ephemeral function executions, a single logical client routinely
-corresponds to many concrete runtime instances that come and go on a
-short timescale. Resource servers and authorization servers
-increasingly need to know not only *which* client made a request but
-*which instance* of that client made it. Instances may be acting on a
-user's behalf or as the principal themselves; this profile covers
-both.
+OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
+client. In deployments where a single OAuth client identifier
+represents many short-lived runtime instances, resource servers
+and authorization servers need to know not only *which* client
+made a request but *which instance* of that client made it.
+Instances may be acting on a user's behalf or as the principal
+themselves; this profile covers both.
 
 OAuth 2.0 Token Exchange {{RFC8693}} defines the `actor_token` and
 `actor_token_type` token request parameters and the `act` claim for
@@ -740,16 +738,16 @@ Example client metadata document with a SPIFFE instance issuer:
 
 ~~~ json
 {
-  "client_id": "https://openai.example.com/codex",
-  "jwks_uri": "https://openai.example.com/codex/jwks.json",
+  "client_id": "https://app.example.com/agent",
+  "jwks_uri": "https://app.example.com/agent/jwks.json",
   "token_endpoint_auth_method": "private_key_jwt",
   "instance_issuers": [
     {
-      "issuer": "https://workload.openai.example.com",
-      "jwks_uri": "https://workload.openai.example.com/jwks.json",
+      "issuer": "https://workload.app.example.com",
+      "jwks_uri": "https://workload.app.example.com/jwks.json",
       "subject_syntax": "spiffe",
-      "trust_domain": "openai.example.com",
-      "spiffe_id": "spiffe://openai.example.com/codex/*",
+      "trust_domain": "app.example.com",
+      "spiffe_id": "spiffe://app.example.com/agent/*",
       "signing_alg_values_supported": ["ES256"]
     }
   ]
@@ -1031,10 +1029,10 @@ and JWT payload):
 
 ~~~ json
 {
-  "iss":         "https://workload.openai.example.com",
-  "sub":         "spiffe://openai.example.com/codex/session-abc",
+  "iss":         "https://workload.app.example.com",
+  "sub":         "spiffe://app.example.com/agent/session-abc",
   "aud":         "https://as.example.com",
-  "client_id":   "https://openai.example.com/codex",
+  "client_id":   "https://app.example.com/agent",
   "sub_profile": "client_instance",
   "iat":         1770000000,
   "exp":         1770000300,
@@ -1102,7 +1100,7 @@ DPoP: <DPoP proof bound to the instance's key>
 
 grant_type=client_credentials
 &scope=repo.write
-&client_id=https%3A%2F%2Fopenai.example.com%2Fcodex
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
 &client_assertion_type=
   urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
@@ -1370,7 +1368,7 @@ Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials
 &scope=repo.write
-&client_id=https%3A%2F%2Fopenai.example.com%2Fcodex
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
 &client_instance_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
 ~~~
 
@@ -1744,30 +1742,19 @@ refresh chain, matching the expectation of audit pipelines that a
 token's actor identity does not change after issuance.
 
 For SPIFFE deployments, the cnf binding key SHOULD outlive the
-JWT-SVID rotation cycle (typically 5-10 minutes in default SPIRE)
-when refresh tokens are issued. Deployments that bind `cnf` to a
-per-instance DPoP or mTLS key held by the workload satisfy this
-naturally; deployments that attempt to bind `cnf` to the SVID's
-signing key directly will lose refresh-token continuity at every
-rotation and SHOULD NOT use that pattern.
-
-Deployments requiring cross-instance session continuity (for
-example, agent platforms whose runtime is recycled but whose session
-should continue) handle this at the deployment layer rather than
-through refresh-token semantics. Suitable mechanisms include:
-
-* re-authorizing the client through a fresh authorization
-  grant (e.g., a new authorization_code flow with passive sign-in);
-* using token-exchange ({{RFC8693}}) to mint a new instance-bound
-  token chain in the successor instance from a long-lived parent
-  token held by the platform; or
-* persisting session state outside the refresh token (e.g., in a
-  shared store keyed by the user-and-client pair) and obtaining new tokens
-  through a fresh grant.
+JWT-SVID rotation cycle (typically a few minutes in default SPIFFE
+implementations) when refresh tokens are issued. Deployments that
+bind `cnf` to a per-instance DPoP or mTLS key held by the workload
+satisfy this naturally; deployments that attempt to bind `cnf` to
+the SVID's signing key directly will lose refresh-token continuity
+at every rotation and SHOULD NOT use that pattern.
 
 This profile does not extend refresh-token semantics to
 cross-instance succession; doing so would break the per-instance
 audit-stability invariant the profile is designed to provide.
+Deployments requiring cross-instance session continuity address
+it outside refresh-token semantics (the mechanisms are deployment
+choices and out of scope for this document).
 
 ## SPIFFE Compatibility {#spiffe-compatibility}
 
@@ -1984,66 +1971,32 @@ step failed (for example, "issuer not in instance_issuers" or
 
 Resource servers consuming access tokens issued under this profile
 follow the resource server processing rules defined in
-{{ACTOR-PROFILE}} (its "Resource Server Processing" section) for
-delegated access tokens, including actor authorization, JWT access
-token validation, sender-constraint validation against the top-level
-`cnf`, error responses (including the `actor_unauthorized` error code),
-and introspection. This section adds only the considerations specific
-to this profile.
+{{ACTOR-PROFILE}} for delegated access tokens, including actor
+authorization, JWT access token validation, sender-constraint
+validation against the top-level `cnf`, and introspection. This
+section adds three considerations specific to this profile.
 
-When the access token carries an `act` claim
-({{access-token-delegation}}), the resource server processes it
-per {{ACTOR-PROFILE}}; this profile adds no new RS-side requirements
-for the delegation case. Resource servers MAY use
-`act.sub_profile` = `client_instance` as a signal that the actor is
-a concrete runtime of an OAuth client, which can inform
-authorization policy. Resource servers MUST NOT rely on `act.iss`
-for proof of possession; per {{ACTOR-PROFILE}}, the top-level `cnf`
-is the binding for the current presenter.
+**`cnf` is the instance's key, not the principal's.** Under this
+profile the access token's top-level `cnf` is bound to the
+instance that presents the token. In the delegation case the
+principal in `sub` (typically a user) does not present the
+token; the instance named in `act.sub` does, and
+sender-constraint validation authenticates that instance.
 
-Under this profile, the access token's top-level `cnf` is the
-*instance's* key, not the principal's key (the principal in `sub` is
-typically a user, who does not present the token). The instance,
-named in `act.sub`, is the bearer; sender-constraint validation
-authenticates that instance. This is a deliberate consequence of
-binding the access token to the instance that holds the
-authorization, not to the principal who delegated to it.
+**Self-acting access tokens** ({{access-token-self-acting}})
+carry no `act`. `sub` names the client *instance* (typically a
+SPIFFE ID or other workload identifier), `sub_profile` =
+`client_instance` signals that the subject is a runtime instance,
+and `client_id` continues to name the OAuth *client*. Resource
+servers MUST NOT treat `client_id` as the actor identifier in
+the self-acting case; the actor identifier is `sub`. Resource
+servers that distinguish workload-self-acting from human-
+delegated requests SHOULD make the determination based on the
+presence or absence of `act`, not on the format of `sub`.
 
-Resource-server authorization policies SHOULD evaluate the logical
-client (`client_id`), the instance identity (`act.sub` in delegation
-tokens or `sub` in self-acting tokens), actor/subject profile signals
-such as `sub_profile`, granted scopes, and issuer context where it is
-available. Policies that authorize solely on `client_id` lose the
+**Authorization policy SHOULD evaluate instance identity.**
+Policies that authorize solely on `client_id` lose the
 instance-level distinction this profile is designed to provide.
-
-In the self-acting case ({{access-token-self-acting}}), the access
-token carries no `act` claim. From the resource server's perspective,
-the access token is a non-delegated token whose top-level claims have
-the following semantics under this profile:
-
-* `sub` names the *client instance* (typically a SPIFFE ID or other
-  workload identifier), not a human user.
-* `sub_profile` = `client_instance` signals that the subject is a runtime
-  instance and resource servers SHOULD apply policy appropriate to
-  workload identities (for example, scope-restricted machine-to-
-  machine policies, rate limits, or workload-specific audit).
-* `client_id` names the *client* (the logical OAuth client to
-  which the instance belongs), not the instance. Resource servers
-  MUST NOT treat `client_id` as the actor identifier in the self-
-  acting case; the actor identifier is `sub`. (When delegation is
-  also present, this distinction is moot; `client_id` remains the
-  OAuth client identifier and `act.sub` names the actor.)
-* `cnf` binds the token to the instance's key; PoP validation follows
-  the access token's binding mechanism (`DPoP` {{RFC9449}} or
-  Mutual-TLS-bound {{RFC8705}}).
-
-Resource servers that distinguish "human-delegated" from "workload-
-self-acting" requests SHOULD make the determination based on the
-presence or absence of `act`, not on the format of `sub`. In both
-cases the top-level `client_id` names the client, not the
-instance; when the instance is a SPIFFE workload, the SPIFFE ID is
-conveyed via `act.sub` (delegation) or `sub` (self-acting), never
-via `client_id`.
 
 # Adoption and Migration {#adoption}
 
@@ -2088,50 +2041,30 @@ intrinsically requires the assertion.
 
 Re-minted Client Instance Assertions require `cnf` ({{claims}}).
 A deployment whose workload identity system does not yet emit
-per-instance keys has three options:
+per-instance keys has two options:
 
 * **Adapter pattern**: an OAuth-aware adapter wraps an existing
-  workload identity system (Kubernetes projected service-account
-  tokens, AWS IMDS, GCP metadata server, Azure managed identity, a
-  SPIFFE control plane, etc.) and re-mints a Client Instance
-  Assertion with `cnf` from the underlying credential, signing with
-  a key registered in the issuer's descriptor. From the AS's
-  perspective, the adapter is the instance issuer
-  ({{issuer-obligations}}); the adapter enforces the per-client
-  authorization rule, since underlying workload-identity systems
-  typically do not know about OAuth clients or their
-  class-and-instance relationship. The adapter holds the
-  workload-identifier → `client_id` mapping, the OAuth signing
-  keys, and re-issues at the underlying credential's rotation
-  cadence. Recommended for non-SPIFFE deployments and for SPIFFE
-  deployments that can run an adapter.
+  workload identity system (for example, platform-managed identity
+  services such as cluster-issued projected service-account tokens,
+  cloud-instance metadata services, or a SPIFFE control plane) and
+  re-mints a Client Instance Assertion with `cnf` from the
+  underlying credential, signing with a key registered in the
+  issuer's descriptor. From the AS's perspective, the adapter is
+  the instance issuer ({{issuer-obligations}}); the adapter
+  enforces the per-client authorization rule, since underlying
+  workload-identity systems typically do not know about OAuth
+  clients or their class-and-instance relationship. The adapter
+  holds the workload-identifier → `client_id` mapping, the OAuth
+  signing keys, and re-issues at the underlying credential's
+  rotation cadence. Recommended for non-SPIFFE deployments and for
+  SPIFFE deployments that can run an adapter.
 
 * **Raw JWT-SVID compatibility**: the SVID is presented as the
-  Client Instance Assertion without re-minting and the AS
-  establishes binding through a channel independent of the SVID
-  ({{spiffe-client-id-omission}}, {{spiffe-binding}}). This is the
-  SPIFFE-native path. For workloads with X.509-SVIDs, the
-  X.509-SVID can serve as the binding key in two shapes:
-
-    - **Re-minted with `cnf`**: an adapter mints a Client Instance
-      Assertion whose `cnf.x5t#S256` is the SHA-256 thumbprint of
-      the workload's X.509-SVID certificate. The workload presents
-      the assertion and the same X.509-SVID at TLS under
-      {{RFC8705}}; the AS verifies that the TLS certificate
-      thumbprint matches `cnf.x5t#S256`. Use when an OAuth-aware
-      adapter is available.
-    - **Raw JWT-SVID with X.509 binding**: the workload presents
-      its JWT-SVID directly (no re-mint, no `cnf`) and its
-      X.509-SVID at TLS; the AS treats the X.509-SVID as the
-      sender-constraint binding under {{spiffe-binding}}. Use when
-      the workload runs against unmodified SPIFFE infrastructure.
-
-  Both ground the binding in the SPIFFE trust domain that issued
-  the SVID and avoid a separate DPoP key. Worked example in
-  {{appendix-examples-spiffe}}.
-
-* **Defer adoption** until the workload identity system can emit
-  per-instance keys directly.
+  Client Instance Assertion without re-minting; the AS establishes
+  sender-constraint binding through a channel independent of the
+  SVID per {{spiffe-compatibility}} and {{spiffe-binding}} (the
+  X.509-SVID at TLS under {{RFC8705}} is the common pattern). See
+  {{appendix-examples-spiffe}} for a worked example.
 
 ASes and OAuth client operators SHOULD NOT enable the
 `client_instance_assertion` authentication method
@@ -2218,17 +2151,9 @@ issuer, and the access token TTL. ASes SHOULD size these components
 together so that the resulting latency matches their
 incident-response target.
 
-Recommended defaults: instance assertion `exp` of 5 minutes or less
-({{security-replay}}); access-token TTL of 30 minutes or less paired
-with a metadata refresh interval of 30 minutes or less, giving a
-trust-withdrawal latency of approximately 65 minutes. Tighter
-deployments (5-minute access tokens with 5-minute caches,
-approximately 15 minutes) and looser deployments (60-minute tokens
-with 1-hour caches, approximately 2 hours) are both common; looser
-deployments SHOULD support active revocation ({{revocation}}) and
-introspection-based status checks at the resource server. Operators
-SHOULD treat this latency as a deployment-time SLO matching their
-incident-response requirements.
+Deployments with longer latencies SHOULD support active
+revocation ({{revocation}}) and introspection-based status checks
+at the resource server.
 
 ## Instance Lifecycle {#security-lifecycle}
 
@@ -2401,11 +2326,11 @@ instance issuer is sufficient to mint tokens that authenticate as
 the client. Modes such as `private_key_jwt` require an attacker to
 possess both the instance issuer's signing key and the client's
 private key; that two-key property holds only when the two keys
-live in different security domains (e.g., the client's key in an
-HSM or signing service distinct from the runtime). Where genuine
-separation is not feasible, deployments SHOULD use
-{{instance-assertion-auth}} explicitly rather than rely on nominal
-two-key authentication that does not actually separate custody.
+live in different security domains. Where genuine custody
+separation between the client credential and the instance issuer
+is not available, the security property of `private_key_jwt`
+paired with a Client Instance Assertion reduces to that of
+`client_instance_assertion` alone.
 
 When `client_instance_assertion` is used, clients SHOULD constrain each
 instance issuer's authority through `spiffe_id`, `trust_domain`,
