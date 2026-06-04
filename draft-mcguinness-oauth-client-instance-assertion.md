@@ -1507,35 +1507,31 @@ as belonging to the instance for binding purposes.
 
 ## Access Token Representation {#access-token}
 
+This section defines how a validated Client Instance Assertion
+surfaces in the issued access token. It does not restate the
+generic access-token claim set: JWT access tokens issued under
+this profile follow {{RFC9068}}; opaque (reference) access tokens
+carry the same set of claims through introspection per
+{{rs-processing-introspection}}. The profile-specific surfacing
+rules are:
+
+* The access token MUST be sender-constrained per
+  {{sender-constrained}} (i.e., `cnf` is bound to the instance's
+  key, not bearer).
+* The validated instance identity surfaces in `act` (delegation
+  case) or top-level `sub` (self-acting case), per the
+  classification and per-case rules below; `sub_profile`
+  ({{ACTOR-PROFILE}}) signals the kind of subject in either case.
+* Any upstream actor chain MUST be preserved by nesting per
+  {{ACTOR-PROFILE}}; merge rules are in {{chain-merging}}.
+
 A client instance may be acting on behalf of another principal
 (*delegation case*; e.g., a user authorized the request through an
 authorization_code grant) or acting as itself with no other
 principal involved (*self-acting case*; e.g., a `client_credentials`
 grant). The AS MUST classify each request as delegation or
-self-acting before populating the issued access token's claims. In
-both cases the access token's `client_id` remains the client, the
-access token MUST be sender-constrained per {{sender-constrained}},
-and any upstream actor chain MUST be preserved by nesting per
-{{ACTOR-PROFILE}} (merge rules in {{chain-merging}}).
-
-Access tokens issued under this profile MUST include the following
-top-level claims, populated by the AS at issuance time, regardless
-of grant or classification:
-
-* `iss` -- the AS's issuer identifier;
-* `aud` -- the resource indicator(s) the access token is intended
-  for, per {{RFC9068}};
-* `client_id` -- the OAuth client to which the token was issued;
-* `iat` and `exp` -- the issued-at and expiration timestamps;
-* `cnf` -- the sender-constraint binding per {{sender-constrained}};
-* `scope` -- when applicable per {{RFC6749}};
-* `sub` and, when applicable, `act` and `sub_profile` per the
-  classification rules below.
-
-For JWT access tokens, the requirements of {{RFC9068}} additionally
-apply; this profile does not relax any {{RFC9068}} requirement.
-For opaque (reference) access tokens, the same claim set is surfaced
-through introspection per {{rs-processing-introspection}}.
+self-acting before populating the issued access token's claims;
+the classification rules are in {{access-token-classification}}.
 
 ### Classification {#access-token-classification}
 
@@ -3433,11 +3429,16 @@ matches the access token's `cnf.x5t#S256`.
   document {{CIA-ATTEST-EVIDENCE}}, which now owns the
   composition's processing path, security considerations, IANA
   sub-registry, and AS metadata flag.
-* **Access token contract.** Required {{RFC9068}} for JWT access
-  tokens and stated the profile-level top-level claim set
-  explicitly (`iss`, `aud`, `client_id`, `iat`, `exp`, `cnf`,
-  `scope`, plus `sub`/`act`/`sub_profile` per classification).
-  Added §Introspection Responses for opaque tokens.
+* **Access token surfacing.** §access-token specifies how a
+  validated Client Instance Assertion surfaces in the issued
+  access token: `act` (delegation case) or top-level `sub`
+  (self-acting case), with `sub_profile` ({{ACTOR-PROFILE}})
+  signalling the kind of subject, and sender-constraint binding
+  per §sender-constrained. The generic JWT access-token contract
+  is inherited from {{RFC9068}}; this profile does not restate
+  the {{RFC9068}} claim set. Added §rs-processing-introspection
+  requiring opaque tokens to surface the same set of claims via
+  introspection.
 * **Validation procedure.** Specified the
   `client_instance_assertion` token-endpoint authentication
   method ({{instance-assertion-auth}}) with its validation
