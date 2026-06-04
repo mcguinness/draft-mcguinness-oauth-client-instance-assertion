@@ -1,12 +1,12 @@
 ---
-title: "OAuth 2.0 Client Instance Assertions using Actor Tokens"
+title: "OAuth 2.0 Client Instance Assertion"
 abbrev: "oauth-client-instance-assertion"
 category: std
 
 docname: draft-mcguinness-oauth-client-instance-assertion-latest
 submissiontype: IETF
 number:
-date: 2026-05-05
+date: 2026-05-28
 v: 3
 ipr: trust200902
 area: "Security"
@@ -14,9 +14,9 @@ workgroup: "Web Authorization Protocol"
 keyword:
  - OAuth
  - CIMD
- - Actor
  - Workload Identity
  - Client Instance
+ - SPIFFE
 venue:
   group: "Web Authorization Protocol"
   type: "Working Group"
@@ -36,11 +36,13 @@ normative:
   RFC6755:
   RFC7515:
   RFC7517:
+  RFC7518:
   RFC7519:
   RFC7523:
   RFC7591:
   RFC7662:
   RFC7800:
+  RFC8126:
   RFC8414:
   RFC8693:
   RFC8705:
@@ -48,13 +50,21 @@ normative:
   RFC9068:
   RFC9449:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
+  CIMD: I-D.ietf-oauth-client-id-metadata-document
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
   SPIFFE-CLIENT-AUTH: I-D.ietf-oauth-spiffe-client-auth
 
 informative:
   RFC7009:
+  RFC8037:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
-  CIMD: I-D.ietf-oauth-client-id-metadata-document
+  CIA-ATTEST-EVIDENCE:
+    title: "Attestation-Based Client Instance Evidence for OAuth 2.0"
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-attestation-evidence.html
+    author:
+      -
+        fullname: Karl McGuinness
+    date: 2026-05
   WIMSE-ARCH: I-D.ietf-wimse-arch
   WIMSE-CREDS: I-D.ietf-wimse-workload-creds
   SPIFFE:
@@ -66,23 +76,25 @@ informative:
 
 --- abstract
 
-This specification defines a profile for representing OAuth 2.0
-client instance identity to an authorization server. It registers a
-new `actor_token_type`,
-`urn:ietf:params:oauth:token-type:client-instance-jwt`, that carries
-the instance identity as a signed JWT presented via the `actor_token`
-parameter defined by OAuth 2.0 Token Exchange (RFC 8693). To support
-presentation outside token exchange, this specification also permits
-`actor_token` and `actor_token_type` on selected additional grant
-types.
+This specification defines the Client Instance Assertion: a signed
+JWT identifying a concrete runtime instance of an OAuth 2.0 client.
+It registers the `client_instance_assertion` request parameter for
+carrying the assertion at the OAuth 2.0 token endpoint on the
+`authorization_code`, `client_credentials`, `refresh_token`, and
+JWT bearer (RFC 7523) grants; on the token-exchange grant (RFC
+8693), the same assertion is presented as `actor_token` with
+`actor_token_type` set to
+`urn:ietf:params:oauth:token-type:client-instance-jwt`, also
+registered by this specification.
 
-The profile does not introduce a new `client_instance` identifier in
-protocol messages. Instead, it defines client metadata parameters
-(applicable to clients identified by a Client ID Metadata Document
-(CIMD) or registered via OAuth Dynamic Client Registration (RFC 7591))
-that let a `client_id` identify a logical client whose concrete
-runtime instances are authenticated by one or more trusted instance
-issuers (for example, workload identity systems).
+This specification does not introduce a new `client_instance`
+identifier in protocol messages. Instead, it defines client
+metadata parameters (applicable to clients identified by a Client
+ID Metadata Document (CIMD) or registered via OAuth Dynamic Client
+Registration (RFC 7591)) that let a `client_id` identify a logical
+client whose concrete runtime instances are authenticated by one or
+more trusted instance issuers (for example, workload identity
+systems).
 
 The Authorization Server validates the instance assertion and
 represents the instance either as an `act` claim, when another
@@ -96,22 +108,21 @@ sender-constrained to a key the instance possesses.
 
 # Introduction
 
-OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a client.
-In modern deployments such as agentic workloads, autoscaled services,
-and ephemeral function executions, a single logical client routinely
-corresponds to many concrete runtime instances that come and go on a
-short timescale. Resource servers and authorization servers
-increasingly need to know not only *which* client made a request but
-*which instance* of that client made it. Instances may be acting on a
-user's behalf or as the principal themselves; this profile covers
-both.
+OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
+client. In deployments where a single OAuth client identifier
+represents many short-lived runtime instances, resource servers
+and authorization servers need to know not only *which* client
+made a request but *which instance* of that client made it.
+Instances may be acting on a user's behalf or as the principal
+themselves; this specification covers both.
 
 OAuth 2.0 Token Exchange {{RFC8693}} defines the `actor_token` and
 `actor_token_type` token request parameters and the `act` claim for
-representing an actor in an issued token. The OAuth Actor Profile
-{{ACTOR-PROFILE}} further constrains the `act` claim and registers
-actor-related claims, but explicitly leaves out a token request
-parameter for proving an actor in flows other than token exchange.
+representing an actor in an issued token, scoped to the
+token-exchange grant. The OAuth Actor Profile {{ACTOR-PROFILE}}
+further constrains the `act` claim and registers actor-related
+claims, but explicitly leaves out a token request parameter for
+proving an actor in flows other than token exchange.
 
 This document defines a profile for representing client instance
 identity at the OAuth 2.0 token endpoint. It:
@@ -123,41 +134,52 @@ identity at the OAuth 2.0 token endpoint. It:
   to attest those instances. The metadata applies whether
   the client is identified by a Client ID Metadata Document {{CIMD}}
   or registered via {{RFC7591}}; see {{registration-models}}.
-* Registers a new `actor_token_type`,
-  `urn:ietf:params:oauth:token-type:client-instance-jwt`, that
-  carries the instance identity as a JSON Web Token (JWT) {{RFC7519}}
-  signed by an instance issuer published in the client's metadata.
+* Defines the Client Instance Assertion, a JSON Web Token (JWT)
+  {{RFC7519}} signed by an instance issuer published in the client's
+  metadata, and registers the `client_instance_assertion` request
+  parameter for carrying it at the OAuth 2.0 token endpoint on the
+  grants listed in {{permitted-grants}}. On the token-exchange grant
+  ({{RFC8693}}), the same assertion is presented as `actor_token`
+  with `actor_token_type` set to
+  `urn:ietf:params:oauth:token-type:client-instance-jwt`, also
+  registered by this profile.
 * Requires issued access tokens to be sender-constrained to a key
   the instance possesses, and specifies how the instance
   assertion's `cnf` claim drives that binding in the interoperable
   re-minted assertion format.
-* Registers `client_instance_jwt` as a `token_endpoint_auth_method`
-  value, allowing deployments without an online client-controlled
-  credential to authenticate the client via the instance assertion
-  alone.
+* Registers `client_instance_assertion` as a
+  `token_endpoint_auth_method` value, allowing deployments without
+  an online client-controlled credential to authenticate the client
+  via the instance assertion alone.
 * Defines first-class support for SPIFFE workload identity, including
-  optional direct presentation of JWT-SVIDs as `actor_token`.
+  optional direct presentation of JWT-SVIDs without re-minting.
 * Defines authorization server metadata so that clients can
   discover support.
 
-To enable instance assertions to be presented outside token exchange,
-this document also extends {{RFC8693}}'s `actor_token` and
-`actor_token_type` parameters to selected additional grant types
-(`authorization_code`, `client_credentials`, `refresh_token`, and
-the JWT bearer grant {{RFC7523}}). See {{grant-extension}}; the
-extension is independent of any specific `actor_token_type` and may
-be used by other profiles.
+To enable instance assertions to be presented on grants other than
+token-exchange, this document defines the `client_instance_assertion`
+request parameter for the `authorization_code`,
+`client_credentials`, `refresh_token`, and JWT bearer ({{RFC7523}})
+grants; see {{cia-param}}. On the token-exchange grant
+({{RFC8693}}), the same assertion is carried as `actor_token` per
+{{RFC8693}}'s conventions ({{token-exchange-presentation}}). The two
+parameter names are wire-syntax siblings for the same artifact.
 
 What this document does *not* do:
 
-* It does not introduce a `client_instance` or
-  `client_instance_assertion` request parameter (see
-  {{rationale-no-instance-assertion-param}}).
+* It does not introduce a `client_instance` identifier parameter
+  flowing through the authorization request, token request,
+  introspection, or access token (see
+  {{rationale-no-instance-identifier}}).
 * It does not change the syntax or processing of the `act` claim
   beyond what {{ACTOR-PROFILE}} already defines.
 * It does not define authorization endpoint interactions for
   conveying actor identity; like {{ACTOR-PROFILE}}, this is left for
   future work.
+* It does not define how a validated OAuth Client Attestation
+  ({{ATTEST-CLIENT-AUTH}}) can substitute for a Client Instance
+  Assertion; that composition is defined by the separate companion
+  {{CIA-ATTEST-EVIDENCE}}.
 
 # Conventions and Definitions
 
@@ -186,27 +208,31 @@ Instance Issuer:
 
 Client Instance Assertion:
 : A JWT issued by an instance issuer asserting the identity of a
-  client instance, presented as the `actor_token` in a token request.
-  This document distinguishes "`actor_token`" (the RFC 8693 request
-  parameter, always typeset in backticks) from "Client Instance
-  Assertion" or "instance assertion" in prose (the JWT artifact
-  defined by this profile, which is what the `actor_token` parameter
-  carries when its `actor_token_type` is
-  `urn:ietf:params:oauth:token-type:client-instance-jwt`).
+  client instance, presented at the OAuth 2.0 token endpoint as the
+  `client_instance_assertion` request parameter ({{cia-param}}) or,
+  on the token-exchange grant, as the `actor_token` parameter with
+  `actor_token_type` set to
+  `urn:ietf:params:oauth:token-type:client-instance-jwt`
+  ({{token-exchange-presentation}}). The terms "Client Instance
+  Assertion" and "instance assertion" are used interchangeably in
+  prose; "the presented assertion" denotes the JWT carried by either
+  parameter, with processing identical in both cases.
 
-Actor Token Grant Extension:
-: The wire-level extension defined in {{grant-extension}} permitting
-  `actor_token` and `actor_token_type` ({{RFC8693}}) on the grant
-  types listed in {{permitted-grants}}. This document's
-  `client-instance-jwt` actor token type builds on the extension;
-  other profiles may define their own actor token types under it.
+Client Instance Evidence:
+: The material an authorization server uses to identify and bind a
+  client instance for the purposes of this profile. The primary
+  form is a Client Instance Assertion presented as defined above.
+  Companion specifications may define additional forms; for
+  example, {{CIA-ATTEST-EVIDENCE}} defines validated OAuth
+  Attestation-Based Client Authentication material as an
+  alternative form of Client Instance Evidence.
 
 Delegation Case:
 : A token request whose grant produces a principal distinct from the
-  instance presenting the `actor_token` (for example, a user under
-  authorization_code or jwt-bearer). The issued access token's `sub`
-  is the principal and the instance appears in `act` per
-  {{access-token-delegation}}.
+  instance presenting the Client Instance Assertion (for example, a
+  user under authorization_code or jwt-bearer). The issued access
+  token's `sub` is the principal and the instance appears in `act`
+  per {{access-token-delegation}}.
 
 Self-Acting Case:
 : A token request whose grant produces no principal distinct from
@@ -217,19 +243,23 @@ Self-Acting Case:
 # Relationship to Other Specifications {#relationships}
 
 **RFC 8693 (Token Exchange).** {{RFC8693}} defines `actor_token` and
-`actor_token_type` only on the token-exchange grant. This document
-permits these parameters on additional grant types
-({{grant-extension}}) and registers a new `actor_token_type` for
-asserting client instance identity ({{client-instance-jwt}}); the
-two contributions are separable. For the `client-instance-jwt`
-token type, delegation requests represent the instance in `act`
-({{access-token-delegation}}) and self-acting requests (notably
-`client_credentials`) represent it in top-level `sub`
-({{access-token-self-acting}}); {{RFC8693}}'s "actor" framing
-strictly addresses only the delegation case, but this profile
-reuses the `actor_token` wire artifact for both, with classification
-determined by the grant (see {{rationale-self-acting}}). Use on a
-token-exchange request remains governed by {{RFC8693}}.
+`actor_token_type` on the token-exchange grant. On token-exchange,
+this profile presents its Client Instance Assertion as `actor_token`
+with `actor_token_type` set to
+`urn:ietf:params:oauth:token-type:client-instance-jwt`; processing
+under {{RFC8693}} continues to apply
+({{token-exchange-presentation}}). On the four other grants listed
+in {{permitted-grants}}, this profile defines a dedicated
+`client_instance_assertion` request parameter ({{cia-param}}) that
+carries the same assertion under identical validation rules. The
+parameter to use is determined by the grant; the assertion format,
+trust resolution, sender-constraint, and access-token representation
+are identical across both presentation paths. For the
+`client-instance-jwt` token type, delegation requests represent the
+instance in `act` ({{access-token-delegation}}) and self-acting
+requests (notably `client_credentials`) represent it in top-level
+`sub` ({{access-token-self-acting}}); see
+{{access-token-classification}}.
 
 **OAuth Actor Profile.** {{ACTOR-PROFILE}} defines the structure of
 the `act` claim, the `sub_profile` claim, and nested actor
@@ -250,7 +280,7 @@ on different OAuth parameters and trust sources:
 | Layer | SPIFFE Client Auth | This document |
 | --- | --- | --- |
 | What is authenticated | The OAuth client | An actor (instance) acting under an OAuth client |
-| Token request parameter | `client_assertion` / `client_assertion_type` | `actor_token` / `actor_token_type` |
+| Token request parameter | `client_assertion` / `client_assertion_type` | `client_instance_assertion` (or `actor_token` on token-exchange grants) |
 | Trust source (client metadata) | SPIFFE bundle endpoint and `spiffe_id` | `instance_issuers` |
 | Where the SPIFFE ID surfaces | Validated against `spiffe_id`; not propagated | Surfaced in `act.sub` or top-level `sub` of issued access tokens |
 
@@ -258,48 +288,46 @@ The two specifications are orthogonal and MAY be combined: a
 typical combined deployment uses {{SPIFFE-CLIENT-AUTH}} (with a
 wildcard `spiffe_id`) to authenticate the OAuth client and this
 profile to surface and bind the specific instance. The same SVID
-MAY be presented as both `client_assertion` and `actor_token` in a
-single request when both profiles' audience, client-binding, and
-sender-constraint requirements are satisfied. This document does
-not require SPIFFE; instance issuers may use any `subject_syntax`,
-and the client may authenticate via any registered method. SPIFFE
-deployments get first-class support ({{instance-issuers}},
-{{spiffe-compatibility}}).
+MAY be presented as both `client_assertion` and
+`client_instance_assertion` in a single request when both profiles'
+audience, client-binding, and sender-constraint requirements are
+satisfied. This document does not require SPIFFE; instance issuers
+may use any `subject_syntax`, and the client may authenticate via
+any registered method. SPIFFE deployments get first-class support
+({{instance-issuers}}, {{spiffe-compatibility}}).
 
 **OAuth Attestation-Based Client Authentication.**
 {{ATTEST-CLIENT-AUTH}} (an OAuth Working Group document) defines
 how a Client Attester issues a Client Attestation JWT that an OAuth
-client uses to authenticate itself, paired with a Client Attestation
-PoP JWT proving possession of the bound instance key. Like
-{{SPIFFE-CLIENT-AUTH}}, that document operates at the
-client-authentication layer; this profile operates at the actor /
-instance-identity layer and on different OAuth parameters and trust
-sources:
+client uses to authenticate the client instance. That specification
+authenticates the client instance for the purposes of client
+authentication and does not specify how that instance identity
+surfaces to resource servers. This profile addresses that
+surfacing gap.
 
-| Layer | Attestation-Based Client Auth | This document |
+| Concern | Attestation-Based Client Auth | This document |
 | --- | --- | --- |
-| What is authenticated | The OAuth client | An actor (instance) acting under an OAuth client |
-| Wire-level transport | `OAuth-Client-Attestation` and `OAuth-Client-Attestation-PoP` HTTP headers | `actor_token` / `actor_token_type` form parameters |
-| Trust source | AS-to-Attester trust established out-of-band | Per-client `instance_issuers` in client metadata |
-| What surfaces in the access token | Nothing about the instance | Instance identity in `act.sub` (delegation) or top-level `sub` (self-acting) |
-| `cnf` shape | `cnf.jwk` carrying the full instance key; PoP via dedicated JWT | `cnf.jkt` or `cnf.x5t#S256` thumbprint; PoP via {{RFC9449}} or {{RFC8705}} |
+| Authenticates the client instance | Yes | Not by itself; consumes a separately registered client authentication method |
+| Surfaces instance identity to the access token | Out of scope | `act.sub` (delegation) or top-level `sub` (self-acting) |
+| Wire-level presentation | `OAuth-Client-Attestation` plus either `OAuth-Client-Attestation-PoP` or `DPoP` | `client_instance_assertion` form parameter (or `actor_token` on token-exchange grants) |
+| Trust anchor | AS-to-Attester trust (deployment-defined) | Per-client `instance_issuers` in client metadata |
+| Sender-constraint binding | `cnf` per {{RFC7800}}; PoP via dedicated `-PoP` JWT or DPoP combined mode | `cnf.jkt` or `cnf.x5t#S256` thumbprint |
+| Primary motivating context | Mobile/native apps; wallet ecosystems; workload deployments | Agentic workloads, autoscaled services, ephemeral functions, sub-agents; workload identity |
 
-The two specifications are orthogonal and MAY be combined. A
-deployment using {{ATTEST-CLIENT-AUTH}} for client authentication
-and this profile for actor identity SHOULD reuse a single
-instance-generated key across all three roles: bound by the Client
-Attester in the attestation's `cnf.jwk`, named by this profile's
-Client Instance Assertion in `cnf.jkt`, and used for the access
-token's sender-constraint via {{RFC9449}} or {{RFC8705}}. This is
-the natural pattern for mobile and native deployments where a
-Client Attester is already in place.
+The two specifications are orthogonal: this profile does not
+require {{ATTEST-CLIENT-AUTH}} and does not redefine or extend it.
+A separate companion document {{CIA-ATTEST-EVIDENCE}} defines a
+composition mode in which an AS that has validated a Client
+Attestation with a DPoP proof of possession may consume that
+material as Client Instance Evidence without requiring a separate
+Client Instance Assertion. Deployments using {{ATTEST-CLIENT-AUTH}}
+that need this profile's instance-identity surfacing should consult
+that companion.
 
-This profile does not redefine or extend {{ATTEST-CLIENT-AUTH}}.
-Deployments where authenticating the client is sufficient and the
-resource server does not need to distinguish among instances can
-use {{ATTEST-CLIENT-AUTH}} alone; deployments that need the
-resource server to see and authorize specific instances combine
-both.
+{{ATTEST-CLIENT-AUTH}} additionally defines a Client Attestation
+presentation path directly to a resource server (Client Attestation
+PoP `aud` = resource identifier); that path is independent of this
+profile's access-token surfacing model.
 
 **WIMSE Workload Credentials.** The IETF WIMSE working group is
 defining specifications for workload identity ({{WIMSE-CREDS}},
@@ -316,98 +344,68 @@ profile pins the binding member of `cnf` to `jkt` ({{RFC9449}}) or
 example, a future Workload Proof Token) can be added by a companion
 profile when those mechanisms reach deployment maturity.
 
-# Actor Token Grant Extension {#grant-extension}
+# Client Instance Assertion Request Parameter {#cia-param}
 
-This section defines a grant extension for carrying actor tokens at
-the OAuth token endpoint. It is independent of the client instance
-model defined later in this document: any profile that defines an
-`actor_token_type`, including profiles based on {{ACTOR-PROFILE}},
-can use this extension to present actor tokens on the grant types
-listed below. This document's `client-instance-jwt` actor token type
-({{client-instance-jwt}}) is one such profile; its token-type-specific
-processing rules are defined in {{token-endpoint}}.
+This section defines the `client_instance_assertion` request parameter,
+the wire-level mechanism this profile uses to carry a Client Instance
+Assertion at the OAuth 2.0 token endpoint on the grant types listed
+in {{permitted-grants}}.
 
-{{RFC8693}} provides a general-purpose way to present an actor token
-to the AS, but scopes `actor_token` and `actor_token_type` to the
-token-exchange grant. Actor identity is also useful when an AS issues
-tokens directly from other grants: for example, an agent may redeem
-an authorization code on behalf of a user, a service may request a
-self-acting client credentials token, a delegated actor may refresh a
-token while preserving actor identity, or a JWT bearer assertion may
-identify one principal while the request still identifies the actor
-performing the operation.
+The parameter carries the Client Instance Assertion JWT defined in
+{{client-instance-jwt}}. The assertion's purpose is to
+identify the client instance and bind subsequent proof-of-possession
+to the instance's key, independent of how the client itself is
+authenticated. Validation, sender-constraint, and access-token
+representation rules are defined in {{token-endpoint}}.
 
-Defining new request parameters for each grant or actor-token profile
-would fragment the token endpoint surface. This extension instead
-reuses the existing `actor_token` and `actor_token_type` parameters
-as a common presentation mechanism. The extension does not define a
-universal actor-token validation model or access-token representation;
-those remain the responsibility of each `actor_token_type` profile.
+On token-exchange grants ({{RFC8693}}), the same assertion is
+presented as `actor_token` with `actor_token_type` set to
+`urn:ietf:params:oauth:token-type:client-instance-jwt`, per
+{{RFC8693}}'s conventions. See {{token-exchange-presentation}}. The
+two presentation paths produce identical processing outcomes; the
+parameter to use is determined by the grant.
 
 ## Permitted Grant Types {#permitted-grants}
 
-{{RFC8693}} defines `actor_token` and `actor_token_type` only on
-the token-exchange grant. This document permits these parameters
-on the following additional token endpoint grant types:
+The `client_instance_assertion` parameter MAY be presented on the
+following token endpoint grant types:
 
 * `authorization_code` ({{RFC6749}})
 * `client_credentials` ({{RFC6749}})
 * `refresh_token` ({{RFC6749}})
 * `urn:ietf:params:oauth:grant-type:jwt-bearer` ({{RFC7523}})
 
-Token-exchange ({{RFC8693}}) is also in scope; processing under
-{{RFC8693}} continues to apply unchanged for any `actor_token_type`
-the AS supports.
-
-This actor token grant extension defines only where the `actor_token` and
-`actor_token_type` parameters may appear. Each `actor_token_type`
-profile defines how the AS validates that actor token, how it
-represents the actor in issued tokens, and how refresh-token
-requests are processed for that token type.
+The `client_instance_assertion` parameter MUST NOT be presented on
+the token-exchange grant ({{RFC8693}}); on token-exchange grants the
+assertion is presented as `actor_token` per
+{{token-exchange-presentation}}. An AS MUST reject a token-exchange
+request that includes `client_instance_assertion`.
 
 This document does not define behavior for the implicit grant or
 for the device authorization grant; specifying those is left to
 future work.
 
-## Other Actor Token Types {#other-actor-token-types}
+## Token-Exchange Presentation {#token-exchange-presentation}
 
-The actor token grant extension is independent of any specific
-`actor_token_type`. Any profile MAY register an `actor_token_type`
-value suitable for its actor model (for example, AI agents acting on
-behalf of a user, services acting under a delegation grant, or
-workload identities outside the OAuth client-class model). Such
-profiles can use this document's actor token grant extension to present
-their actor tokens on the same set of grants without re-specifying
-the grant-level actor-token presentation interaction.
+When the grant is token-exchange ({{RFC8693}}), the Client Instance
+Assertion is presented as the `actor_token` parameter with
+`actor_token_type` set to
+`urn:ietf:params:oauth:token-type:client-instance-jwt`. This is the
+conventional {{RFC8693}} path; the AS validates the assertion under
+the same rules as for the `client_instance_assertion` parameter
+({{as-processing}}).
 
-This document defines and registers
-`urn:ietf:params:oauth:token-type:client-instance-jwt` for asserting
-client instance identity ({{client-instance-jwt}}).
+The two parameter names are wire-syntax siblings, not distinct
+artifacts: the assertion format ({{client-instance-jwt}}),
+validation procedure, sender-constraint binding, and access-token
+representation are identical. The grant determines which parameter
+name carries the assertion.
 
-At the token endpoint, the AS dispatches by `actor_token_type`:
-tokens of type
-`urn:ietf:params:oauth:token-type:client-instance-jwt` are
-processed under this document's rules in {{token-endpoint}}, while
-tokens of other registered types are processed under their own
-specifications. An AS MAY support multiple `actor_token_type`
-values concurrently and SHOULD advertise them via
-`actor_token_types_supported` ({{as-metadata}}).
-
-A profile defining a new `actor_token_type` for use under the
-actor token grant extension MUST specify the validation, trust
-resolution, access-token representation, sender-constraint,
-refresh-token, and security rules for that token type. Such profiles
-can reference this actor token grant extension for the wire-level
-permission to carry `actor_token` and `actor_token_type` on the
-grant types listed in {{permitted-grants}}.
-
-Some of the processing rules in {{token-endpoint}} (notably
-{{sender-constrained}}, {{access-token}}, and {{refresh}}) describe
-behavior that is not specific to the `client-instance-jwt` token
-type. Other actor-token profiles may find them reusable as a
-starting point, but this document does not prescribe their reuse;
-each new `actor_token_type` profile defines its own validation,
-representation, and security rules.
+In the delegation case under token-exchange, the assertion represents
+the actor distinct from the subject named in `subject_token`, which
+is the conventional {{RFC8693}} use of `actor_token`. The
+self-acting case ({{access-token-self-acting}}) does not arise on
+token-exchange, where {{RFC8693}} requires a distinct subject.
 
 # Client Instance Model {#client-instance-model}
 
@@ -437,20 +435,21 @@ Three roles cooperate to authenticate a client instance:
 A high-level flow:
 
 ~~~ ascii-art
-+-----------+   actor token   +------------+
++-----------+ instance assert.+------------+
 |  Client   |<----------------|  Instance  |
 |  Instance |                 |   Issuer   |
 +-----------+                 +------------+
       |
       | token request:
       |  - client authentication (e.g., private_key_jwt)
-      |  - actor_token (instance JWT)
-      |  - actor_token_type =
-      |      urn:...:client-instance-jwt
+      |  - client_instance_assertion (instance JWT)
+      |    [on token-exchange grants: actor_token /
+      |     actor_token_type =
+      |     urn:...:client-instance-jwt]
       v
 +--------------------+
 | Authorization      |  -> resolves client metadata
-| Server             |  -> validates actor token
+| Server             |  -> validates the assertion
 |                    |  -> issues access token with act or sub
 +--------------------+
 ~~~
@@ -464,7 +463,7 @@ client's registered `jwks_uri`) and authenticates the instance
 through the instance assertion.
 
 When the client registers `token_endpoint_auth_method`
-`client_instance_jwt` ({{instance-assertion-auth}}), these two trust
+`client_instance_assertion` ({{instance-assertion-auth}}), these two trust
 anchors collapse onto a single artifact: the instance assertion
 both authenticates the client (via the client metadata
 endorsement of its issuer) and identifies the instance. In that mode the request
@@ -551,10 +550,14 @@ assertion usable as the client credential under
 The AS treats the registered `instance_issuers` list as
 authoritative: it derives its trust in an instance assertion solely
 from the descriptor whose issuer member matches the instance
-assertion's `iss` claim. This document
-does not define out-of-band or AS-side configuration of additional
-instance issuers for a `client_id`; deployments requiring such
-configuration MUST do so via a separate specification.
+assertion's `iss` claim. AS-side configuration that augments or
+overrides the registered list (for example, an AS-operator-managed
+allow-list of additional instance issuers) is out of scope for
+this document. Deployments that introduce such configuration
+SHOULD document the resulting trust model and ensure it is
+consistent with the per-client trust the registered metadata
+expresses; in particular, AS-side issuer additions weaken the
+client's ability to audit who can act on its behalf.
 
 ### Trust Lifecycle {#trust-lifecycle}
 
@@ -622,6 +625,13 @@ or is present as an empty array, the AS MUST NOT accept instance assertions
 of type `urn:ietf:params:oauth:token-type:client-instance-jwt` for this
 client; the AS SHOULD treat an empty array as a metadata error and
 log it for the client operator.
+
+The set of accepted instance issuers for a given `client_id` is a
+trust boundary: any listed issuer can mint assertions that the AS
+accepts under this client. Deployments that place workloads
+belonging to distinct organizations or tenants under a single
+`client_id` should consult {{security-multi-tenancy}} for the
+trust-aggregation implications.
 
 An instance issuer descriptor has the following members:
 
@@ -723,16 +733,16 @@ Example client metadata document with a SPIFFE instance issuer:
 
 ~~~ json
 {
-  "client_id": "https://openai.example.com/codex",
-  "jwks_uri": "https://openai.example.com/codex/jwks.json",
+  "client_id": "https://app.example.com/agent",
+  "jwks_uri": "https://app.example.com/agent/jwks.json",
   "token_endpoint_auth_method": "private_key_jwt",
   "instance_issuers": [
     {
-      "issuer": "https://workload.openai.example.com",
-      "jwks_uri": "https://workload.openai.example.com/jwks.json",
+      "issuer": "https://workload.app.example.com",
+      "jwks_uri": "https://workload.app.example.com/jwks.json",
       "subject_syntax": "spiffe",
-      "trust_domain": "openai.example.com",
-      "spiffe_id": "spiffe://openai.example.com/codex/*",
+      "trust_domain": "app.example.com",
+      "spiffe_id": "spiffe://app.example.com/agent/*",
       "signing_alg_values_supported": ["ES256"]
     }
   ]
@@ -744,25 +754,31 @@ Example client metadata document with a SPIFFE instance issuer:
 This document defines the following AS metadata parameters for
 {{RFC8414}} (see {{iana-as-metadata}}):
 
-`actor_token_types_supported`:
-: A JSON array of `actor_token_type` values supported by the AS at the
-  token endpoint. An AS implementing this profile MUST publish this
-  parameter and include
-  `urn:ietf:params:oauth:token-type:client-instance-jwt` in it. This is
-  the only AS-side discovery signal for support of this profile;
-  clients use it to decide whether to assemble token requests
-  carrying an instance assertion. This signal is intentionally coarse:
-  it does not describe grant-specific enablement, raw JWT-SVID support,
-  accepted sender-constraint methods, refresh-token behavior, or
-  client-specific registration policy. Clients may still need
-  registration-time or deployment agreement with the AS for those
-  details.
+`client_instance_assertion_supported`:
+: A boolean indicating whether the AS supports the
+  `client_instance_assertion` request parameter ({{cia-param}}) on
+  the grants listed in {{permitted-grants}}. An AS implementing this
+  profile MUST publish this parameter set to `true`. Clients use it
+  to decide whether to assemble token requests carrying a Client
+  Instance Assertion on non-token-exchange grants. This signal is
+  intentionally coarse: it does not describe grant-specific
+  enablement, raw JWT-SVID support, accepted sender-constraint
+  methods, refresh-token behavior, or client-specific registration
+  policy. Clients may still need registration-time or deployment
+  agreement with the AS for those details.
 
-Other values MAY appear and are processed under their own
-specifications; their trust resolution is not via `instance_issuers`.
+`actor_token_types_supported`:
+: A JSON array of `actor_token_type` values supported by the AS on
+  the token-exchange grant ({{RFC8693}}). An AS implementing this
+  profile that supports the token-exchange presentation
+  ({{token-exchange-presentation}}) MUST publish this parameter and
+  include `urn:ietf:params:oauth:token-type:client-instance-jwt` in
+  it. Other values MAY appear and are processed under their own
+  specifications; their trust resolution is not via
+  `instance_issuers`.
 
 In addition, an AS that supports {{instance-assertion-auth}} MUST
-advertise `client_instance_jwt` in
+advertise `client_instance_assertion` in
 `token_endpoint_auth_methods_supported` ({{RFC8414}}).
 
 Example AS metadata document (abridged):
@@ -771,9 +787,11 @@ Example AS metadata document (abridged):
 {
   "issuer": "https://as.example.com",
   "token_endpoint": "https://as.example.com/token",
+  "client_instance_assertion_supported": true,
   "token_endpoint_auth_methods_supported": [
     "private_key_jwt",
-    "client_instance_jwt"
+    "client_instance_assertion",
+    "attest_jwt_client_auth"
   ],
   "actor_token_types_supported": [
     "urn:ietf:params:oauth:token-type:client-instance-jwt"
@@ -784,19 +802,20 @@ Example AS metadata document (abridged):
 
 # Client Instance Assertion Format {#client-instance-jwt}
 
-This section defines `client-instance-jwt`, a specific
-`actor_token_type` registered under this document for asserting
-client instance identity. Tokens of this type are presented under
-the actor token grant extension defined in
-{{grant-extension}}; their AS-side processing is
-specified in {{token-endpoint}}.
+This section defines the format of the Client Instance Assertion,
+the signed JWT this profile uses to identify a client instance at
+the OAuth 2.0 token endpoint.
 
 A *Client Instance Assertion* is a JWT {{RFC7519}} that asserts the
-identity of a client instance. It is presented as the `actor_token`
-parameter ({{RFC8693}}) with `actor_token_type` set to
+identity of a client instance. It is presented as the
+`client_instance_assertion` request parameter on the grants listed
+in {{permitted-grants}} ({{cia-param}}), or as the `actor_token`
+parameter with `actor_token_type` set to
 `urn:ietf:params:oauth:token-type:client-instance-jwt` (see
-{{iana-token-type}}). The assertion serves two purposes: it
-authenticates the runtime instance (workload identity), and it
+{{iana-token-type}}) on the token-exchange grant
+({{token-exchange-presentation}}). The assertion serves two
+purposes: it authenticates the runtime instance (workload identity),
+and it
 asserts that the instance is a member of the named OAuth client.
 This document defines a single JWT carrying both, signed by the
 instance issuer. This matches the prevailing pattern in workload
@@ -859,12 +878,8 @@ The following claims are defined for client instance assertions.
 
 `client_id` (REQUIRED unless the SPIFFE compatibility conditions of {{spiffe-client-id-omission}} are met):
 : The `client_id` of the client to which this instance belongs.
-  This claim uses the JSON Web Token `client_id` claim registered
-  by {{RFC9068}} Section 2.2 (which itself defers to {{RFC8693}}
-  Section 4.3 for the underlying definition). Note that RFC 9068
-  defines `client_id` as the OAuth client to which a JWT access
-  token was issued; in this profile, the claim instead names the
-  OAuth client to which the asserted instance belongs.
+  This claim uses the JWT `client_id` claim defined in
+  {{RFC8693}} Section 4.3.
 
   The claim binds the actor token to a specific client and is not
   part of the actor's identity (per {{ACTOR-PROFILE}}, `client_id`
@@ -876,7 +891,7 @@ The following claims are defined for client instance assertions.
   established structurally by the matched descriptor's SPIFFE scope
   (`spiffe_id` when present, otherwise `trust_domain`) rather than
   by a JWT claim, and a SPIFFE JWT-SVID may be presented as the
-  `actor_token` directly without re-minting.
+  Client Instance Assertion directly without re-minting.
 
 `exp` (REQUIRED):
 : Expiration time. Issuers SHOULD set short lifetimes (e.g., five
@@ -935,9 +950,9 @@ symmetrically. This bound is consistent with the short-lifetime
 recommendation in {{security-replay}} and prevents brittle
 inter-clock failures across deployments.
 
-A client instance assertion MUST NOT contain an `act` claim. The
-instance assertion is a direct identity assertion of a single party (the
-instance); per {{ACTOR-PROFILE}}, an `actor_token` that carries an
+A Client Instance Assertion MUST NOT contain an `act` claim. The
+assertion is a direct identity assertion of a single party (the
+instance); per {{ACTOR-PROFILE}}, an assertion that carries an
 `act` claim represents a delegation chain rather than a direct
 identity, and the AS MUST reject such a token with `invalid_grant`
 ({{chain-merging}}, {{errors}}).
@@ -958,10 +973,16 @@ algorithms (`HS256`, `HS384`, `HS512`) MUST NOT be used and ASes
 MUST reject assertions signed with them. The descriptor's
 `signing_alg_values_supported` ({{instance-issuers}}), when present,
 MUST contain only asymmetric algorithm identifiers. Implementations
-SHOULD follow the JWT BCP guidance in {{RFC8725}}. For
-interoperability, ASes SHOULD support at least `RS256` and `ES256`. Issuers SHOULD include a
-`kid` in the JWS protected header; ASes SHOULD use `kid` for key
-selection.
+SHOULD follow the JWT BCP guidance in {{RFC8725}}.
+
+ASes and instance issuers implementing this profile MUST support
+`ES256` ({{RFC7518}}). This is the mandatory-to-implement baseline
+for interoperability. ASes and instance issuers SHOULD additionally
+support `RS256` and MAY support other asymmetric JWS algorithms
+({{RFC7518}}, {{RFC8037}}) as deployment requirements dictate.
+
+Issuers SHOULD include a `kid` in the JWS protected header; ASes
+SHOULD use `kid` for key selection.
 
 Issuers minting a Client Instance Assertion under this profile MUST
 set the JWS `typ` (type) protected header parameter to
@@ -996,10 +1017,10 @@ and JWT payload):
 
 ~~~ json
 {
-  "iss":         "https://workload.openai.example.com",
-  "sub":         "spiffe://openai.example.com/codex/session-abc",
+  "iss":         "https://workload.app.example.com",
+  "sub":         "spiffe://app.example.com/agent/session-abc",
   "aud":         "https://as.example.com",
-  "client_id":   "https://openai.example.com/codex",
+  "client_id":   "https://app.example.com/agent",
   "sub_profile": "client_instance",
   "iat":         1770000000,
   "exp":         1770000300,
@@ -1010,14 +1031,20 @@ and JWT payload):
 
 # Token Endpoint Processing {#token-endpoint}
 
-This section specifies AS-side processing for token requests
-carrying an `actor_token` of type
-`urn:ietf:params:oauth:token-type:client-instance-jwt`. It builds on
-the actor token grant extension in {{grant-extension}} by
-defining the validation, authorization-time consistency, sender-
-constraint, representation, refresh, client authentication, SPIFFE
-compatibility, and error rules specific to the `client-instance-jwt`
-token type.
+This section specifies AS-side processing for token requests that
+provide client instance evidence. The primary evidence is a Client
+Instance Assertion, presented either as the
+`client_instance_assertion` request parameter on the grants in
+{{permitted-grants}} ({{cia-param}}) or as the `actor_token`
+parameter with `actor_token_type` =
+`urn:ietf:params:oauth:token-type:client-instance-jwt` on the
+token-exchange grant ({{token-exchange-presentation}}). The
+companion {{CIA-ATTEST-EVIDENCE}} defines an optional attestation-
+based evidence path that does not require a separate Client Instance
+Assertion. This section defines the validation, authorization-time
+consistency, sender-constraint, representation, refresh, client
+authentication, SPIFFE compatibility, and error rules for the
+Client Instance Assertion path.
 
 This profile applies whether the AS issues JWT access tokens
 ({{RFC9068}}) or opaque (reference) access tokens. The
@@ -1032,13 +1059,26 @@ whether the access token is self-contained or requires introspection.
 
 ## Token Request {#token-request}
 
-A client presents a client instance assertion at the token endpoint
-by adding the `actor_token` and `actor_token_type` parameters defined by
-{{RFC8693}} to a token request of any grant type listed in
-{{grant-extension}}.
+A client presents a Client Instance Assertion at the token endpoint
+using the parameter appropriate to the grant:
+
+* On the grants listed in {{permitted-grants}}, the assertion is
+  presented as the `client_instance_assertion` request parameter
+  ({{cia-param}}).
+* On the token-exchange grant ({{RFC8693}}), the assertion is
+  presented as the `actor_token` parameter with `actor_token_type`
+  set to `urn:ietf:params:oauth:token-type:client-instance-jwt`
+  ({{token-exchange-presentation}}).
+
+A deployment that uses {{ATTEST-CLIENT-AUTH}} for client
+authentication MAY use the composition defined by
+{{CIA-ATTEST-EVIDENCE}}, in which the validated Client Attestation
+and DPoP proof serve as Client Instance Evidence without a
+separate Client Instance Assertion. That composition is independent
+of this section.
 
 The following example shows a client credentials grant carrying a
-client instance assertion. The client authenticates with
+Client Instance Assertion. The client authenticates with
 `private_key_jwt`; line breaks are for readability:
 
 ~~~ http-message
@@ -1049,13 +1089,11 @@ DPoP: <DPoP proof bound to the instance's key>
 
 grant_type=client_credentials
 &scope=repo.write
-&client_id=https%3A%2F%2Fopenai.example.com%2Fcodex
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
 &client_assertion_type=
   urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
-&actor_token=eyJhbGciOiJFUzI1NiIsImtpZCI6...
-&actor_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
 ~~~
 
 ## Authorization Server Processing {#as-processing}
@@ -1064,31 +1102,58 @@ When evaluating a token request for this profile, an AS implementing
 this document MUST perform the following checks and steps in addition
 to grant-type-specific processing.
 
+In this section the term "presented assertion" means the
+`client_instance_assertion` parameter ({{cia-param}}) on the grants
+in {{permitted-grants}}, or the `actor_token` parameter (with
+`actor_token_type` set to
+`urn:ietf:params:oauth:token-type:client-instance-jwt`) on the
+token-exchange grant ({{token-exchange-presentation}}). Processing
+is identical regardless of which parameter carried the assertion.
+
 Before the steps below, the AS MUST reject the request with
 `invalid_request` if any of the following pre-conditions hold:
 
-* exactly one of `actor_token` and `actor_token_type` is present;
-* `actor_token_type` is
+* On a token-exchange request, exactly one of `actor_token` and
+  `actor_token_type` is present;
+* On a token-exchange request, `actor_token_type` is
   `urn:ietf:params:oauth:token-type:client-instance-jwt` but
-  `actor_token` is absent;
-* `actor_token_type` is
-  `urn:ietf:params:oauth:token-type:client-instance-jwt` and
-  `actor_token` is present but is not a syntactically valid JWT.
+  `actor_token` is absent or is present but is not a syntactically
+  valid JWT;
+* On a token-exchange request, `client_instance_assertion` is
+  present (it is not permitted on this grant per
+  {{permitted-grants}});
+* On any grant other than token-exchange, `actor_token` is present
+  with `actor_token_type` equal to
+  `urn:ietf:params:oauth:token-type:client-instance-jwt` (the
+  Client Instance Assertion MUST be carried as
+  `client_instance_assertion` on grants in {{permitted-grants}}; on
+  grants outside {{permitted-grants}}, this profile does not define
+  a presentation path);
+* On any grant not listed in {{permitted-grants}},
+  `client_instance_assertion` is present;
+* On any grant listed in {{permitted-grants}},
+  `client_instance_assertion` is present but is not a syntactically
+  valid JWT.
 
 1. **Authenticate the client.** Authenticate the client using
    its registered `token_endpoint_auth_method` per {{RFC6749}} and, if
    applicable, {{RFC7523}}. The `client_id` identifies the OAuth
-   client. When the registered method is `client_instance_jwt`,
+   client. When the registered method is `client_instance_assertion`,
    follow {{instance-assertion-auth}} instead of presenting a
    separate client-controlled credential.
 
-2. **Match the token type.** If `actor_token_type` is not
+2. **Match the token type.** On a token-exchange request, if
+   `actor_token_type` is not
    `urn:ietf:params:oauth:token-type:client-instance-jwt`, processing
-   under this document does not apply. If the AS does not support the
-   supplied `actor_token_type` for the requested grant, it MUST reject
-   the request with `unsupported_token_type` ({{errors}}). Other
-   registered `actor_token_type` values MAY be processed under their
-   own specifications ({{other-actor-token-types}}).
+   under this document does not apply; the AS processes the request
+   per {{RFC8693}}, including handling other registered
+   `actor_token_type` values under their own specifications. If the
+   AS does not support
+   `urn:ietf:params:oauth:token-type:client-instance-jwt` for the
+   requested grant, it MUST reject the request with
+   `unsupported_token_type` ({{errors}}). On the grants in
+   {{permitted-grants}}, presence of
+   `client_instance_assertion` selects processing under this document.
 
 3. **Resolve client metadata.** Retrieve the client metadata for the
    authenticated `client_id`. For clients identified by {{CIMD}},
@@ -1097,11 +1162,11 @@ Before the steps below, the AS MUST reject the request with
    read the stored metadata. The remaining steps operate on the
    resolved metadata regardless of source.
 
-4. **Locate the instance issuer descriptor.** Parse the `actor_token`
-   as a JWT and read its `iss` claim. Find the descriptor in
-   `instance_issuers` whose issuer member exactly equals `iss`. If no
-   descriptor is found, or `instance_issuers` is absent, reject the
-   request with `invalid_grant` ({{errors}}).
+4. **Locate the instance issuer descriptor.** Parse the presented
+   assertion as a JWT and read its `iss` claim. Find the descriptor
+   in `instance_issuers` whose issuer member exactly equals `iss`. If
+   no descriptor is found, or `instance_issuers` is absent, reject
+   the request with `invalid_grant` ({{errors}}).
 
 5. **Verify the signature.** Using the descriptor's `jwks_uri`, `jwks`,
    or `spiffe_bundle_endpoint`, verify the JWS signature per
@@ -1120,36 +1185,57 @@ Before the steps below, the AS MUST reject the request with
 
 7. **Verify `client_id` binding.** If the instance assertion contains a
    `client_id` claim, it MUST exactly equal the authenticated
-   `client_id`; reject with `invalid_grant` otherwise. If the
+   `client_id`; reject with `invalid_grant` otherwise. "Exactly
+   equal" means octet-for-octet equality on the UTF-8 encoding of
+   the two values: ASes MUST NOT apply case folding, Unicode
+   normalization, percent-decoding, URI canonicalization, or other
+   string-equivalence transformations before comparison. The same
+   octet-equality rule applies wherever this document requires
+   `iss`, `sub`, `client_id`, `aud`, or `spiffe_id` values to "match"
+   or "exactly equal" another value, except where a specifically
+   cited matching rule (for example, the SPIFFE "/*" wildcard rule
+   in {{instance-issuers}}) defines a different comparison. If the
    instance assertion has no `client_id` claim, the AS MUST verify that the
    matched descriptor satisfies the SPIFFE compatibility conditions
    ({{spiffe-client-id-omission}}); if not, reject with
    `invalid_grant`. When the descriptor satisfies those conditions,
-   the AS MUST verify that the `actor_token`'s `sub` falls under the
+   the AS MUST verify that the presented assertion's `sub` falls under the
    descriptor's SPIFFE scope: `spiffe_id` when present, otherwise the
    descriptor's `trust_domain`; if not, reject with `invalid_grant`.
-   After `client_id` binding succeeds, apply replay checking per
+
+8. **Verify proof-of-possession of the `cnf` key.** Verify
+   possession of the assertion's `cnf` key per
+   {{sender-constrained}}; reject with `invalid_request` if
+   verification fails. For raw JWT-SVIDs accepted under
+   {{spiffe-client-id-omission}}, establish the binding key per
+   {{spiffe-binding}} instead.
+
+9. **Apply replay checking.** After `client_id` binding and PoP
+   verification succeed, apply the replay check per
    {{security-replay}}; reject with `invalid_grant` if a previously
-   seen tuple is found. For raw JWT-SVIDs, this replay check applies
-   only when `jti` is present.
-   The replay check follows `client_id` binding so that an attacker
-   cannot burn a legitimate client's `jti` by presenting the assertion
-   under a mismatched `client_id`.
+   seen `(iss, jti)` tuple is found. For raw JWT-SVIDs, this replay
+   check applies only when `jti` is present. The replay check
+   follows `client_id` binding so that an attacker cannot burn a
+   legitimate client's `jti` by presenting the assertion under a
+   mismatched `client_id`. The replay check follows PoP
+   verification so that the `cnf`-bound reusable-mode optimization
+   in {{security-replay}} can be applied.
 
-8. **Enforce delegation policy.** Apply the AS's local maximum
-   delegation depth per {{ACTOR-PROFILE}}.
+10. **Enforce delegation policy.** Apply the AS's local maximum
+    delegation depth per {{ACTOR-PROFILE}}.
 
-9. **Check authorization-time consistency.** For grants that
-   originate from a prior authorization step (notably
-   authorization_code), apply the rules of
-   {{auth-time-consistency}}.
+11. **Check authorization-time consistency.** For grants that
+    originate from a prior authorization step (notably
+    authorization_code), apply the rules of
+    {{auth-time-consistency}}.
 
-10. **Bind the instance.** If issuance succeeds, represent the
-    instance in the access token per {{access-token}}, applying
-    {{sender-constrained}} for token binding. Reflect any prior
-    actor chain present in input tokens by nesting per
-    {{ACTOR-PROFILE}}; chain merging rules are given in
-    {{chain-merging}}.
+12. **Bind the instance to the issued access token.** If issuance
+    succeeds, represent the instance in the access token per
+    {{access-token}} and apply the sender-constraint binding per
+    {{sender-constrained}}, using the key whose possession was
+    verified in step 8. Reflect any prior actor chain present in
+    input tokens by nesting per {{ACTOR-PROFILE}}; chain merging
+    rules are given in {{chain-merging}}.
 
 If validation succeeds, the AS issues an access token (and optionally
 a refresh token) per the requested grant.
@@ -1157,11 +1243,11 @@ a refresh token) per the requested grant.
 ## Client Authentication via Instance Assertion {#instance-assertion-auth}
 
 A client MAY register the `token_endpoint_auth_method` value
-`client_instance_jwt` in its registered metadata (whether published
-as a CIMD document or stored at the AS) to indicate that the AS
-authenticates the client implicitly from a presented instance
-assertion, without requiring a separate `client_assertion` or other
-credential controlled by the client itself.
+`client_instance_assertion` in its registered metadata (whether
+published as a CIMD document or stored at the AS) to indicate that
+the AS authenticates the client implicitly from a presented Client
+Instance Assertion, without requiring a separate `client_assertion`
+or other credential controlled by the client itself.
 
 This mode is the natural choice for workload-only deployments (for
 example, agentic services, autoscaled microservices, or ephemeral
@@ -1170,7 +1256,7 @@ the team operating the runtime is also the natural owner of the
 workload identity provider. For these deployments, requiring a
 separate client-level credential typically means provisioning a
 private key into every pod alongside the instance-attested
-`actor_token`, which (per {{security-instance-assertion-auth}}) does
+assertion, which (per {{security-instance-assertion-auth}}) does
 not meaningfully improve defense against runtime compromise. The
 mode is also appropriate where the client identifier is a logical
 CIMD URL with client-key custody centralized away from the runtime,
@@ -1181,20 +1267,31 @@ The trust chain to the client is preserved: the client's listing of
 the instance issuer in its registered metadata is itself the
 endorsement, and a token signed by such an issuer naming this
 `client_id` is attributable to the client.
-When `token_endpoint_auth_method` is `client_instance_jwt`, every
-accepted instance issuer for the client is also a client
+When `token_endpoint_auth_method` is `client_instance_assertion`,
+every accepted instance issuer for the client is also a client
 authentication trust root. Clients MUST NOT enable this method unless
 each listed issuer is authorized for that role.
+
+`client_instance_assertion` is a confidential-client token-endpoint
+authentication method: the AS authenticates the request through the
+client's registered endorsement of the presenting instance issuer.
+Clients without any registered trust relationship for the AS to
+evaluate cannot use it. This exclusion is scoped to this auth
+method only; deployments using {{ATTEST-CLIENT-AUTH}} for client
+authentication follow that specification's client-authentication
+model, independent of this section.
 
 ### Request Format {#instance-assertion-auth-request}
 
 A request using this auth method MUST include the `client_id` form
-parameter, the `actor_token`, and `actor_token_type`. It MUST NOT
-carry `client_assertion` or any other client authentication
-credential. The `client_id` form parameter is required so the AS
-can resolve client metadata before validating the assertion; the
-assertion's `client_id` claim ({{claims}}) is then matched against
-this value. Example, using the
+parameter and the assertion under the parameter appropriate to the
+grant (`client_instance_assertion` for grants in
+{{permitted-grants}}, or `actor_token` with `actor_token_type` for
+the token-exchange grant). It MUST NOT carry `client_assertion` or
+any other client authentication credential. The `client_id` form
+parameter is required so the AS can resolve client metadata before
+validating the assertion; the assertion's `client_id` claim
+({{claims}}) is then matched against this value. Example, using the
 `client_credentials` grant:
 
 ~~~ http-message
@@ -1204,64 +1301,63 @@ Content-Type: application/x-www-form-urlencoded
 
 grant_type=client_credentials
 &scope=repo.write
-&client_id=https%3A%2F%2Fopenai.example.com%2Fcodex
-&actor_token=eyJhbGciOiJFUzI1NiIsImtpZCI6...
-&actor_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
 ~~~
 
 ### Validation Procedure {#instance-assertion-auth-validation}
 
-When the registered `token_endpoint_auth_method` for the `client_id` is
-`client_instance_jwt`, the pre-conditions of {{as-processing}} (rejecting
-mismatched or malformed `actor_token`/`actor_token_type`) still apply,
-and the AS replaces step 1 of {{as-processing}} ("Authenticate the
-client") with the following procedure:
+When the registered `token_endpoint_auth_method` for the `client_id`
+is `client_instance_assertion`, the pre-conditions of
+{{as-processing}} (rejecting malformed or misplaced presented
+assertions) still apply, and the AS replaces step 1 of
+{{as-processing}} ("Authenticate the client") with the following
+procedure:
 
 1. Resolve client metadata for `client_id` (per the registration
    model: dereference the CIMD URL or read stored registration data).
-2. Validate the presented `actor_token` using the token-type check,
-   instance issuer descriptor lookup, signature verification, and JWT
-   claim validation rules in {{as-processing}}.
-3. Verify that the `actor_token`'s `client_id` claim exactly equals
-   the request's `client_id` parameter.
-4. Apply the replay check in {{security-replay}} after `client_id`
-   binding succeeds.
-5. Verify proof-of-possession of the `actor_token` at presentation per
-   {{sender-constrained}}. In this mode the `actor_token` serves as the
-   sole client authentication credential, so the bearer-replay
-   considerations in {{security-replay}} apply with no fallback
-   credential; ASes MUST reject requests in this mode whose
-   `actor_token` lacks a `cnf` claim, and MUST verify possession of the
-   `cnf` key.
-6. Reject the request with `invalid_client` if any of the above fails.
-7. Treat the client as authenticated. The validated `actor_token` also
-   satisfies the `actor_token` requirement of this profile and is used
-   for instance representation per {{access-token}}.
+2. Validate the presented assertion using the token-type check
+   (where applicable), instance issuer descriptor lookup, signature
+   verification, and JWT claim validation rules in {{as-processing}}.
+3. Verify that the presented assertion's `client_id` claim exactly
+   equals the request's `client_id` parameter.
+4. Verify that the presented assertion contains a `cnf` claim; this
+   mode does not permit a `cnf`-less assertion, because the
+   assertion serves as the sole client authentication credential
+   and the bearer-replay considerations in {{security-replay}}
+   apply with no fallback credential.
+5. Verify proof-of-possession of the assertion's `cnf` key per
+   {{sender-constrained}}.
+6. Apply the replay check in {{security-replay}} after `client_id`
+   binding and PoP verification succeed.
+7. Reject the request with `invalid_client` if any of steps 1-6
+   fails. This re-code applies to failures that would otherwise be
+   returned as `invalid_grant` (under {{as-processing}}) or
+   `invalid_request` (under {{sender-constrained}}); pre-condition
+   failures of {{as-processing}} (malformed JWT, misplaced
+   parameter) continue to return `invalid_request`.
+8. Treat the client as authenticated. The validated assertion also
+   satisfies this profile's assertion requirement and is used for
+   instance representation per {{access-token}}.
 
-Because the `actor_token` is the client authentication credential in
-this mode, validation failures that would otherwise be returned as
-`invalid_grant` under {{as-processing}} are returned as
-`invalid_client`.
-
-The `actor_token`'s `aud` claim serves both purposes (the
-{{RFC7523}} client-assertion audience and this profile's actor-token
+The presented assertion's `aud` claim serves both purposes (the
+{{RFC7523}} client-assertion audience and this profile's assertion
 audience). A single value identifying the AS satisfies both.
 
 The SPIFFE `client_id` claim omission mode
 ({{spiffe-client-id-omission}}) does not apply to
-`client_instance_jwt` client authentication. Because the same JWT is
-the sole client authentication credential, the assertion MUST contain
-the `client_id` claim and the AS MUST verify it exactly as described
-above.
+`client_instance_assertion` client authentication. Because the same
+JWT is the sole client authentication credential, the assertion MUST
+contain the `client_id` claim and the AS MUST verify it exactly as
+described above.
 
-After this procedure completes, processing continues with step 8 of
-{{as-processing}} ("Enforce delegation policy") and onward, reusing
-the validated instance assertion. The AS MUST NOT re-apply the
-token-type check, descriptor lookup, signature verification, claim
-validation, or `client_id` binding checks to the same `actor_token`
-in a way that would cause the request to fail replay detection for
-its own presentation.
+After this procedure completes, processing continues with the
+"Enforce delegation policy" step of {{as-processing}} and onward,
+reusing the validated instance assertion. The AS MUST NOT re-apply
+the token-type check, descriptor lookup, signature verification,
+claim validation, `client_id` binding, PoP, or replay checks to the
+same assertion in a way that would cause the request to fail replay
+detection for its own presentation.
 
 ## Authorization-Time Consistency {#auth-time-consistency}
 
@@ -1422,11 +1518,30 @@ access token MUST be sender-constrained per {{sender-constrained}},
 and any upstream actor chain MUST be preserved by nesting per
 {{ACTOR-PROFILE}} (merge rules in {{chain-merging}}).
 
+Access tokens issued under this profile MUST include the following
+top-level claims, populated by the AS at issuance time, regardless
+of grant or classification:
+
+* `iss` -- the AS's issuer identifier;
+* `aud` -- the resource indicator(s) the access token is intended
+  for, per {{RFC9068}};
+* `client_id` -- the OAuth client to which the token was issued;
+* `iat` and `exp` -- the issued-at and expiration timestamps;
+* `cnf` -- the sender-constraint binding per {{sender-constrained}};
+* `scope` -- when applicable per {{RFC6749}};
+* `sub` and, when applicable, `act` and `sub_profile` per the
+  classification rules below.
+
+For JWT access tokens, the requirements of {{RFC9068}} additionally
+apply; this profile does not relax any {{RFC9068}} requirement.
+For opaque (reference) access tokens, the same claim set is surfaced
+through introspection per {{rs-processing-introspection}}.
+
 ### Classification {#access-token-classification}
 
 The AS classifies the request based on whether the grant produces
 a principal distinct from the client instance presenting the
-`actor_token`:
+Client Instance Assertion:
 
 | Grant | Principal | Classification |
 | --- | --- | --- |
@@ -1445,7 +1560,7 @@ in `act`. ASes MUST NOT classify these grants as self-acting based
 on heuristic matching of subject identifiers; see
 {{security-mode-switch}}. This rule applies even when the
 `subject_token` was itself a self-acting access token whose `sub`
-named the same instance now presenting the `actor_token` (e.g., a
+named the same instance now presenting the assertion (e.g., a
 client-credentials token from an upstream AS exchanged at a
 downstream AS): the resulting access token has `sub` and `act.sub`
 naming the same instance. This is benign chain self-reference and
@@ -1463,11 +1578,11 @@ When the request is classified as delegation, the AS MUST populate
 the issued access token's `act` claim per {{ACTOR-PROFILE}} from the
 validated client instance assertion:
 
-* `act.iss` = `actor_token`'s `iss`
-* `act.sub` = `actor_token`'s `sub`
-* `act.sub_profile` = `actor_token`'s `sub_profile` (if present);
+* `act.iss` = the assertion's `iss`
+* `act.sub` = the assertion's `sub`
+* `act.sub_profile` = the assertion's `sub_profile` (if present);
   the value `client_instance` SHOULD be included.
-* `act.cnf` = `actor_token`'s `cnf`, if present.
+* `act.cnf` = the assertion's `cnf`, if present.
 
 The access token's `sub` MUST be the principal identified by the
 grant (e.g., the authenticated user). Sender-constraint binding
@@ -1489,9 +1604,9 @@ principal and there is no other party on whose behalf it acts. The
 AS MUST populate the issued access token from the validated
 instance assertion:
 
-* `sub` = `actor_token`'s `sub` (optionally with AS-applied
+* `sub` = the assertion's `sub` (optionally with AS-applied
   namespacing, see below)
-* `sub_profile` = `actor_token`'s `sub_profile` (if present); the
+* `sub_profile` = the assertion's `sub_profile` (if present); the
   value `client_instance` SHOULD be included
 * `cnf` is set per {{sender-constrained}}
 * `act` MUST be omitted
@@ -1516,13 +1631,24 @@ A client that lists multiple instance issuers MUST ensure those
 issuers' `sub` spaces do not collide (for example, by using
 disjoint naming conventions, prefixes, or a SPIFFE trust-domain
 split); when the client cannot guarantee disjointness, the AS
-SHOULD apply namespacing (e.g., prefixing `sub` with the
-descriptor's issuer such as `<issuer>#<sub>`) to prevent a
-compromised issuer from spoofing another's `sub`. Such namespacing
-is a deployment-side choice and does not affect the wire format of
-the `actor_token`. AS-applied namespacing produces an AS-scoped
-subject identifier; resource-server policy and audit tooling need
-to treat it as AS-issued rather than issuer-native.
+SHOULD apply AS-scoped namespacing that incorporates both the
+matched descriptor's `issuer` and the original `sub` value, to
+prevent a compromised issuer from spoofing another's `sub`. The
+specific encoding is a deployment choice; ASes MUST pick a form
+that is unambiguously parseable and does not collide with
+issuer-native subject forms an RS might also see (in particular,
+ad-hoc separators such as `#` are not appropriate when issuer
+identifiers are URIs, because `#` is the URI fragment delimiter).
+Such namespacing is a deployment-side choice and does not affect
+the wire format of the Client Instance Assertion. AS-applied
+namespacing produces an AS-scoped subject identifier; resource-
+server policy and audit tooling need to treat it as AS-issued
+rather than issuer-native. This mechanism is distinct from the
+attestation-evidence fallback defined in {{CIA-ATTEST-EVIDENCE}},
+which derives `sub` from the bound DPoP key under a registered URN
+form; deployments that produce access tokens through both paths
+will have heterogeneous `sub` shapes unless a deployment-defined
+mapping is used to unify them.
 
 For a worked example see {{appendix-examples-client-credentials}}.
 
@@ -1553,25 +1679,30 @@ the originating instance can present the refresh token. A refresh
 request MUST NOT introduce a client instance identity if the refresh
 token was not originally issued under this profile.
 
-A client MAY include `actor_token` and `actor_token_type`
-({{token-request}}) on a refresh request to supply a fresh instance
-assertion (for example, to rotate the underlying assertion before
-its `exp`). When present, the `actor_token` MUST:
+A client MAY include a fresh Client Instance Assertion on a
+refresh request (for example, to rotate the underlying assertion
+before its `exp`) via the `client_instance_assertion` parameter
+({{cia-param}}). When present, the assertion MUST:
 
 * be bound to the same `cnf` key as the refresh token;
 * have `(iss, sub)` matching those recorded at the refresh token's
-  original issuance; and
-* pass the token-type check, instance issuer descriptor lookup,
-  signature verification, JWT claim validation, and `client_id`
-  binding checks defined in {{as-processing}}.
+  original issuance;
+* pass the instance issuer descriptor lookup, signature
+  verification, JWT claim validation, and `client_id` binding checks
+  defined in {{as-processing}}; and
+* pass the replay check defined in {{security-replay}} against its
+  own `(iss, jti)` tuple. The bound `cnf` of the refresh token
+  prevents off-instance replay, but does not prevent an attacker
+  with the same refresh token from replaying a captured fresh
+  assertion across successive refreshes; the replay check closes
+  that window.
 
-If the presented `actor_token` is a raw JWT-SVID without `cnf`, the
-AS MUST establish the binding key per {{spiffe-binding}} and verify
+If the presented assertion is a raw JWT-SVID without `cnf`, the AS
+MUST establish the binding key per {{spiffe-binding}} and verify
 that the established binding key matches the refresh token's
 binding. The AS MUST reject with `invalid_grant` any refresh
-request whose presented `actor_token` is not bound to the same
-`cnf` key, or whose `(iss, sub)` differ from those recorded at
-issuance.
+request whose presented assertion is not bound to the same `cnf`
+key, or whose `(iss, sub)` differ from those recorded at issuance.
 
 Because the refresh token is bound to the originating instance, it
 is implicitly invalidated when that instance terminates. This keeps
@@ -1580,30 +1711,19 @@ refresh chain, matching the expectation of audit pipelines that a
 token's actor identity does not change after issuance.
 
 For SPIFFE deployments, the cnf binding key SHOULD outlive the
-JWT-SVID rotation cycle (typically 5-10 minutes in default SPIRE)
-when refresh tokens are issued. Deployments that bind `cnf` to a
+JWT-SVID rotation cycle (typically a few minutes in default SPIFFE
+implementations) when refresh tokens are issued. Deployments that bind `cnf` to a
 per-instance DPoP or mTLS key held by the workload satisfy this
 naturally; deployments that attempt to bind `cnf` to the SVID's
 signing key directly will lose refresh-token continuity at every
 rotation and SHOULD NOT use that pattern.
 
-Deployments requiring cross-instance session continuity (for
-example, agent platforms whose runtime is recycled but whose session
-should continue) handle this at the deployment layer rather than
-through refresh-token semantics. Suitable mechanisms include:
-
-* re-authorizing the client through a fresh authorization
-  grant (e.g., a new authorization_code flow with passive sign-in);
-* using token-exchange ({{RFC8693}}) to mint a new instance-bound
-  token chain in the successor instance from a long-lived parent
-  token held by the platform; or
-* persisting session state outside the refresh token (e.g., in a
-  shared store keyed by the user-and-client pair) and obtaining new tokens
-  through a fresh grant.
-
 This profile does not extend refresh-token semantics to
 cross-instance succession; doing so would break the per-instance
 audit-stability invariant the profile is designed to provide.
+Deployments requiring cross-instance session continuity address
+it outside refresh-token semantics (the mechanisms are deployment
+choices and out of scope for this document).
 
 ## SPIFFE Compatibility {#spiffe-compatibility}
 
@@ -1612,21 +1732,28 @@ Workload API. JWT-SVIDs carry `iss` (the trust domain), `sub` (the
 SPIFFE ID), `aud`, `exp`, and a signature, and may carry additional
 registered claims such as `iat` and `jti`; they do not carry an
 OAuth `client_id` claim. To allow such SVIDs to be presented as
-`actor_token` without re-minting, this profile defines an optional
-SPIFFE compatibility mode driven entirely by descriptor
+Client Instance Assertions without re-minting, this profile defines
+an optional SPIFFE compatibility mode driven entirely by descriptor
 configuration. An AS is not required to support raw JWT-SVID
 compatibility in order to support re-minted Client Instance
 Assertions with `subject_syntax` = "spiffe".
 
-This profile uses JWT-format actor tokens. X.509-SVIDs are not
-presented as `actor_token`; SPIFFE deployments using X.509-SVIDs
-authenticate at the TLS layer (per {{RFC8705}}) and obtain a
-JWT-SVID separately for `actor_token` presentation. The X.509-SVID
+This profile uses JWT-format Client Instance Assertions. X.509-SVIDs
+are not presented as Client Instance Assertions; SPIFFE deployments
+using X.509-SVIDs authenticate at the TLS layer (per {{RFC8705}})
+and obtain a JWT-SVID separately for presentation. The X.509-SVID
 certificate thumbprint MAY serve as `cnf.x5t#S256` in either the
 re-minted assertion or the issued access token's binding.
 
 The AS MUST select exactly one validation mode before accepting the
-assertion and MUST apply that mode's rules exclusively:
+assertion and MUST apply that mode's rules exclusively. Selection
+is determined by whether the assertion contains a `client_id`
+claim: presence selects re-minted mode unconditionally, even when
+the descriptor's SPIFFE conditions would otherwise have permitted
+raw mode. This means an OAuth-aware adapter that mints a
+Client Instance Assertion with a SPIFFE-formatted `sub` together
+with a `client_id` claim is always processed as re-minted, and
+the `client_id` value is verified per {{as-processing}}.
 
 | Mode | Selected when | Key source | Claim requirements | Binding |
 | --- | --- | --- | --- | --- |
@@ -1682,22 +1809,22 @@ MUST include the claims required by {{claims}} and MUST use `typ` =
 
 ### Client ID Claim Omission {#spiffe-client-id-omission}
 
-Raw JWT-SVID mode applies when the `actor_token` has no `client_id`
-claim and all of the following hold for the descriptor that matches
-the `actor_token`'s `iss`:
+Raw JWT-SVID mode applies when the presented assertion has no
+`client_id` claim and all of the following hold for the descriptor
+that matches the assertion's `iss`:
 
 * `subject_syntax` is "spiffe";
-* either (a) a `spiffe_id` member is present and the `actor_token`'s
+* either (a) a `spiffe_id` member is present and the assertion's
   `sub` satisfies the `spiffe_id` matching rule of {{instance-issuers}}
   (exact match, or with "/*", path-segment prefix match per
   {{SPIFFE-CLIENT-AUTH}}), or (b) `spiffe_id` is absent,
-  `trust_domain` is present, and the `actor_token`'s `sub` falls
+  `trust_domain` is present, and the assertion's `sub` falls
   within that trust domain;
 
 the AS MUST treat the descriptor as the per-client binding for the
 raw JWT-SVID. In this mode:
 
-* The AS MUST verify that the `actor_token`'s `sub` satisfies the
+* The AS MUST verify that the assertion's `sub` satisfies the
   descriptor's SPIFFE scope: `spiffe_id` when present, otherwise the
   descriptor's whole `trust_domain`.
 * All other JWT claims and validation rules of {{claims}} continue
@@ -1786,21 +1913,31 @@ Errors are returned per {{RFC6749}} Section 5.2 and {{RFC8693}}
 Section 2.2.2. This profile uses the existing OAuth error codes:
 
 * `invalid_request`: pre-condition and request-shape failures,
-  including missing or mismatched `actor_token`/`actor_token_type`,
-  malformed JWT, JWS `typ` mismatch ({{signing}}), sender-constraint
-  binding failures ({{sender-constrained}}), and chain depth
-  exceeding the AS local maximum ({{ACTOR-PROFILE}}).
+  including missing or mismatched
+  `client_instance_assertion` (or, on token-exchange grants,
+  `actor_token`/`actor_token_type`), presence of
+  `client_instance_assertion` on the token-exchange grant, malformed
+  JWT, JWS `typ` mismatch ({{signing}}), sender-constraint binding
+  failures ({{sender-constrained}}), and chain depth exceeding the
+  AS local maximum ({{ACTOR-PROFILE}}).
 * `invalid_grant`: failures of instance-assertion validation,
   including signature, JWT claim validation, descriptor lookup or
   shape, `client_id` binding, SPIFFE compatibility conditions,
-  classification ambiguity, and `actor_token` carrying an `act`
-  claim.
-* `unsupported_token_type` ({{RFC8693}}): an unrecognized
-  `actor_token_type` required for the grant.
-* `invalid_client`: when the `actor_token` is the client
+  classification ambiguity, and a presented assertion carrying an
+  `act` claim. Companion specifications such as
+  {{CIA-ATTEST-EVIDENCE}} may define additional `invalid_grant`
+  failure cases for their own processing paths.
+* `unsupported_token_type` ({{RFC8693}}): on a token-exchange grant,
+  an unrecognized `actor_token_type`.
+* `invalid_client`: when the presented assertion is the client
   authentication credential under {{instance-assertion-auth}},
   validation failures that would otherwise be returned as
-  `invalid_grant` are returned as `invalid_client`.
+  `invalid_grant` (assertion-validation failures) or
+  `invalid_request` (sender-constraint failures, including a
+  `cnf`-less assertion) are returned as `invalid_client`. The
+  pre-condition failures of {{as-processing}} (malformed JWT,
+  misplaced parameter, mismatched grant/parameter) continue to be
+  returned as `invalid_request` even in this mode.
 
 The AS MAY return additional information via the error_description
 parameter; deployments MUST NOT include sensitive instance details
@@ -1814,66 +1951,81 @@ step failed (for example, "issuer not in instance_issuers" or
 
 Resource servers consuming access tokens issued under this profile
 follow the resource server processing rules defined in
-{{ACTOR-PROFILE}} (its "Resource Server Processing" section) for
-delegated access tokens, including actor authorization, JWT access
-token validation, sender-constraint validation against the top-level
-`cnf`, error responses (including the `actor_unauthorized` error code),
-and introspection. This section adds only the considerations specific
-to this profile.
+{{ACTOR-PROFILE}} for delegated access tokens, including actor
+authorization, JWT access token validation, sender-constraint
+validation against the top-level `cnf`, and introspection. This
+section adds three considerations specific to this profile.
 
-When the access token carries an `act` claim
-({{access-token-delegation}}), the resource server processes it
-per {{ACTOR-PROFILE}}; this profile adds no new RS-side requirements
-for the delegation case. Resource servers MAY use
-`act.sub_profile` = `client_instance` as a signal that the actor is
-a concrete runtime of an OAuth client, which can inform
-authorization policy. Resource servers MUST NOT rely on `act.iss`
-for proof of possession; per {{ACTOR-PROFILE}}, the top-level `cnf`
-is the binding for the current presenter.
+**`cnf` is the instance's key, not the principal's.** Under this
+profile the access token's top-level `cnf` is bound to the
+instance that presents the token. In the delegation case the
+principal in `sub` (typically a user) does not present the
+token; the instance named in `act.sub` does, and
+sender-constraint validation authenticates that instance.
 
-Under this profile, the access token's top-level `cnf` is the
-*instance's* key, not the principal's key (the principal in `sub` is
-typically a user, who does not present the token). The instance,
-named in `act.sub`, is the bearer; sender-constraint validation
-authenticates that instance. This is a deliberate consequence of
-binding the access token to the instance that holds the
-authorization, not to the principal who delegated to it.
+**Self-acting access tokens** ({{access-token-self-acting}})
+carry no `act`. `sub` names the client *instance* (typically a
+SPIFFE ID or other workload identifier), `sub_profile` =
+`client_instance` signals that the subject is a runtime instance,
+and `client_id` continues to name the OAuth *client*. Resource
+servers MUST NOT treat `client_id` as the actor identifier in
+the self-acting case; the actor identifier is `sub`. Resource
+servers that distinguish workload-self-acting from human-
+delegated requests SHOULD make the determination based on the
+presence or absence of `act`, not on the format of `sub`.
 
-Resource-server authorization policies SHOULD evaluate the logical
-client (`client_id`), the instance identity (`act.sub` in delegation
-tokens or `sub` in self-acting tokens), actor/subject profile signals
-such as `sub_profile`, granted scopes, and issuer context where it is
-available. Policies that authorize solely on `client_id` lose the
+**Authorization policy SHOULD evaluate instance identity.**
+Policies that authorize solely on `client_id` lose the
 instance-level distinction this profile is designed to provide.
+When a companion profile defines an instance-subject form that is
+not globally unique by itself, such as the `cnf.jkt` URN fallback
+defined by {{CIA-ATTEST-EVIDENCE}}, resource servers MUST
+evaluate the tuple identified by that profile (for example,
+`(client_id, act.sub)` in delegation tokens or
+`(client_id, sub)` in self-acting tokens) rather than the
+instance-subject value alone.
 
-In the self-acting case ({{access-token-self-acting}}), the access
-token carries no `act` claim. From the resource server's perspective,
-the access token is a non-delegated token whose top-level claims have
-the following semantics under this profile:
+## Introspection Responses {#rs-processing-introspection}
 
-* `sub` names the *client instance* (typically a SPIFFE ID or other
-  workload identifier), not a human user.
-* `sub_profile` = `client_instance` signals that the subject is a runtime
-  instance and resource servers SHOULD apply policy appropriate to
-  workload identities (for example, scope-restricted machine-to-
-  machine policies, rate limits, or workload-specific audit).
-* `client_id` names the *client* (the logical OAuth client to
-  which the instance belongs), not the instance. Resource servers
-  MUST NOT treat `client_id` as the actor identifier in the self-
-  acting case; the actor identifier is `sub`. (When delegation is
-  also present, this distinction is moot; `client_id` remains the
-  OAuth client identifier and `act.sub` names the actor.)
-* `cnf` binds the token to the instance's key; PoP validation follows
-  the access token's binding mechanism (`DPoP` {{RFC9449}} or
-  Mutual-TLS-bound {{RFC8705}}).
+When the AS issues opaque (reference) access tokens under this
+profile, the set of profile-defined claims in the introspection
+response ({{RFC7662}}) MUST be identical to the set that would
+appear in the payload of a JWT access token for the same grant,
+including `act` (when applicable), `sub`, `sub_profile`, `client_id`,
+`cnf`, and any actor-chain members defined by {{ACTOR-PROFILE}}.
+Resource servers that consume introspection apply the same
+processing as for JWT access tokens described above; the
+representational difference is only in where the claims arrive
+(token payload versus introspection response).
 
-Resource servers that distinguish "human-delegated" from "workload-
-self-acting" requests SHOULD make the determination based on the
-presence or absence of `act`, not on the format of `sub`. In both
-cases the top-level `client_id` names the client, not the
-instance; when the instance is a SPIFFE workload, the SPIFFE ID is
-conveyed via `act.sub` (delegation) or `sub` (self-acting), never
-via `client_id`.
+The following example shows an introspection response for an
+opaque access token issued under the authorization_code grant
+({{appendix-examples-auth-code}}). The corresponding self-acting
+case ({{appendix-examples-client-credentials}}) and token-exchange
+case ({{appendix-examples-token-exchange}}) follow the same
+pattern: the top-level claims and any `act` chain appear in the
+response exactly as they would in a JWT access token payload.
+
+~~~ json
+{
+  "active":      true,
+  "iss":         "https://as.example.com",
+  "aud":         "https://api.example.com",
+  "sub":         "user:alice@example.com",
+  "client_id":   "https://app.example.com/agent",
+  "scope":       "repo.write",
+  "iat":         1770000005,
+  "exp":         1770001805,
+  "token_type":  "DPoP",
+  "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "act": {
+    "iss":         "https://workload.app.example.com",
+    "sub":         "https://workload.app.example.com/inst-01",
+    "sub_profile": "client_instance",
+    "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
+  }
+}
+~~~
 
 # Adoption and Migration {#adoption}
 
@@ -1884,38 +2036,42 @@ access tokens in circulation when a client adds `instance_issuers`
 remain valid for their original lifetime.
 
 An AS MAY implement this profile while continuing to serve clients
-that do not use it. Token requests are dispatched on
-`actor_token_type`, with
-`urn:ietf:params:oauth:token-type:client-instance-jwt` triggering
-this profile's processing ({{as-processing}}) and other (or absent)
-values processed under their own specifications.
+that do not use it. Token requests are dispatched on the presence of
+`client_instance_assertion` (on the grants in {{permitted-grants}})
+or on `actor_token_type` =
+`urn:ietf:params:oauth:token-type:client-instance-jwt` (on the
+token-exchange grant). Other (or absent) values are processed under
+their own specifications.
 
-ASes SHOULD advertise support via `actor_token_types_supported`
-({{as-metadata}}). Clients SHOULD verify that
-`urn:ietf:params:oauth:token-type:client-instance-jwt` is present in
-the AS's `actor_token_types_supported` before sending an
-`actor_token` on a token request, since RFC 6749 permits ASes that
-do not implement this extension to silently ignore unrecognized
-parameters and issue an unbound access token. The
-`actor_token_types_supported` value is a coarse capability signal;
-clients may still need registration-time or deployment agreement
-for grant-specific use, raw JWT-SVID compatibility, accepted
-sender-constraint methods, and refresh-token behavior.
+ASes implementing this profile MUST advertise support via the
+`client_instance_assertion_supported` AS metadata parameter and, for
+token-exchange use, via `actor_token_types_supported`
+({{as-metadata}}). Clients SHOULD verify the AS's advertised support
+before sending a Client Instance Assertion on a token request, since
+RFC 6749 permits ASes that do not implement this extension to
+silently ignore unrecognized parameters and issue an unbound access
+token. The metadata values are coarse capability signals; clients
+may still need registration-time or deployment agreement for grant-
+specific use, raw JWT-SVID compatibility, accepted sender-constraint
+methods, and refresh-token behavior. ASes that additionally support
+the composition with {{ATTEST-CLIENT-AUTH}} advertise it via the
+mechanism defined in {{CIA-ATTEST-EVIDENCE}}.
 
 A client MAY add `instance_issuers` at any time. A client that wants
-to mandate instance assertions for every issued access token can
-register `token_endpoint_auth_method` = `client_instance_jwt`
-({{instance-assertion-auth}}), which intrinsically requires the
-`actor_token`.
+to mandate Client Instance Assertions for every issued access token
+can register `token_endpoint_auth_method` =
+`client_instance_assertion` ({{instance-assertion-auth}}), which
+intrinsically requires the assertion.
 
 Re-minted Client Instance Assertions require `cnf` ({{claims}}).
 A deployment whose workload identity system does not yet emit
 per-instance keys has three options:
 
 * **Adapter pattern**: an OAuth-aware adapter wraps an existing
-  workload identity system (Kubernetes projected service-account
-  tokens, AWS IMDS, GCP metadata server, Azure managed identity, a
-  SPIFFE control plane, etc.) and re-mints a Client Instance
+  workload identity system (for example, platform-managed identity
+  services such as cluster-issued projected service-account tokens,
+  cloud-instance metadata services, or a SPIFFE control plane) and
+  re-mints a Client Instance
   Assertion with `cnf` from the underlying credential, signing with
   a key registered in the issuer's descriptor. From the AS's
   perspective, the adapter is the instance issuer
@@ -1926,59 +2082,63 @@ per-instance keys has three options:
   workload-identifier → `client_id` mapping, the OAuth signing
   keys, and re-issues at the underlying credential's rotation
   cadence. Recommended for non-SPIFFE deployments and for SPIFFE
-  deployments that can run an adapter.
+  deployments that can run an adapter. Operationally, an adapter is
+  an instance-issuer-equivalent trust root: its signing keys, its
+  workload-to-`client_id` mapping, and its availability all bear on
+  the assertions it produces and the access tokens those assertions
+  yield. Deployments operating an adapter inherit the obligations of
+  {{issuer-obligations}} and the trust-model and lifecycle
+  considerations in {{security-trust-model}} and
+  {{security-lifecycle}}.
 
-* **Raw JWT-SVID compatibility**: the SVID is presented as
-  `actor_token` without re-minting and the AS establishes binding
-  through a channel independent of the SVID
-  ({{spiffe-client-id-omission}}, {{spiffe-binding}}). This is the
-  SPIFFE-native path. For workloads with X.509-SVIDs, the
-  X.509-SVID can serve as the binding key in two shapes:
+* **Raw JWT-SVID compatibility**: the SVID is presented as the
+  Client Instance Assertion without re-minting; the AS establishes
+  sender-constraint binding through a channel independent of the
+  SVID per {{spiffe-compatibility}} and {{spiffe-binding}} (the
+  X.509-SVID at TLS under {{RFC8705}} is the common pattern). See
+  {{appendix-examples-spiffe}} for a worked example.
 
-    - **Re-minted with `cnf`**: an adapter mints a Client Instance
-      Assertion whose `cnf.x5t#S256` is the SHA-256 thumbprint of
-      the workload's X.509-SVID certificate. The workload presents
-      the assertion as `actor_token` and the same X.509-SVID at
-      TLS under {{RFC8705}}; the AS verifies that the TLS
-      certificate thumbprint matches `cnf.x5t#S256`. Use when an
-      OAuth-aware adapter is available.
-    - **Raw JWT-SVID with X.509 binding**: the workload presents
-      its JWT-SVID directly as `actor_token` (no re-mint, no
-      `cnf`) and its X.509-SVID at TLS; the AS treats the
-      X.509-SVID as the sender-constraint binding under
-      {{spiffe-binding}}. Use when the workload runs against
-      unmodified SPIFFE infrastructure.
-
-  Both ground the binding in the SPIFFE trust domain that issued
-  the SVID and avoid a separate DPoP key. Worked example in
-  {{appendix-examples-spiffe}}.
-
-* **Defer adoption** until the workload identity system can emit
-  per-instance keys directly.
+* **Attestation-based instance evidence**: deployments already
+  using {{ATTEST-CLIENT-AUTH}} with DPoP combined mode can adopt
+  the composition defined in {{CIA-ATTEST-EVIDENCE}}, in which the
+  validated Client Attestation and bound DPoP key supply both the
+  per-instance binding and the instance-subject derivation. No
+  per-instance Client Instance Assertion is required on the wire.
 
 ASes and OAuth client operators SHOULD NOT enable the
-`client_instance_jwt` authentication method
+`client_instance_assertion` authentication method
 ({{instance-assertion-auth}}) without `cnf`: that mode has no
 fallback client credential, so a `cnf`-less assertion is fully
 bearer at presentation ({{security-instance-assertion-auth}}).
 
 # Conformance {#conformance}
 
-An AS conforms to this document by implementing the actor token
-grant extension ({{grant-extension}}) and processing for
+An AS conforms to this document by implementing the
+`client_instance_assertion` request parameter ({{cia-param}}) and
+its token-exchange presentation as `actor_token` with
+`actor_token_type` =
 `urn:ietf:params:oauth:token-type:client-instance-jwt`
-({{token-endpoint}}, {{access-token}}, {{errors}}, plus
-{{ACTOR-PROFILE}}). Raw JWT-SVID compatibility
-({{spiffe-compatibility}}) and the `client_instance_jwt`
-authentication method ({{instance-assertion-auth}}) are optional
-capabilities; an AS that supports either MUST conform to its
-respective section. A client using this profile MUST publish or
-register `instance_issuers` metadata ({{instance-issuers}}) and
-MUST ensure each listed issuer is authorized to attest its
-instances. An instance issuer MUST mint assertions per {{claims}},
-{{signing}}, and {{trust-model-delegation}}. A resource server
-MUST process delegated tokens per {{ACTOR-PROFILE}} and apply the
-self-acting semantics in {{rs-processing}} when `act` is absent.
+({{token-exchange-presentation}}), together with the validation,
+representation, and error processing rules in {{token-endpoint}},
+{{access-token}}, and {{errors}}, plus {{ACTOR-PROFILE}}. Raw
+JWT-SVID compatibility ({{spiffe-compatibility}}) and the
+`client_instance_assertion` authentication method
+({{instance-assertion-auth}}) are optional capabilities; an AS
+that supports either MUST conform to the respective section.
+
+A client using this profile with a Client Instance Assertion MUST
+publish or register `instance_issuers` metadata
+({{instance-issuers}}) and MUST ensure each listed issuer is
+authorized to attest its instances. An instance issuer MUST mint
+assertions per {{claims}}, {{signing}}, and
+{{trust-model-delegation}}. A resource server MUST process
+delegated tokens per {{ACTOR-PROFILE}} and apply the self-acting
+semantics in {{rs-processing}} when `act` is absent.
+
+Composition with OAuth Attestation-Based Client Authentication
+({{ATTEST-CLIENT-AUTH}}) is defined by the separate companion
+{{CIA-ATTEST-EVIDENCE}} and is OPTIONAL; an AS conforming to this
+document need not implement that composition.
 
 # Security Considerations {#security}
 
@@ -1998,7 +2158,14 @@ instances of the named client. Clients SHOULD list only
 instance issuers under their own administrative control (or
 contractually equivalent), and SHOULD set `spiffe_id`,
 `trust_domain`, and `signing_alg_values_supported` to bound what
-each issuer is allowed to assert. Clients using SPIFFE SHOULD include
+each issuer is allowed to assert. Deployments hosting workloads
+from multiple tenants under a single `client_id` aggregate those
+tenants' trust roots into a single `instance_issuers` list; see
+{{security-multi-tenancy}} for the resulting blast-radius
+considerations and the recommendation to issue per-tenant
+`client_id` values where tenants are independent trust boundaries.
+
+Clients using SPIFFE SHOULD include
 `spiffe_id`; omitting it delegates the whole SPIFFE trust domain and
 is appropriate only when every workload in that trust domain is
 authorized to act as an instance of the client. After a client
@@ -2007,11 +2174,22 @@ minted under the prior trust may continue to validate up to the
 trust-withdrawal latency bound in {{security-trust-withdrawal-latency}};
 operators SHOULD plan incident response around this window.
 
+The per-client minting requirement of {{issuer-obligations}} is
+an operational obligation on the instance issuer, not a check the
+AS performs in-band. The AS verifies that a presented assertion's
+`client_id` claim matches the authenticated client, but it cannot
+detect an issuer that violates its obligation by minting for
+runtimes outside the authorized set; such assertions are accepted
+as valid. Clients SHOULD list only issuers whose minting policy
+they have audited and whose operational practice they trust to
+honor {{issuer-obligations}}.
+
 Client metadata is itself trust-affecting: an attacker who can
 modify it can add a new instance issuer under their control.
 Adding an `instance_issuers` entry, widening a descriptor's
 `spiffe_id` or `trust_domain`, changing a descriptor's key source, or
-enabling `client_instance_jwt` is equivalent to adding or expanding a
+enabling `client_instance_assertion` (as a
+`token_endpoint_auth_method`) is equivalent to adding or expanding a
 credential issuer for the client and SHOULD require high-assurance
 change control by the client operator and AS.
 Clients publishing CIMD metadata MUST protect the publication
@@ -2033,17 +2211,9 @@ issuer, and the access token TTL. ASes SHOULD size these components
 together so that the resulting latency matches their
 incident-response target.
 
-Recommended defaults: instance assertion `exp` of 5 minutes or less
-({{security-replay}}); access-token TTL of 30 minutes or less paired
-with a metadata refresh interval of 30 minutes or less, giving a
-trust-withdrawal latency of approximately 65 minutes. Tighter
-deployments (5-minute access tokens with 5-minute caches,
-approximately 15 minutes) and looser deployments (60-minute tokens
-with 1-hour caches, approximately 2 hours) are both common; looser
-deployments SHOULD support active revocation ({{revocation}}) and
-introspection-based status checks at the resource server. Operators
-SHOULD treat this latency as a deployment-time SLO matching their
-incident-response requirements.
+Deployments with longer latencies SHOULD support active
+revocation ({{revocation}}) and introspection-based status checks
+at the resource server.
 
 ## Instance Lifecycle {#security-lifecycle}
 
@@ -2078,6 +2248,15 @@ without a new instance assertion may carry stale instance identity long after
 the original instance has terminated. ASes SHOULD prefer requiring a
 fresh instance assertion on refresh ({{refresh}}), or set short refresh
 intervals when instance identity is present.
+
+Compromise-response latency under this profile is bounded by the
+shortest of: the access token TTL, the introspection cache TTL at
+the resource server, and the propagation time of whichever
+revocation signal a deployment uses ({{per-instance-revocation}}).
+None of these are defined by this document; deployments with strict
+detection-to-revocation latency requirements SHOULD tune them
+together and document the resulting end-to-end bound as part of
+operational security posture.
 
 ## Token Revocation {#revocation}
 
@@ -2134,7 +2313,12 @@ the pair (instance issuer, instance subject):
   system).
 
 The mechanism for triggering per-instance revocation is
-deployment-specific and out of scope for this document.
+deployment-specific and out of scope for this document. The
+compromise-to-all-tokens-invalid latency is bounded by the
+shortest of: the access token TTL, the introspection cache TTL at
+any consuming resource server ({{introspection-on-revocation}}),
+and the propagation time of whichever revocation signal the
+deployment uses.
 
 ### Introspection Behavior on Revocation {#introspection-on-revocation}
 
@@ -2148,11 +2332,9 @@ AS has adopted updated client metadata that removes an instance
 issuer or narrows a descriptor's scope so that an issued access
 token's `act` (or, for self-acting tokens, `sub`) is no longer
 endorsed, introspection responses for that access token MUST return
-active = false once the AS has applied the update. Active
-introspection responses SHOULD include the access token's top-level
-`cnf` so that introspection-based PoP has the binding key
-(delegation case follows {{ACTOR-PROFILE}}); for self-acting
-tokens, `sub_profile` and `cnf` SHOULD also be returned.
+active = false once the AS has applied the update. The claim set
+returned in active introspection responses is specified by
+{{rs-processing-introspection}}.
 
 ### Revocation and Refresh Tokens {#revocation-refresh}
 
@@ -2176,6 +2358,14 @@ allowed clock skew. For raw JWT-SVIDs, this check applies only
 when `jti` is present; otherwise replay is bounded by
 sender-constraint, short SVID lifetimes, and audience restriction.
 
+The replay-cache key is `(iss, jti)`; ASes MUST NOT widen the key
+to include `client_id`. `jti` uniqueness is the responsibility of
+the instance issuer within its own `iss` namespace, so two
+different OAuth clients that list the same instance issuer share
+the same replay state for that issuer. The cache MUST be scoped at
+least to a single AS instance; distributed AS deployments share
+the cache or coordinate as specified below.
+
 An AS MAY skip the replay check for cnf-bound assertions that have
 been PoP-verified at presentation, treating them as reusable
 within their `exp` window, provided the deployment documents this
@@ -2187,10 +2377,12 @@ applies unconditionally to assertions without a verified `cnf`.
 
 Issuers SHOULD use short lifetimes (five minutes or less). On
 refresh ({{refresh}}), AS implementations SHOULD prefer requiring
-a fresh instance assertion. Distributed AS deployments MUST share
-the replay cache or coordinate to prevent cross-replica replay,
-except on cnf-bound paths in reusable mode where cnf+PoP
-verification is correctness-preserving across replicas.
+a fresh instance assertion; when a fresh assertion is presented,
+the AS MUST apply the replay check to its `(iss, jti)` per
+{{refresh}}. Distributed AS deployments MUST share the replay
+cache or coordinate to prevent cross-replica replay, except on
+cnf-bound paths in reusable mode where cnf+PoP verification is
+correctness-preserving across replicas.
 
 A compromised instance-issuer signing key creates a
 denial-of-service surface: an attacker can mint validly-signed
@@ -2209,29 +2401,59 @@ from being presented under a different client's authentication.
 
 ## Trust-Root Collapse {#security-instance-assertion-auth}
 
-The `client_instance_jwt` authentication method
+The `client_instance_assertion` authentication method
 ({{instance-assertion-auth}}) collapses two trust roots (client
 credential and instance issuer) into one. Compromise of any listed
 instance issuer is sufficient to mint tokens that authenticate as
 the client. Modes such as `private_key_jwt` require an attacker to
 possess both the instance issuer's signing key and the client's
 private key; that two-key property holds only when the two keys
-live in different security domains (e.g., the client's key in an
-HSM or signing service distinct from the runtime). Where genuine
-separation is not feasible, deployments SHOULD use
-{{instance-assertion-auth}} explicitly rather than rely on nominal
-two-key authentication that does not actually separate custody.
+live in different security domains. Where genuine custody
+separation between the client credential and the instance issuer
+is not available, the security property of `private_key_jwt`
+paired with a Client Instance Assertion reduces to that of
+`client_instance_assertion` alone.
 
-When `client_instance_jwt` is used, clients SHOULD constrain each
+When `client_instance_assertion` is used, clients SHOULD constrain each
 instance issuer's authority through `spiffe_id`, `trust_domain`,
 and `signing_alg_values_supported`, and SHOULD list only the
 minimum set of `instance_issuers` necessary. Trust withdrawal under
 this auth method has immediate consequences: removing an instance
 issuer from `instance_issuers` (or narrowing its descriptor scope)
 invalidates client authentications that depended on that issuer's
-endorsement, and the AS MUST stop accepting `client_instance_jwt`
+endorsement, and the AS MUST stop accepting `client_instance_assertion`
 authentications via the removed or narrowed issuer once it has
 applied the metadata update ({{trust-lifecycle}}).
+
+## Multi-Tenancy Under a Single Client {#security-multi-tenancy}
+
+The class-and-instance model in {{client-instance-model}} is a
+two-level model: the OAuth client (class) and its runtime
+instances. It does not model tenancy as a third dimension.
+Deployments that aggregate workloads from distinct trust domains
+under a single OAuth `client_id` concentrate those tenants' trust
+roots into one `instance_issuers` list. Compromise of any listed
+issuer extends to every tenant whose workloads it authenticates.
+
+This profile RECOMMENDS issuing a separate `client_id` per tenant
+when tenants need to be isolated as trust boundaries. Per-tenant
+`client_id`s give each tenant its own `instance_issuers` list, its
+own descriptor scope, and its own revocation surface, and align
+this profile's trust model with the deployment's tenancy
+boundaries.
+
+Where per-tenant `client_id`s are not practical, deployments SHOULD
+use tight per-issuer constraints in `instance_issuers` (per-tenant
+`spiffe_id` paths, per-tenant `trust_domain` values, or
+descriptor-level scope members that constrain accepted `sub`
+values to a specific tenant) and treat the cross-tenant blast
+radius as a known operational risk. Tenant isolation in such
+deployments is enforced by the breadth of these per-issuer
+constraints, not by the OAuth client identity.
+
+This profile does not define a tenant identifier as a first-class
+claim. Future profiles MAY introduce one if cross-deployment
+interoperability of tenant scoping becomes necessary.
 
 ## Mode-Switch Between Delegation and Self-Acting {#security-mode-switch}
 
@@ -2299,19 +2521,13 @@ The error response guidance in {{errors}} extends to logs and audit
 trails: instance assertion contents SHOULD be logged at a level commensurate
 with the sensitivity of the workload identity they convey.
 
-For incident response, per-instance revocation ({{per-instance-revocation}}),
-and operational audit, ASes issuing access tokens under this
-profile SHOULD log enough information at issuance time to support
-per-instance revocation ({{per-instance-revocation}}) and incident
-response, subject to the sensitivity guidance above.
-
 # IANA Considerations {#iana}
 
 ## OAuth Token Type {#iana-token-type}
 
 IANA is requested to register the following value in the "OAuth URI"
 registry established by {{RFC6755}} (and used by {{RFC8693}} for
-`actor_token_type` values):
+`actor_token_type` values on the token-exchange grant):
 
 URN:
 : `urn:ietf:params:oauth:token-type:client-instance-jwt`
@@ -2324,6 +2540,63 @@ Change Controller:
 
 Specification Document(s):
 : This document
+
+## OAuth Client Instance Subject Syntaxes {#iana-subject-syntax}
+
+IANA is requested to create a new sub-registry titled "OAuth Client
+Instance Subject Syntaxes" under the "OAuth Parameters" registry
+group established by {{RFC6749}}. Registration policy is
+Specification Required {{RFC8126}}.
+
+A Client Instance Subject Syntax is a short identifier appearing in
+the `subject_syntax` member of an instance issuer descriptor
+({{instance-issuers}}). It declares the syntactic form of the `sub`
+claim used by the issuer and selects validation rules the AS
+applies to that claim. This registry covers the descriptor-side
+identifier; the related token-side identifier (the URN form of
+the access-token instance subject when derived without an
+issuer-supplied value) is covered by the separate "OAuth Client
+Instance Derived Subject URN Types" sub-registry established by
+{{CIA-ATTEST-EVIDENCE}}.
+
+Registry fields:
+
+Syntax Identifier:
+: A short label used as the `subject_syntax` value. ABNF:
+  1*( ALPHA / DIGIT / "-" ).
+
+Description:
+: A short description of the subject form.
+
+Change Controller:
+: As required by Specification Required policy.
+
+Specification Document(s):
+: The defining specification.
+
+IANA is requested to register the following initial values:
+
+| Syntax Identifier | Description | Change Controller | Specification |
+| --- | --- | --- | --- |
+| `uri` | Arbitrary StringOrURI {{RFC7519}} subject (the default when `subject_syntax` is absent). | IETF | {{instance-issuers}} of this document |
+| `spiffe` | SPIFFE ID {{SPIFFE}}. Triggers SPIFFE-specific descriptor members (`trust_domain`, `spiffe_id`) and SPIFFE compatibility ({{spiffe-compatibility}}). | IETF | {{instance-issuers}} of this document |
+
+## OAuth Parameters Registration {#iana-token-params}
+
+IANA is requested to register the following value in the "OAuth
+Parameters" registry established by {{RFC6749}}:
+
+Parameter name:
+: `client_instance_assertion`
+
+Parameter usage location:
+: token request
+
+Change Controller:
+: IETF
+
+Specification Document(s):
+: {{cia-param}} of this document
 
 ## OAuth Dynamic Client Registration Metadata {#iana-client-metadata}
 
@@ -2348,7 +2621,7 @@ IANA is requested to register the following value in the "OAuth Token
 Endpoint Authentication Methods" registry established by {{RFC8414}}:
 
 Token Endpoint Authentication Method Name:
-: `client_instance_jwt`
+: `client_instance_assertion`
 
 Change Controller:
 : IETF
@@ -2362,14 +2635,27 @@ IANA is requested to register the following parameters in the "OAuth
 Authorization Server Metadata" registry established by {{RFC8414}}.
 The Change Controller for each entry is IETF.
 
+### client_instance_assertion_supported
+
+Metadata Name:
+: `client_instance_assertion_supported`
+
+Metadata Description:
+: Boolean indicating whether the AS accepts the
+  `client_instance_assertion` request parameter on the grants listed
+  in {{permitted-grants}}.
+
+Specification Document(s):
+: {{as-metadata}} of this document
+
 ### actor_token_types_supported
 
 Metadata Name:
 : `actor_token_types_supported`
 
 Metadata Description:
-: JSON array of `actor_token_type` values supported at the token
-  endpoint.
+: JSON array of `actor_token_type` values supported on the
+  token-exchange grant.
 
 Specification Document(s):
 : {{as-metadata}} of this document
@@ -2467,81 +2753,62 @@ Specification Document(s):
 This appendix records design choices that motivated the normative
 text.
 
-## Why not a `client_instance` request parameter?
+## Why not a `client_instance` identifier parameter? {#rationale-no-instance-identifier}
 {:numbered="false"}
 
-A new top-level `client_instance` parameter would have to flow through
-the authorization request, the token request, introspection, the
-access token, and several existing extensions. Each is a separate
-specification touch-point and a deployment cliff. Reusing `actor_token`
-keeps the protocol surface unchanged.
+A new top-level `client_instance` identifier would have to flow
+through the authorization request, the token request, introspection,
+the access token, and several existing extensions. Each is a separate
+specification touch-point and a deployment cliff. The validated
+instance identity surfaces in the issued access token's `act.sub`
+(delegation) or top-level `sub` (self-acting) per {{access-token}},
+which is the only place a resource server needs it; downstream
+profiles consume that representation rather than a parallel
+identifier.
 
-## Why not a dedicated `client_instance_assertion` request parameter? {#rationale-no-instance-assertion-param}
+## Why a dedicated `client_instance_assertion` request parameter? {#rationale-dedicated-param}
 {:numbered="false"}
 
-A dedicated `client_instance_assertion` parameter would name what
-this profile carries on the wire more directly than a typed
-`actor_token`. This document reuses `actor_token` for three reasons.
+This profile defines a dedicated request parameter for presenting a
+Client Instance Assertion on the four non-token-exchange grants
+listed in {{permitted-grants}}, rather than reusing {{RFC8693}}'s
+`actor_token` / `actor_token_type` parameters on those grants.
+{{RFC8693}} defines `actor_token` and `actor_token_type` only on
+the token-exchange grant; this profile uses `actor_token` only on
+that grant ({{token-exchange-presentation}}).
 
-First, this document also defines the actor token grant extension
-({{grant-extension}}): a wire mechanism for any `actor_token_type`
-to appear on grants beyond token-exchange. A separate
-`client_instance_assertion` parameter would not eliminate
-`actor_token`; it would parallel it for one use case, doubling the
-wire surface.
+The reasons for a dedicated parameter on the other grants:
 
-Second, in delegated flows the instance is the actor, and
-`actor_token` is already the established wire mechanism for naming
-the actor (required by {{RFC8693}} on token-exchange). Introducing
-`client_instance_assertion` alongside `actor_token` would carry the
-same JWT in two parameter slots for delegated flows. Using
-`actor_token` for both keeps the request side canonical with the
-token side, where the validated artifact populates `act` (delegation
-case) or `sub` (self-acting case) per {{ACTOR-PROFILE}}.
+First, the parameter name matches what it carries. A request body
+with `client_instance_assertion=...` declares its purpose; a request
+with `actor_token=...&actor_token_type=urn:...:client-instance-jwt`
+requires the AS to inspect the type URN to recognize the same
+artifact. The dedicated parameter is more discoverable and easier to
+implement against.
 
-Third, an `actor_token_type` URN is a well-known IANA-registered
-extension point; clients with existing `actor_token` plumbing pick
-up `client-instance-jwt` without parser changes.
+Second, the self-acting case (notably `client_credentials`) does not
+fit {{RFC8693}}'s "actor" framing, in which the actor is a party
+distinct from the subject. In this profile's self-acting case the
+instance is the subject (top-level `sub`) rather than the actor
+(`act`); see {{access-token-classification}}. Naming the parameter
+`actor_token` for that case would require readers to mentally
+translate "actor token" to "validated instance identity assertion."
+The dedicated parameter removes that translation; the grant
+determines whether the result is delegation or self-acting.
 
-Profiles that prefer a dedicated request parameter can be defined
-later as a wire-syntax sibling without changing the token shape
-defined here.
+Third, the dedicated parameter parallels the wire conventions of
+{{ATTEST-CLIENT-AUTH}}, which uses purpose-named headers
+(`OAuth-Client-Attestation` and `-PoP`) rather than a typed
+general-purpose carrier. The two specifications use purpose-named
+wire artifacts that an AS can dispatch by parameter name rather than
+by URN inspection.
 
-## Why extend `actor_token` to non-token-exchange grants?
-{:numbered="false"}
-
-{{RFC8693}} already defines request parameters for presenting an
-actor token and identifying its token type. Those parameters are not
-specific to token exchange as a protocol concept; token exchange is
-only the grant on which {{RFC8693}} defines them. Other grants also
-need a way to identify the actor performing the request. Reusing the
-existing parameter machinery avoids grant-specific actor parameters
-and gives actor-token profiles a single token endpoint presentation
-model.
-
-Client instance identity is one motivating example: the instance acts
-on behalf of the subject (the human user or service principal) under
-the authority of the client. Other actor delegation use cases
-share the same presentation need. The only normative move in
-{{grant-extension}} is permitting `actor_token` and
-`actor_token_type` on additional grants; validation and access-token
-representation remain token-type-specific.
-
-The actor token grant extension is intentionally separable from the specific
-`actor_token_type` defined here. By isolating the actor token grant
-extension ({{grant-extension}}), this document provides
-future profiles a defined wire mechanism to build on, rather than
-each profile re-litigating the question of whether `actor_token` may
-appear on `authorization_code` or `client_credentials`. See
-{{other-actor-token-types}}.
-
-If working group consensus prefers to progress the grant extension
-independently from the client instance assertion profile, the
-extension can be split into a companion specification without
-changing the `client-instance-jwt` token type. In that structure,
-this profile would depend on the companion grant-extension
-specification for the wire-level permission to carry `actor_token`
-and `actor_token_type` on non-token-exchange grants.
+The URN `urn:ietf:params:oauth:token-type:client-instance-jwt`
+remains registered to identify the assertion when carried as
+`actor_token` on a token-exchange grant per {{RFC8693}}; see
+{{token-exchange-presentation}}. The two parameter names are
+wire-syntax siblings carrying the same assertion under identical
+validation rules.
 
 ## Why client metadata as the trust anchor for instance issuers?
 {:numbered="false"}
@@ -2555,14 +2822,6 @@ Locating it elsewhere (in AS-side static configuration unrelated to
 the client, or in a separate trust-relationship registry) would
 have fragmented the surface and reduced the auditability of who
 trusts whom.
-
-## Why a dedicated actor_token_type URN?
-{:numbered="false"}
-
-The general-purpose JWT token type does not signal that the AS
-should look up trust via the `instance_issuers` client metadata,
-nor that `client_id` binding applies. A dedicated URN lets ASes route processing unambiguously
-and lets clients advertise support via `actor_token_types_supported`.
 
 ## Why a `token_endpoint_auth_method` rather than a `client_assertion_type`? {#rationale-auth-method}
 {:numbered="false"}
@@ -2583,52 +2842,20 @@ A client instance assertion under this profile names *the
 instance*: its `sub` is the instance identifier and its `client_id`
 claim names the client. The same JWT is required to do double duty
 only when the client chooses
-`token_endpoint_auth_method` = `client_instance_jwt`; in every
+`token_endpoint_auth_method` = `client_instance_assertion`; in every
 other auth method, a separate client credential authenticates the
 client and the instance assertion names the instance.
 
 Modeling the dual-use case as a `client_assertion_type` would have
-required either (a) inventing a second token type identical to
-client-instance-jwt to be the assertion, doubling the wire surface,
-or (b) overloading `client_assertion_type` with the actor-token
-URN, which conflicts with that URN's role as `actor_token_type`.
-Modeling it as a `token_endpoint_auth_method` captures what is
-actually happening, namely that the AS authenticates the client
-implicitly from its client-metadata endorsement of the instance
-assertion's issuer, while keeping `client_assertion` and
-`actor_token` semantically distinct.
-
-## Why reuse `actor_token` in the self-acting case? {#rationale-self-acting}
-{:numbered="false"}
-
-In the self-acting case ({{access-token-self-acting}}) the issued
-access token's principal is the instance itself, not a separate
-party. RFC 8693's "actor" framing literally describes the actor as
-the party acting on behalf of the subject; with no other subject
-present, the framing is technically a stretch.
-
-Two considerations specific to the self-acting case led to reuse
-rather than introducing a parallel "subject_assertion" parameter
-(the general argument against a new request parameter is in
-{{rationale-no-instance-assertion-param}}):
-
-1. *Classification belongs to the grant.* Whether the issued access
-   token represents delegation or self-acting is determined by the
-   grant ({{access-token-classification}}), not by the instance assertion.
-   The same instance assertion can correctly produce either shape depending
-   on the grant it accompanies.
-
-2. *Deployment fit.* Workload identity systems already issue exactly
-   this artifact for both purposes. Requiring deployments to re-mint
-   the same JWT under a different parameter name to satisfy an
-   academic distinction would not improve security.
-
-The cost is that {{RFC8693}}'s "actor" terminology must be read with
-this profile's classification rules in mind. Implementations and
-specification readers should treat `actor_token` in this profile as
-"validated instance identity assertion," with the understanding that
-its placement in the issued access token (`act` vs. `sub`) is governed by
-{{access-token-classification}}.
+required either (a) inventing a second token type identical to the
+Client Instance Assertion to serve as the client assertion, doubling
+the wire surface, or (b) overloading `client_assertion_type` with
+the actor-token URN, which conflicts with that URN's role on
+token-exchange grants. Modeling it as a `token_endpoint_auth_method`
+captures what is actually happening, namely that the AS authenticates
+the client implicitly from its client-metadata endorsement of the
+instance assertion's issuer, while keeping `client_assertion` and
+`client_instance_assertion` semantically distinct.
 
 # Worked Examples {#appendix-examples}
 {:numbered="false"}
@@ -2636,7 +2863,7 @@ its placement in the issued access token (`act` vs. `sub`) is governed by
 This appendix gives end-to-end worked examples for each grant type
 that interacts with this profile. Examples are non-normative and
 omit unrelated headers or grant-specific details that do not affect
-actor processing. Decoded `actor_token` blocks show only the JWT
+actor processing. Decoded assertion blocks show only the JWT
 payload; re-minted Client Instance Assertions also carry a JWS
 protected header with `typ` set to `client-instance+jwt` per
 {{signing}} (see the full example in {{example-assertion}}).
@@ -2709,12 +2936,10 @@ grant_type=authorization_code
 &client_assertion_type=
   urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs... (private_key_jwt)
-&actor_token=eyJhbGciOiJFUzI1NiIs...
-&actor_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
 ~~~
 
-Decoded `actor_token`:
+Decoded `client_instance_assertion`:
 
 ~~~ json
 {
@@ -2733,18 +2958,19 @@ Decoded `actor_token`:
 AS validation:
 
 1. Authenticates the client (`private_key_jwt`).
-2. Recognizes `actor_token_type`.
+2. Recognizes the `client_instance_assertion` parameter for this
+   grant.
 3. Resolves CIMD for the agent.
 4. Locates the descriptor by matching `iss`.
 5. Verifies signature via descriptor's `jwks_uri`.
 6. Validates JWT claims.
-7. Verifies `actor_token`.`client_id` == request `client_id` and
+7. Verifies the assertion's `client_id` == request `client_id` and
    applies the `(iss, jti)` replay check.
 8. Applies AS-local maximum delegation depth.
 9. {{auth-time-consistency}}: the request's `client_id` matches the
    `client_id` that received the code, and the DPoP proof's
-   thumbprint matches both the code's `dpop_jkt` and the actor
-   token's `cnf.jkt`.
+   thumbprint matches both the code's `dpop_jkt` and the
+   assertion's `cnf.jkt`.
 10. Classifies as delegation; issues sender-constrained access token.
 
 Issued access token:
@@ -2791,12 +3017,10 @@ grant_type=client_credentials
 &client_assertion_type=
   urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &client_assertion=eyJhbGciOiJFUzI1NiIs...
-&actor_token=eyJhbGciOiJFUzI1NiIs...
-&actor_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
 ~~~
 
-Decoded `actor_token`:
+Decoded `client_instance_assertion`:
 
 ~~~ json
 {
@@ -2881,9 +3105,10 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
   urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
 ~~~
 
-The `actor_token` is the sub-agent runtime inst-03, with no `act` of
-its own (per {{ACTOR-PROFILE}}, `actor_token` MUST NOT carry `act`).
-Decoded `actor_token`:
+The `actor_token` carries the Client Instance Assertion for the
+sub-agent runtime inst-03, with no `act` of its own (per
+{{ACTOR-PROFILE}}, an `actor_token` MUST NOT carry `act`). Decoded
+`actor_token`:
 
 ~~~ json
 {
@@ -2901,7 +3126,7 @@ Decoded `actor_token`:
 
 Chain construction per {{chain-merging}}:
 
-* Outermost: the validated `actor_token` (sub-agent inst-03).
+* Outermost: the validated Client Instance Assertion (sub-agent inst-03).
 * Inner: the `subject_token`'s `act` chain, preserved
   (agent-orchestrator-alpha).
 
@@ -2938,17 +3163,183 @@ user alice. Each `act` layer names a distinct runtime; resource
 servers and audit pipelines can attribute the request to the
 specific sub-agent that performed it.
 
+## Refresh with a Fresh Instance Assertion {#appendix-examples-refresh}
+{:numbered="false"}
+
+Some time after the authorization-code example
+({{appendix-examples-auth-code}}), instance inst-01's original
+access token approaches expiry. The original Client Instance
+Assertion has also expired, so the client mints a fresh assertion
+(same `iss`, `sub`, and `cnf`) and presents it on the refresh
+request. The refresh token is sender-constrained to the same DPoP
+key per {{refresh}}.
+
+Token request:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-01's key>
+
+grant_type=refresh_token
+&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_assertion_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
+&client_assertion=eyJhbGciOiJFUzI1NiIs... (private_key_jwt)
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Decoded fresh `client_instance_assertion`:
+
+~~~ json
+{
+  "iss":         "https://workload.app.example.com",
+  "sub":         "https://workload.app.example.com/inst-01",
+  "aud":         "https://as.example.com",
+  "client_id":   "https://app.example.com/agent",
+  "sub_profile": "client_instance",
+  "iat":         1770001700,
+  "exp":         1770002000,
+  "jti":         "rf-1a2b3c",
+  "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
+}
+~~~
+
+AS validation per {{refresh}}:
+
+1. Authenticate the client (`private_key_jwt`).
+2. Verify the refresh token belongs to this client and is bound to
+   the presented DPoP key.
+3. Validate the fresh assertion per {{as-processing}}; in particular
+   verify that its `(iss, sub)` match those recorded at original
+   issuance and its `cnf` matches the refresh-token binding key.
+4. Inherit the original grant's classification (delegation), per
+   {{access-token-classification}}.
+5. Issue a new sender-constrained access token with the same
+   `act` chain.
+
+The refreshed access token is identical in shape to the original
+({{appendix-examples-auth-code}}), with updated `iat` and `exp`.
+
+A second variant of this flow omits the fresh assertion entirely:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-01's key>
+
+grant_type=refresh_token
+&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_assertion_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
+&client_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Without a fresh `client_instance_assertion`, the AS still
+inherits the original delegation classification and the original
+`act` chain (sender-constrained to the same DPoP key, since the
+refresh token was bound to it). This is the common case when
+instance identity has not changed since issuance; the issued
+access token's `act` claim is unchanged from
+{{appendix-examples-auth-code}} (with updated `iat` and `exp`).
+Refresh does not introduce a new instance identity.
+
+## Client Authenticated via Instance Assertion {#appendix-examples-instance-auth}
+{:numbered="false"}
+
+A workload's OAuth client is registered with
+`token_endpoint_auth_method` = `client_instance_assertion`
+({{instance-assertion-auth}}). The workload presents no separate
+client credential; the Client Instance Assertion authenticates
+both the client (through the registered endorsement of its
+issuer) and the instance.
+
+Token request:
+
+~~~ http-message
+POST /token HTTP/1.1
+Host: as.example.com
+Content-Type: application/x-www-form-urlencoded
+DPoP: <DPoP proof bound to inst-04's key>
+
+grant_type=client_credentials
+&scope=repo.write
+&client_id=https%3A%2F%2Fapp.example.com%2Fagent
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
+~~~
+
+Decoded `client_instance_assertion`:
+
+~~~ json
+{
+  "iss":         "https://workload.app.example.com",
+  "sub":         "https://workload.app.example.com/inst-04",
+  "aud":         "https://as.example.com",
+  "client_id":   "https://app.example.com/agent",
+  "sub_profile": "client_instance",
+  "iat":         1770000100,
+  "exp":         1770000400,
+  "jti":         "ia-4d5e6f",
+  "cnf":         { "jkt": "QrS...789" }
+}
+~~~
+
+AS validation per {{instance-assertion-auth-validation}}:
+
+1. Resolve the registered metadata for `client_id`
+   (`token_endpoint_auth_method` is `client_instance_assertion`,
+   so no separate client credential is expected and none is
+   accepted on this request).
+2. Validate the assertion using the descriptor lookup, signature
+   verification, and JWT claim validation rules in
+   {{as-processing}} (token-type matching does not apply on
+   `client_credentials`).
+3. Verify the assertion's `client_id` claim equals the request's
+   `client_id` parameter.
+4. Verify the assertion contains a `cnf` claim.
+5. Verify possession of the `cnf` key against the DPoP proof per
+   {{sender-constrained}}.
+6. Apply the replay check ({{security-replay}}).
+7. Treat the client as authenticated. The validated assertion
+   represents the instance for {{access-token}}.
+
+Any failure in steps 1-6 above is returned as `invalid_client` per
+{{errors}}; the assertion is the sole credential, so failures that
+would otherwise be returned as `invalid_grant` or `invalid_request`
+are reclassified.
+
+Self-acting access token issued by the AS:
+
+~~~ json
+{
+  "iss":         "https://as.example.com",
+  "aud":         "https://api.example.com",
+  "sub":         "https://workload.app.example.com/inst-04",
+  "sub_profile": "client_instance",
+  "client_id":   "https://app.example.com/agent",
+  "scope":       "repo.write",
+  "iat":         1770000105,
+  "exp":         1770001905,
+  "cnf":         { "jkt": "QrS...789" }
+}
+~~~
+
 ## SPIFFE Workload (Self-Acting, JWT-SVID Reuse with X.509-SVID Binding) {#appendix-examples-spiffe}
 {:numbered="false"}
 
 A SPIFFE workload makes a `client_credentials` request. The workload
 holds both a JWT-SVID and an X.509-SVID issued by its SPIFFE trust
-domain. The workload presents the JWT-SVID directly as `actor_token`
-under raw JWT-SVID compatibility ({{spiffe-client-id-omission}})
-and presents the X.509-SVID at TLS, so the certificate supplies the
-sender-constraint binding ({{RFC8705}}). Because the actor_token is
-a raw JWT-SVID, its JOSE header follows SPIFFE conventions and is
-not required to carry `typ`=`client-instance+jwt`.
+domain. The workload presents the JWT-SVID directly as the
+`client_instance_assertion` under raw JWT-SVID compatibility
+({{spiffe-client-id-omission}}) and presents the X.509-SVID at TLS,
+so the certificate supplies the sender-constraint binding
+({{RFC8705}}). Because the presented assertion is a raw JWT-SVID,
+its JOSE header follows SPIFFE conventions and is not required to
+carry `typ`=`client-instance+jwt`.
 
 The descriptor uses `subject_syntax`="spiffe" and the access token
 is mTLS-bound, in place of the preamble's URI-syntax descriptor and
@@ -2979,12 +3370,10 @@ Content-Type: application/x-www-form-urlencoded
 grant_type=client_credentials
 &scope=repo.read
 &client_id=https%3A%2F%2Fapp.example.com%2Fagent
-&actor_token=eyJhbGciOiJFUzI1NiIs...
-&actor_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_instance_assertion=eyJhbGciOiJFUzI1NiIs...
 ~~~
 
-Decoded `actor_token`:
+Decoded `client_instance_assertion`:
 
 ~~~ json
 {
@@ -3027,14 +3416,75 @@ matches the access token's `cnf.x5t#S256`.
 
 *RFC EDITOR: please remove this section before publication.*
 
--01
+## -01 {#history-01}
+{:numbered="false"}
 
-* Added §Relationship subsection covering OAuth Attestation-Based
-  Client Authentication ({{ATTEST-CLIENT-AUTH}}); described combined
-  deployment with key sharing across attestation, instance
-  assertion, and access-token sender-constraint.
+* **Wire surface.** Introduced the
+  `client_instance_assertion` request parameter on
+  `authorization_code`, `client_credentials`, `refresh_token`, and
+  JWT bearer grants, and the JOSE `typ` value `client-instance+jwt`.
+  Token-exchange continues to present the assertion as
+  `actor_token` with the registered token type
+  `urn:ietf:params:oauth:token-type:client-instance-jwt`.
+  Dropped the previous "actor token grant extension" framing and
+  the generalization over arbitrary actor-token profiles.
+* **Scope.** Split the attestation-based instance evidence
+  composition (with {{ATTEST-CLIENT-AUTH}}) into the companion
+  document {{CIA-ATTEST-EVIDENCE}}, which now owns the
+  composition's processing path, security considerations, IANA
+  sub-registry, and AS metadata flag.
+* **Access token contract.** Required {{RFC9068}} for JWT access
+  tokens and stated the profile-level top-level claim set
+  explicitly (`iss`, `aud`, `client_id`, `iat`, `exp`, `cnf`,
+  `scope`, plus `sub`/`act`/`sub_profile` per classification).
+  Added §Introspection Responses for opaque tokens.
+* **Validation procedure.** Specified the
+  `client_instance_assertion` token-endpoint authentication
+  method ({{instance-assertion-auth}}) with its validation
+  procedure and `invalid_client` re-coding. Ordered
+  §as-processing so PoP verification precedes replay checking
+  (enabling the cnf-bound reusable-mode optimization). Specified
+  octet-equality for `iss`/`sub`/`client_id`/`aud`/`spiffe_id`
+  comparisons. Specified `(iss, jti)` replay-cache scope.
+* **SPIFFE.** Added §spiffe-compatibility for raw JWT-SVID
+  presentation without re-minting, with sender-constraint
+  established via an independent binding key per
+  §spiffe-binding.
+* **Security additions.** New sections on multi-tenancy under a
+  single `client_id` ({{security-multi-tenancy}}) and the AS's
+  inability to verify issuer-side compliance with the per-client
+  minting rule.
+  Softened §trust-model-as on AS-side issuer configuration from
+  prescriptive to advisory. Added trust-root-collapse
+  considerations for the auth-method mode.
+* **Signing.** Declared `ES256` mandatory-to-implement; `RS256`
+  SHOULD-support.
+* **IANA.** Established the "OAuth Client Instance Subject
+  Syntaxes" sub-registry (Specification Required) seeded with
+  `uri` and `spiffe`. Added the `client_instance_assertion`
+  token-endpoint-authentication-method registration. Cross-
+  referenced with the companion's "OAuth Client Instance Derived
+  Subject URN Types" sub-registry to distinguish descriptor-side
+  from token-side identifiers.
+* **Metadata.** Defined `instance_issuers` client metadata and the
+  `client_instance_assertion_supported` AS metadata parameter.
+* **Editorial.** Retitled to "OAuth 2.0 Client Instance Assertion".
+  Added worked examples for authorization-code,
+  client-credentials, token-exchange, refresh (with and without a
+  fresh CIA), the `client_instance_assertion` auth method, and
+  SPIFFE JWT-SVID reuse. Inverted and expanded §Design Rationale.
+  Trimmed operational/deployment content not in scope for an
+  OAuth protocol spec: removed the cross-instance-session-continuity
+  recipes in §refresh; dropped the specific TTL "recommended
+  defaults" in §security-trust-withdrawal-latency; removed the
+  "Defer adoption" bullet from §Adoption; generalized
+  §Introduction use-case language; trimmed §rs-processing's
+  restatement of {{ACTOR-PROFILE}} to just the three additions
+  this profile makes. Aligned the §instance-issuers example with
+  the worked examples (`app.example.com/agent`).
 
--00
+## -00 {#history-00}
+{:numbered="false"}
 
 * Initial version.
 
