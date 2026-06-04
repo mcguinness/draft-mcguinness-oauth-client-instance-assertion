@@ -3256,48 +3256,37 @@ as belonging to the instance for binding purposes.<a href="#section-8.5-8" class
         <h3 id="name-access-token-representation">
 <a href="#section-8.6" class="section-number selfRef">8.6. </a><a href="#name-access-token-representation" class="section-name selfRef">Access Token Representation</a>
         </h3>
-<p id="section-8.6-1">A client instance may be acting on behalf of another principal
+<p id="section-8.6-1">This section defines how a validated Client Instance Assertion
+surfaces in the issued access token. It does not restate the
+generic access-token claim set: JWT access tokens issued under
+this profile follow <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span>; opaque (reference) access tokens
+carry the same set of claims through introspection per
+<a href="#rs-processing-introspection" class="auto internal xref">Section 9.1</a>. The profile-specific surfacing
+rules are:<a href="#section-8.6-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-8.6-2.1">
+            <p id="section-8.6-2.1.1">The access token <span class="bcp14">MUST</span> be sender-constrained per
+<a href="#sender-constrained" class="auto internal xref">Section 8.5</a> (i.e., <code>cnf</code> is bound to the instance's
+key, not bearer).<a href="#section-8.6-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.6-2.2">
+            <p id="section-8.6-2.2.1">The validated instance identity surfaces in <code>act</code> (delegation
+case) or top-level <code>sub</code> (self-acting case), per the
+classification and per-case rules below; <code>sub_profile</code>
+(<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>) signals the kind of subject in either case.<a href="#section-8.6-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-8.6-2.3">
+            <p id="section-8.6-2.3.1">Any upstream actor chain <span class="bcp14">MUST</span> be preserved by nesting per
+<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; merge rules are in <a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>.<a href="#section-8.6-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-8.6-3">A client instance may be acting on behalf of another principal
 (<em>delegation case</em>; e.g., a user authorized the request through an
 authorization_code grant) or acting as itself with no other
 principal involved (<em>self-acting case</em>; e.g., a <code>client_credentials</code>
 grant). The AS <span class="bcp14">MUST</span> classify each request as delegation or
-self-acting before populating the issued access token's claims. In
-both cases the access token's <code>client_id</code> remains the client, the
-access token <span class="bcp14">MUST</span> be sender-constrained per <a href="#sender-constrained" class="auto internal xref">Section 8.5</a>,
-and any upstream actor chain <span class="bcp14">MUST</span> be preserved by nesting per
-<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> (merge rules in <a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>).<a href="#section-8.6-1" class="pilcrow">¶</a></p>
-<p id="section-8.6-2">Access tokens issued under this profile <span class="bcp14">MUST</span> include the following
-top-level claims, populated by the AS at issuance time, regardless
-of grant or classification:<a href="#section-8.6-2" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-8.6-3.1">
-            <p id="section-8.6-3.1.1"><code>iss</code> -- the AS's issuer identifier;<a href="#section-8.6-3.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.2">
-            <p id="section-8.6-3.2.1"><code>aud</code> -- the resource indicator(s) the access token is intended
-for, per <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span>;<a href="#section-8.6-3.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.3">
-            <p id="section-8.6-3.3.1"><code>client_id</code> -- the OAuth client to which the token was issued;<a href="#section-8.6-3.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.4">
-            <p id="section-8.6-3.4.1"><code>iat</code> and <code>exp</code> -- the issued-at and expiration timestamps;<a href="#section-8.6-3.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.5">
-            <p id="section-8.6-3.5.1"><code>cnf</code> -- the sender-constraint binding per <a href="#sender-constrained" class="auto internal xref">Section 8.5</a>;<a href="#section-8.6-3.5.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.6">
-            <p id="section-8.6-3.6.1"><code>scope</code> -- when applicable per <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>;<a href="#section-8.6-3.6.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.6-3.7">
-            <p id="section-8.6-3.7.1"><code>sub</code> and, when applicable, <code>act</code> and <code>sub_profile</code> per the
-classification rules below.<a href="#section-8.6-3.7.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
-<p id="section-8.6-4">For JWT access tokens, the requirements of <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> additionally
-apply; this profile does not relax any <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> requirement.
-For opaque (reference) access tokens, the same claim set is surfaced
-through introspection per <a href="#rs-processing-introspection" class="auto internal xref">Section 9.1</a>.<a href="#section-8.6-4" class="pilcrow">¶</a></p>
+self-acting before populating the issued access token's claims;
+the classification rules are in <a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>.<a href="#section-8.6-3" class="pilcrow">¶</a></p>
 <div id="access-token-classification">
 <section id="section-8.6.1">
           <h4 id="name-classification">
@@ -5858,11 +5847,16 @@ composition's processing path, security considerations, IANA
 sub-registry, and AS metadata flag.<a href="#appendix-C.1-1.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.3">
-            <p id="appendix-C.1-1.3.1"><strong>Access token contract.</strong> Required <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> for JWT access
-tokens and stated the profile-level top-level claim set
-explicitly (<code>iss</code>, <code>aud</code>, <code>client_id</code>, <code>iat</code>, <code>exp</code>, <code>cnf</code>,
-<code>scope</code>, plus <code>sub</code>/<code>act</code>/<code>sub_profile</code> per classification).
-Added §Introspection Responses for opaque tokens.<a href="#appendix-C.1-1.3.1" class="pilcrow">¶</a></p>
+            <p id="appendix-C.1-1.3.1"><strong>Access token surfacing.</strong> §access-token specifies how a
+validated Client Instance Assertion surfaces in the issued
+access token: <code>act</code> (delegation case) or top-level <code>sub</code>
+(self-acting case), with <code>sub_profile</code> (<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>)
+signalling the kind of subject, and sender-constraint binding
+per §sender-constrained. The generic JWT access-token contract
+is inherited from <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span>; this profile does not restate
+the <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> claim set. Added §rs-processing-introspection
+requiring opaque tokens to surface the same set of claims via
+introspection.<a href="#appendix-C.1-1.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.4">
             <p id="appendix-C.1-1.4.1"><strong>Validation procedure.</strong> Specified the
