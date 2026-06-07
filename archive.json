@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-06-04T03:33:20.176275+00:00",
+  "timestamp": "2026-06-07T03:24:58.619528+00:00",
   "repo": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
   "labels": [
     {
@@ -90,24 +90,54 @@
       "id": "PR_kwDOSR4lzs7gWJu6",
       "title": "Restructure to -01: dedicated CIA parameter, validation tightening, companion split",
       "url": "https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion/pull/2",
-      "state": "OPEN",
+      "state": "MERGED",
       "author": "mcguinness",
       "authorAssociation": "OWNER",
       "assignees": [],
       "labels": [],
       "body": "## Summary\n\nRestructures the draft as -01 with a dedicated `client_instance_assertion` request parameter and splits the attestation-evidence composition into a separate companion document. Replaces the closed PR #1 (which was lost when the source branch was renamed from `client-instance-assertion-param` to `cia-restructure`).\n\nNet diff vs main: 2057 insertions / 769 deletions across two files. Ten commits on top of `main`, each reviewable in isolation; commits are sequential (a later commit may rely on an earlier one being in place).\n\n## What changed\n\n### Wire surface\n\n* Introduce the `client_instance_assertion` request parameter on `authorization_code`, `client_credentials`, `refresh_token`, and JWT bearer grants, with JOSE `typ` value `client-instance+jwt`. Token-exchange continues to present the assertion as `actor_token` with the registered URN `urn:ietf:params:oauth:token-type:client-instance-jwt`. Drop the previous \"actor token grant extension\" framing and the generalization over arbitrary actor-token profiles.\n\n### Scope\n\n* Split the attestation-based instance evidence composition (with OAuth Attestation-Based Client Authentication) into a separate companion document, `draft-mcguinness-oauth-client-instance-attestation-evidence-00`. The companion owns the composition's processing path, security considerations, IANA \"OAuth Client Instance Derived Subject URN Types\" sub-registry (seeded with `jkt`), and `client_instance_attestation_evidence_supported` AS metadata. Core no longer normatively imports ATTEST-CLIENT-AUTH.\n\n### Access-token contract\n\n* Require RFC 9068 for JWT access tokens and state the profile-level top-level claim set explicitly (`iss`, `aud`, `client_id`, `iat`, `exp`, `cnf`, `scope`, plus `sub`/`act`/`sub_profile` per classification).\n* Add \u00a7rs-processing-introspection: the claim set in active introspection responses MUST equal the JWT access-token payload's claim set for the same grant.\n\n### Validation procedure\n\n* Define the optional `client_instance_assertion` token-endpoint authentication method (\u00a7instance-assertion-auth) with its validation procedure and `invalid_client` re-coding (covers both `invalid_grant`-class and `invalid_request`-class failures).\n* Reorder \u00a7as-processing so PoP verification precedes the replay check, enabling the cnf-bound reusable-mode optimization in \u00a7security-replay.\n* Specify octet-equality for `iss`/`sub`/`client_id`/`aud`/`spiffe_id` comparisons (no case folding, Unicode normalization, percent-decoding, or URI canonicalization), with the SPIFFE wildcard rule explicitly carved out.\n* Specify `(iss, jti)` replay-cache scope: ASes MUST NOT widen the key with `client_id`; the cache is shared across clients listing the same instance issuer.\n* \u00a7refresh now requires that a fresh Client Instance Assertion presented on refresh pass the replay check against its own `(iss, jti)`.\n\n### SPIFFE\n\n* Add \u00a7spiffe-compatibility for raw JWT-SVID presentation without re-minting, with sender-constraint established via an independent binding key per \u00a7spiffe-binding. Clarify that presence of `client_id` in the assertion selects re-minted mode unconditionally.\n\n### Security\n\n* New \u00a7security-multi-tenancy documenting the two-level class-and-instance model and recommending per-tenant `client_id` where tenants are independent trust boundaries.\n* New paragraph in \u00a7security-trust-model noting the AS cannot verify issuer-side compliance with the per-client minting rule.\n* Soften \u00a7trust-model-as restriction on AS-side issuer configuration from prescriptive to advisory.\n\n### Signing and metadata\n\n* Declare ES256 mandatory-to-implement; RS256 SHOULD-support.\n* Define `instance_issuers` client metadata and the `client_instance_assertion_supported` AS metadata parameter.\n* Establish the \"OAuth Client Instance Subject Syntaxes\" sub-registry (Specification Required), seeded with `uri` and `spiffe`, cross-referenced with the companion's \"OAuth Client Instance Derived Subject URN Types\" sub-registry to distinguish descriptor-side from token-side identifiers.\n\n### Companion non-normative content\n\n* Worked examples (self-acting with `cnf.jkt` URN fallback; token-exchange variant placing the URN in `act.sub`).\n* Example Mapping Shapes appendix illustrating two real-world attestation ecosystems: OpenID4VCI wallet attestation (EU eIDAS 2.0 / EUDI Wallet) and ACME device attestation (`draft-ietf-acme-device-attest`, with Apple Managed Device Attestation as the most widely deployed realization).\n\n### Editorial\n\n* Retitle the core to \"OAuth 2.0 Client Instance Assertion\" (drop \"Profile\" and \"using Actor Tokens\"). Rewrite the abstract to lead with the artifact.\n* Add a \"Client Instance Evidence\" defined term in \u00a7Conventions as the umbrella the companion's term inherits from.\n* Worked examples in the core cover authorization-code, client-credentials, token-exchange, refresh (with and without a fresh CIA), the `client_instance_assertion` auth method, and SPIFFE JWT-SVID reuse.\n* Trim operational/deployment content not in scope for an OAuth protocol spec: cross-instance-session-continuity recipes, specific TTL recommended defaults, \"Defer adoption\" bullet, agentic-framing in \u00a7Introduction, and \u00a7rs-processing's restatement of ACTOR-PROFILE.\n* Invert and expand \u00a7Design Rationale.\n\n## Commit sequence\n\n1. `2dfdfd3` \u2014 Restructure as -01: dedicated `client_instance_assertion` parameter and layered composition with attestation-based client auth (already on the previous PR).\n2. `80c15b4` \u2014 Trim operational content; align examples; tighten \u00a7rs-processing. WG-readiness pass, no normative change.\n3. `822ade0` \u2014 Tighten validation procedure. Octet-equality; PoP-before-replay; auth-method `invalid_client` taxonomy; replay-check for fresh CIA on refresh; `(iss, jti)` cache scope.\n4. `fcb4f6b` \u2014 Add SPIFFE/multi-tenancy clarifications, IANA registry, access-token claim set, introspection contract. New \u00a7security-multi-tenancy, \u00a7rs-processing-introspection, \"OAuth Client Instance Subject Syntaxes\" sub-registry; RFC 9068 alignment.\n5. `e86c9d9` \u2014 Split attestation evidence into companion document.\n6. `cd8f1fd` \u2014 Retitle to \"OAuth 2.0 Client Instance Assertion\"; final alignment. Title, abstract rewrite, Client Instance Evidence definition, plus late refinements (ES256 MTI, `actor_token` rejection on non-token-exchange grants, confidential-client carve-out, RFC8126 normative for the new sub-registry, three blocking review nits cleared).\n7. `67aee93` \u2014 Add non-normative \u00a7Example Mapping Shapes appendix to companion (OpenID4VCI wallet attestation + ACME device attestation).\n8. `817cf7b` \u2014 Simplify companion -00 Document History to a single \"Initial publication\" line.\n9. `8bd9ecb` \u2014 Fix unresolved RFC8705 reference in companion (build error).\n10. `ee38ef8` \u2014 Fix ACME-MDA appendix example to match DPoP combined-mode requirement (`cnf.jkt` instead of `cnf.x5t#S256`).\n\n## Test plan\n\n- [x] `kramdown-rfc` and `xml2rfc-html` render both documents without warnings or errors\n- [x] All `{{anchor}}` cross-references resolve within each document\n- [x] All RFC references in each document are declared in normative or informative refs\n- [x] Cross-document references (`{{CIA-CORE}}`, `{{CIA-ATTEST-EVIDENCE}}`) use prose section names that survive rendering\n- [x] IANA registries are independently reviewable (core's \"OAuth Client Instance Subject Syntaxes\" and companion's \"OAuth Client Instance Derived Subject URN Types\"; cross-linked)\n- [x] CI build clean on every commit\n- [ ] `idnits` clean for both documents (run pre-submission)",
       "createdAt": "2026-05-28T18:03:50Z",
-      "updatedAt": "2026-05-28T20:59:16Z",
+      "updatedAt": "2026-06-04T04:13:15Z",
       "baseRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
       "baseRefName": "main",
       "baseRefOid": "38549630bfa096eff28834fbc14ce3681cb4b6ec",
       "headRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
       "headRefName": "cia-restructure",
       "headRefOid": "ee38ef8c6e105e64ff344b3961ea50ec81820423",
-      "closedAt": null,
-      "mergedAt": null,
-      "mergedBy": null,
-      "mergeCommit": null,
+      "closedAt": "2026-06-04T04:13:11Z",
+      "mergedAt": "2026-06-04T04:13:11Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "de0606dd300722e413b0953d333db87ba0bf36af"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 3,
+      "id": "PR_kwDOSR4lzs7ihu-l",
+      "title": "Tighten \u00a7access-token to profile-specific surfacing",
+      "url": "https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion/pull/3",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Summary\n\n\u00a7access-token previously restated RFC 9068's top-level claim set (`iss`, `aud`, `client_id`, `iat`, `exp`, `cnf`, `scope`) alongside the profile-specific surfacing rules. The restatement was redundant with RFC 9068 itself and made the section read like generic OAuth access-token plumbing inside a spec named for the Client Instance Assertion.\n\nThis PR removes the restatement and tightens \u00a7access-token to the three profile-specific surfacing rules:\n\n* The access token MUST be sender-constrained per \u00a7sender-constrained (`cnf` bound to the instance's key).\n* The validated instance identity surfaces in `act` (delegation) or top-level `sub` (self-acting); `sub_profile` signals the kind of subject.\n* Any upstream actor chain MUST be preserved by nesting per ACTOR-PROFILE.\n\nThe generic JWT access-token contract is inherited from RFC 9068; the spec no longer restates it. Opaque (reference) tokens carry the same set of claims through introspection per \u00a7rs-processing-introspection.\n\n## What's unchanged\n\n* \u00a7access-token-classification (the grant \u2192 classification table)\n* \u00a7access-token-delegation (how `act.iss/sub/cnf/sub_profile` derive from the validated assertion)\n* \u00a7access-token-self-acting (how `sub` is placed when no other principal)\n* \u00a7chain-merging (nested actor chains)\n\n## Document History\n\nThe change folds into the existing -01 history bullet (the draft has not been published yet). The bullet is rewritten from \"Access token contract\" to \"Access token surfacing\" reflecting the narrower scope.\n\n## Test plan\n\n- [x] `make html` passes for both documents\n- [x] Cross-references to {{access-token}} from \u00a7token-endpoint preamble and \u00a7as-processing still resolve\n- [ ] CI build clean (will run on push)",
+      "createdAt": "2026-06-04T04:33:31Z",
+      "updatedAt": "2026-06-04T04:38:14Z",
+      "baseRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "baseRefName": "main",
+      "baseRefOid": "de0606dd300722e413b0953d333db87ba0bf36af",
+      "headRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "headRefName": "tighten-access-token",
+      "headRefOid": "76a82969e3e040939905bbcc4da10586335e8051",
+      "closedAt": "2026-06-04T04:38:10Z",
+      "mergedAt": "2026-06-04T04:38:10Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "0bfbfc1fdaa0bb83bb85023c8b9d2d9637d660d0"
+      },
       "comments": [],
       "reviews": []
     }
