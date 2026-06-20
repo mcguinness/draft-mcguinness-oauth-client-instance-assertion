@@ -32,7 +32,7 @@ the access token's  sub , when the instance itself is the principal
 (e.g., a client credentials grant). The issued access token is
 sender-constrained to a key the instance possesses. 
     " name="description">
-<meta content="xml2rfc 3.33.0" name="generator">
+<meta content="xml2rfc 3.34.0" name="generator">
 <meta content="OAuth" name="keyword">
 <meta content="CIMD" name="keyword">
 <meta content="Workload Identity" name="keyword">
@@ -40,18 +40,19 @@ sender-constrained to a key the instance possesses.
 <meta content="SPIFFE" name="keyword">
 <meta content="draft-mcguinness-oauth-client-instance-assertion-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.33.0
-    Python 3.12.13
-    ConfigArgParse 1.7
+  xml2rfc 3.34.0
+    Python 3.14.5
+    ConfigArgParse 1.7.5
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
-    lxml 6.0.2
-    platformdirs 4.9.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.10.0
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.7.0
+    wcwidth 0.8.1
 -->
 <link href="draft-mcguinness-oauth-client-instance-assertion.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1611,12 +1612,6 @@ beyond what <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]
 conveying actor identity; like <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, this is left for
 future work.<a href="#section-1-7.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-1-7.4">
-          <p id="section-1-7.4.1">It does not define how a validated OAuth Client Attestation
-(<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>) can substitute for a Client Instance
-Assertion; that composition is defined by the separate companion
-<span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>.<a href="#section-1-7.4.1" class="pilcrow">¶</a></p>
-</li>
       </ul>
 </section>
 </div>
@@ -1670,32 +1665,21 @@ prose; "the presented assertion" denotes the JWT carried by either
 parameter, with processing identical in both cases.<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-3.9">Client Instance Evidence:</dt>
+<dt id="section-2-3.9">Delegation Case:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.10">
-          <p id="section-2-3.10.1">The material an authorization server uses to identify and bind a
-client instance for the purposes of this profile. The primary
-form is a Client Instance Assertion presented as defined above.
-Companion specifications may define additional forms; for
-example, <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span> defines validated OAuth
-Attestation-Based Client Authentication material as an
-alternative form of Client Instance Evidence.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-2-3.11">Delegation Case:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-3.12">
-          <p id="section-2-3.12.1">A token request whose grant produces a principal distinct from the
+          <p id="section-2-3.10.1">A token request whose grant produces a principal distinct from the
 instance presenting the Client Instance Assertion (for example, a
 user under authorization_code or jwt-bearer). The issued access
 token's <code>sub</code> is the principal and the instance appears in <code>act</code>
-per <a href="#access-token-delegation" class="auto internal xref">Section 8.6.2</a>.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+per <a href="#access-token-delegation" class="auto internal xref">Section 8.6.2</a>.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-3.13">Self-Acting Case:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-3.14">
-          <p id="section-2-3.14.1">A token request whose grant produces no principal distinct from
+<dt id="section-2-3.11">Self-Acting Case:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.12">
+          <p id="section-2-3.12.1">A token request whose grant produces no principal distinct from
 the instance (notably <code>client_credentials</code>). The issued access
 token's <code>sub</code> is the instance and <code>act</code> is omitted per
-<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
+<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1845,13 +1829,11 @@ surfacing gap.<a href="#section-3-6" class="pilcrow">¶</a></p>
       </table>
 <p id="section-3-8">The two specifications are orthogonal: this profile does not
 require <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> and does not redefine or extend it.
-A separate companion document <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span> defines a
-composition mode in which an AS that has validated a Client
-Attestation with a DPoP proof of possession may consume that
-material as Client Instance Evidence without requiring a separate
-Client Instance Assertion. Deployments using <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>
-that need this profile's instance-identity surfacing should consult
-that companion.<a href="#section-3-8" class="pilcrow">¶</a></p>
+Deployments may combine them by presenting a Client Instance
+Assertion alongside a Client Attestation, in which case the Client
+Attestation continues to authenticate the client instance for
+client-authentication purposes while the Client Instance Assertion
+provides this profile's resource-server-visible instance identity.<a href="#section-3-8" class="pilcrow">¶</a></p>
 <p id="section-3-9"><span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> additionally defines a Client Attestation
 presentation path directly to a resource server (Client Attestation
 PoP <code>aud</code> = resource identifier); that path is independent of this
@@ -2711,19 +2693,15 @@ and JWT payload):<a href="#section-7.4-1" class="pilcrow">¶</a></p>
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-token-endpoint-processing" class="section-name selfRef">Token Endpoint Processing</a>
       </h2>
 <p id="section-8-1">This section specifies AS-side processing for token requests that
-provide client instance evidence. The primary evidence is a Client
-Instance Assertion, presented either as the
-<code>client_instance_assertion</code> request parameter on the grants in
-<a href="#permitted-grants" class="auto internal xref">Section 4.1</a> (<a href="#cia-param" class="auto internal xref">Section 4</a>) or as the <code>actor_token</code>
-parameter with <code>actor_token_type</code> =
+provide a Client Instance Assertion. The assertion is presented
+either as the <code>client_instance_assertion</code> request parameter on the
+grants in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a> (<a href="#cia-param" class="auto internal xref">Section 4</a>) or as the
+<code>actor_token</code> parameter with <code>actor_token_type</code> =
 <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code> on the
-token-exchange grant (<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>). The
-companion <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span> defines an optional attestation-
-based evidence path that does not require a separate Client Instance
-Assertion. This section defines the validation, authorization-time
-consistency, sender-constraint, representation, refresh, client
-authentication, SPIFFE compatibility, and error rules for the
-Client Instance Assertion path.<a href="#section-8-1" class="pilcrow">¶</a></p>
+token-exchange grant (<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>). This
+section defines the validation, authorization-time consistency,
+sender-constraint, representation, refresh, client authentication,
+SPIFFE compatibility, and error rules.<a href="#section-8-1" class="pilcrow">¶</a></p>
 <p id="section-8-2">This profile applies whether the AS issues JWT access tokens
 (<span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span>) or opaque (reference) access tokens. The
 representation rules in <a href="#access-token" class="auto internal xref">Section 8.6</a> describe the <em>claims</em> an
@@ -2754,16 +2732,10 @@ set to <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>
 (<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>).<a href="#section-8.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-8.1-3">A deployment that uses <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> for client
-authentication <span class="bcp14">MAY</span> use the composition defined by
-<span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>, in which the validated Client Attestation
-and DPoP proof serve as Client Instance Evidence without a
-separate Client Instance Assertion. That composition is independent
-of this section.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
-<p id="section-8.1-4">The following example shows a client credentials grant carrying a
+<p id="section-8.1-3">The following example shows a client credentials grant carrying a
 Client Instance Assertion. The client authenticates with
-<code>private_key_jwt</code>; line breaks are for readability:<a href="#section-8.1-4" class="pilcrow">¶</a></p>
-<div class="lang-http-message sourcecode" id="section-8.1-5">
+<code>private_key_jwt</code>; line breaks are for readability:<a href="#section-8.1-3" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="section-8.1-4">
 <pre>
 POST /token HTTP/1.1
 Host: as.example.com
@@ -2777,7 +2749,7 @@ grant_type=client_credentials
   urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &amp;client_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
 &amp;client_instance_assertion=eyJhbGciOiJFUzI1NiIsImtpZCI6...
-</pre><a href="#section-8.1-5" class="pilcrow">¶</a>
+</pre><a href="#section-8.1-4" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
@@ -3448,12 +3420,7 @@ Such namespacing is a deployment-side choice and does not affect
 the wire format of the Client Instance Assertion. AS-applied
 namespacing produces an AS-scoped subject identifier; resource-
 server policy and audit tooling need to treat it as AS-issued
-rather than issuer-native. This mechanism is distinct from the
-attestation-evidence fallback defined in <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>,
-which derives <code>sub</code> from the bound DPoP key under a registered URN
-form; deployments that produce access tokens through both paths
-will have heterogeneous <code>sub</code> shapes unless a deployment-defined
-mapping is used to unify them.<a href="#section-8.6.3-4" class="pilcrow">¶</a></p>
+rather than issuer-native.<a href="#section-8.6.3-4" class="pilcrow">¶</a></p>
 <p id="section-8.6.3-5">For a worked example see <a href="#appendix-examples-client-credentials" class="auto internal xref">Appendix "Client Credentials (Self-Acting)"</a>.<a href="#section-8.6.3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3836,9 +3803,7 @@ AS local maximum (<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFIL
 including signature, JWT claim validation, descriptor lookup or
 shape, <code>client_id</code> binding, SPIFFE compatibility conditions,
 classification ambiguity, and a presented assertion carrying an
-<code>act</code> claim. Companion specifications such as
-<span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span> may define additional <code>invalid_grant</code>
-failure cases for their own processing paths.<a href="#section-8.9-2.2.1" class="pilcrow">¶</a></p>
+<code>act</code> claim.<a href="#section-8.9-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.9-2.3">
             <p id="section-8.9-2.3.1"><code>unsupported_token_type</code> (<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>): on a token-exchange grant,
@@ -3896,14 +3861,7 @@ delegated requests <span class="bcp14">SHOULD</span> make the determination base
 presence or absence of <code>act</code>, not on the format of <code>sub</code>.<a href="#section-9-3" class="pilcrow">¶</a></p>
 <p id="section-9-4"><strong>Authorization policy <span class="bcp14">SHOULD</span> evaluate instance identity.</strong>
 Policies that authorize solely on <code>client_id</code> lose the
-instance-level distinction this profile is designed to provide.
-When a companion profile defines an instance-subject form that is
-not globally unique by itself, such as the <code>cnf.jkt</code> URN fallback
-defined by <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>, resource servers <span class="bcp14">MUST</span>
-evaluate the tuple identified by that profile (for example,
-<code>(client_id, act.sub)</code> in delegation tokens or
-<code>(client_id, sub)</code> in self-acting tokens) rather than the
-instance-subject value alone.<a href="#section-9-4" class="pilcrow">¶</a></p>
+instance-level distinction this profile is designed to provide.<a href="#section-9-4" class="pilcrow">¶</a></p>
 <div id="rs-processing-introspection">
 <section id="section-9.1">
         <h3 id="name-introspection-responses">
@@ -3979,9 +3937,7 @@ silently ignore unrecognized parameters and issue an unbound access
 token. The metadata values are coarse capability signals; clients
 may still need registration-time or deployment agreement for grant-
 specific use, raw JWT-SVID compatibility, accepted sender-constraint
-methods, and refresh-token behavior. ASes that additionally support
-the composition with <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> advertise it via the
-mechanism defined in <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>.<a href="#section-10-3" class="pilcrow">¶</a></p>
+methods, and refresh-token behavior.<a href="#section-10-3" class="pilcrow">¶</a></p>
 <p id="section-10-4">A client <span class="bcp14">MAY</span> add <code>instance_issuers</code> at any time. A client that wants
 to mandate Client Instance Assertions for every issued access token
 can register <code>token_endpoint_auth_method</code> =
@@ -3989,7 +3945,7 @@ can register <code>token_endpoint_auth_method</code> =
 intrinsically requires the assertion.<a href="#section-10-4" class="pilcrow">¶</a></p>
 <p id="section-10-5">Re-minted Client Instance Assertions require <code>cnf</code> (<a href="#claims" class="auto internal xref">Section 7.2</a>).
 A deployment whose workload identity system does not yet emit
-per-instance keys has three options:<a href="#section-10-5" class="pilcrow">¶</a></p>
+per-instance keys has two options:<a href="#section-10-5" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-10-6.1">
           <p id="section-10-6.1.1"><strong>Adapter pattern</strong>: an OAuth-aware adapter wraps an existing
@@ -4024,14 +3980,6 @@ SVID per <a href="#spiffe-compatibility" class="auto internal xref">Section 8.8<
 X.509-SVID at TLS under <span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span> is the common pattern). See
 <a href="#appendix-examples-spiffe" class="auto internal xref">Appendix "SPIFFE Workload (Self-Acting, JWT-SVID Reuse with X.509-SVID Binding)"</a> for a worked example.<a href="#section-10-6.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-10-6.3">
-          <p id="section-10-6.3.1"><strong>Attestation-based instance evidence</strong>: deployments already
-using <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> with DPoP combined mode can adopt
-the composition defined in <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>, in which the
-validated Client Attestation and bound DPoP key supply both the
-per-instance binding and the instance-subject derivation. No
-per-instance Client Instance Assertion is required on the wire.<a href="#section-10-6.3.1" class="pilcrow">¶</a></p>
-</li>
       </ul>
 <p id="section-10-7">ASes and OAuth client operators <span class="bcp14">SHOULD NOT</span> enable the
 <code>client_instance_assertion</code> authentication method
@@ -4065,10 +4013,6 @@ assertions per <a href="#claims" class="auto internal xref">Section 7.2</a>, <a 
 <a href="#trust-model-delegation" class="auto internal xref">Section 5.3.1</a>. A resource server <span class="bcp14">MUST</span> process
 delegated tokens per <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> and apply the self-acting
 semantics in <a href="#rs-processing" class="auto internal xref">Section 9</a> when <code>act</code> is absent.<a href="#section-11-2" class="pilcrow">¶</a></p>
-<p id="section-11-3">Composition with OAuth Attestation-Based Client Authentication
-(<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>) is defined by the separate companion
-<span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span> and is <span class="bcp14">OPTIONAL</span>; an AS conforming to this
-document need not implement that composition.<a href="#section-11-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security">
@@ -4576,12 +4520,7 @@ Specification Required <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]<
 the <code>subject_syntax</code> member of an instance issuer descriptor
 (<a href="#instance-issuers" class="auto internal xref">Section 6.1.1</a>). It declares the syntactic form of the <code>sub</code>
 claim used by the issuer and selects validation rules the AS
-applies to that claim. This registry covers the descriptor-side
-identifier; the related token-side identifier (the URN form of
-the access-token instance subject when derived without an
-issuer-supplied value) is covered by the separate "OAuth Client
-Instance Derived Subject URN Types" sub-registry established by
-<span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>.<a href="#section-13.2-2" class="pilcrow">¶</a></p>
+applies to that claim.<a href="#section-13.2-2" class="pilcrow">¶</a></p>
 <p id="section-13.2-3">Registry fields:<a href="#section-13.2-3" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-13.2-4">
           <dt id="section-13.2-4.1">Syntax Identifier:</dt>
@@ -5032,7 +4971,7 @@ registration is contingent on the establishment of that registry.<a href="#secti
 <dd class="break"></dd>
 <dt id="SPIFFE-CLIENT-AUTH">[SPIFFE-CLIENT-AUTH]</dt>
       <dd>
-<span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, and <span class="refAuthor">S. Thorgersen</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-01</span>, <time datetime="2026-03-02" class="refDate">2 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-01">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-01</a>&gt;</span>. </dd>
+<span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, <span class="refAuthor">Thorgersen, S.</span>, and <span class="refAuthor">N. Cam-Winget</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-02</span>, <time datetime="2026-06-15" class="refDate">15 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -5046,10 +4985,6 @@ registration is contingent on the establishment of that registry.<a href="#secti
 <dt id="ATTEST-CLIENT-AUTH">[ATTEST-CLIENT-AUTH]</dt>
         <dd>
 <span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-09</span>, <time datetime="2026-05-25" class="refDate">25 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="CIA-ATTEST-EVIDENCE">[CIA-ATTEST-EVIDENCE]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"Attestation-Based Client Instance Evidence for OAuth 2.0"</span>, <time datetime="2026-05" class="refDate">May 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-attestation-evidence.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-attestation-evidence.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7009">[RFC7009]</dt>
         <dd>
@@ -5840,14 +5775,7 @@ Dropped the previous "actor token grant extension" framing and
 the generalization over arbitrary actor-token profiles.<a href="#appendix-C.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.2">
-            <p id="appendix-C.1-1.2.1"><strong>Scope.</strong> Split the attestation-based instance evidence
-composition (with <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>) into the companion
-document <span>[<a href="#CIA-ATTEST-EVIDENCE" class="cite xref">CIA-ATTEST-EVIDENCE</a>]</span>, which now owns the
-composition's processing path, security considerations, IANA
-sub-registry, and AS metadata flag.<a href="#appendix-C.1-1.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="appendix-C.1-1.3">
-            <p id="appendix-C.1-1.3.1"><strong>Access token surfacing.</strong> §access-token specifies how a
+            <p id="appendix-C.1-1.2.1"><strong>Access token surfacing.</strong> §access-token specifies how a
 validated Client Instance Assertion surfaces in the issued
 access token: <code>act</code> (delegation case) or top-level <code>sub</code>
 (self-acting case), with <code>sub_profile</code> (<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>)
@@ -5856,52 +5784,52 @@ per §sender-constrained. The generic JWT access-token contract
 is inherited from <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span>; this profile does not restate
 the <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> claim set. Added §rs-processing-introspection
 requiring opaque tokens to surface the same set of claims via
-introspection.<a href="#appendix-C.1-1.3.1" class="pilcrow">¶</a></p>
+introspection.<a href="#appendix-C.1-1.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="appendix-C.1-1.4">
-            <p id="appendix-C.1-1.4.1"><strong>Validation procedure.</strong> Specified the
+          <li class="normal" id="appendix-C.1-1.3">
+            <p id="appendix-C.1-1.3.1"><strong>Validation procedure.</strong> Specified the
 <code>client_instance_assertion</code> token-endpoint authentication
 method (<a href="#instance-assertion-auth" class="auto internal xref">Section 8.3</a>) with its validation
 procedure and <code>invalid_client</code> re-coding. Ordered
 §as-processing so PoP verification precedes replay checking
 (enabling the cnf-bound reusable-mode optimization). Specified
 octet-equality for <code>iss</code>/<code>sub</code>/<code>client_id</code>/<code>aud</code>/<code>spiffe_id</code>
-comparisons. Specified <code>(iss, jti)</code> replay-cache scope.<a href="#appendix-C.1-1.4.1" class="pilcrow">¶</a></p>
+comparisons. Specified <code>(iss, jti)</code> replay-cache scope.<a href="#appendix-C.1-1.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="appendix-C.1-1.5">
-            <p id="appendix-C.1-1.5.1"><strong>SPIFFE.</strong> Added §spiffe-compatibility for raw JWT-SVID
+          <li class="normal" id="appendix-C.1-1.4">
+            <p id="appendix-C.1-1.4.1"><strong>SPIFFE.</strong> Added §spiffe-compatibility for raw JWT-SVID
 presentation without re-minting, with sender-constraint
 established via an independent binding key per
-§spiffe-binding.<a href="#appendix-C.1-1.5.1" class="pilcrow">¶</a></p>
+§spiffe-binding.<a href="#appendix-C.1-1.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="appendix-C.1-1.6">
-            <p id="appendix-C.1-1.6.1"><strong>Security additions.</strong> New sections on multi-tenancy under a
+          <li class="normal" id="appendix-C.1-1.5">
+            <p id="appendix-C.1-1.5.1"><strong>Security additions.</strong> New sections on multi-tenancy under a
 single <code>client_id</code> (<a href="#security-multi-tenancy" class="auto internal xref">Section 12.8</a>) and the AS's
 inability to verify issuer-side compliance with the per-client
 minting rule.
 Softened §trust-model-as on AS-side issuer configuration from
 prescriptive to advisory. Added trust-root-collapse
-considerations for the auth-method mode.<a href="#appendix-C.1-1.6.1" class="pilcrow">¶</a></p>
+considerations for the auth-method mode.<a href="#appendix-C.1-1.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-C.1-1.6">
+            <p id="appendix-C.1-1.6.1"><strong>Signing.</strong> Declared <code>ES256</code> mandatory-to-implement; <code>RS256</code>
+              <span class="bcp14">SHOULD</span>-support.<a href="#appendix-C.1-1.6.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.7">
-            <p id="appendix-C.1-1.7.1"><strong>Signing.</strong> Declared <code>ES256</code> mandatory-to-implement; <code>RS256</code>
-              <span class="bcp14">SHOULD</span>-support.<a href="#appendix-C.1-1.7.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="appendix-C.1-1.8">
-            <p id="appendix-C.1-1.8.1"><strong>IANA.</strong> Established the "OAuth Client Instance Subject
+            <p id="appendix-C.1-1.7.1"><strong>IANA.</strong> Established the "OAuth Client Instance Subject
 Syntaxes" sub-registry (Specification Required) seeded with
 <code>uri</code> and <code>spiffe</code>. Added the <code>client_instance_assertion</code>
 token-endpoint-authentication-method registration. Cross-
 referenced with the companion's "OAuth Client Instance Derived
 Subject URN Types" sub-registry to distinguish descriptor-side
-from token-side identifiers.<a href="#appendix-C.1-1.8.1" class="pilcrow">¶</a></p>
+from token-side identifiers.<a href="#appendix-C.1-1.7.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="appendix-C.1-1.8">
+            <p id="appendix-C.1-1.8.1"><strong>Metadata.</strong> Defined <code>instance_issuers</code> client metadata and the
+<code>client_instance_assertion_supported</code> AS metadata parameter.<a href="#appendix-C.1-1.8.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.9">
-            <p id="appendix-C.1-1.9.1"><strong>Metadata.</strong> Defined <code>instance_issuers</code> client metadata and the
-<code>client_instance_assertion_supported</code> AS metadata parameter.<a href="#appendix-C.1-1.9.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="appendix-C.1-1.10">
-            <p id="appendix-C.1-1.10.1"><strong>Editorial.</strong> Retitled to "OAuth 2.0 Client Instance Assertion".
+            <p id="appendix-C.1-1.9.1"><strong>Editorial.</strong> Retitled to "OAuth 2.0 Client Instance Assertion".
 Added worked examples for authorization-code,
 client-credentials, token-exchange, refresh (with and without a
 fresh CIA), the <code>client_instance_assertion</code> auth method, and
@@ -5914,7 +5842,7 @@ defaults" in §security-trust-withdrawal-latency; removed the
 §Introduction use-case language; trimmed §rs-processing's
 restatement of <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> to just the three additions
 this profile makes. Aligned the §instance-issuers example with
-the worked examples (<code>app.example.com/agent</code>).<a href="#appendix-C.1-1.10.1" class="pilcrow">¶</a></p>
+the worked examples (<code>app.example.com/agent</code>).<a href="#appendix-C.1-1.9.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 </section>

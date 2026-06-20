@@ -645,9 +645,9 @@ Table of Contents
               Weeks, B., Mallaya, G., Rajala, S., Bonnell, C., and R.
               Hurst, "Automated Certificate Management Environment
               (ACME) Device Attestation Extension", Work in Progress,
-              Internet-Draft, draft-ietf-acme-device-attest-06, 1 June
+              Internet-Draft, draft-ietf-acme-device-attest-07, 13 June
               2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
-              acme-device-attest-06>.
+              acme-device-attest-07>.
 
    [OPENID4VCI]
               OpenID Foundation, "OpenID for Verifiable Credential
