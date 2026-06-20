@@ -149,15 +149,6 @@ identity at the OAuth 2.0 token endpoint. It:
 * Defines authorization server metadata so that clients can
   discover support.
 
-To enable instance assertions to be presented on grants other than
-token-exchange, this document defines the `client_instance_assertion`
-request parameter for the `authorization_code`,
-`client_credentials`, `refresh_token`, and JWT bearer ({{RFC7523}})
-grants; see {{cia-param}}. On the token-exchange grant
-({{RFC8693}}), the same assertion is carried as `actor_token` per
-{{RFC8693}}'s conventions ({{token-exchange-presentation}}). The two
-parameter names are wire-syntax siblings for the same artifact.
-
 What this document does *not* do:
 
 * It does not introduce a `client_instance` identifier parameter
@@ -319,8 +310,8 @@ SHOULD use the OAuth-aware adapter pattern ({{adoption}}) to mint
 a Client Instance Assertion. For sender-constraint, this
 profile pins the binding member of `cnf` to `jkt` ({{RFC9449}}) or
 `x5t#S256` ({{RFC8705}}); WIMSE-defined binding mechanisms (for
-example, a future Workload Proof Token) can be added by a companion
-profile when those mechanisms reach deployment maturity.
+example, a future Workload Proof Token) can be added by a future
+specification when those mechanisms reach deployment maturity.
 
 # Client Instance Assertion Request Parameter {#cia-param}
 
@@ -388,8 +379,9 @@ token-exchange, where {{RFC8693}} requires a distinct subject.
 # Client Instance Model {#client-instance-model}
 
 A registered OAuth client commonly abstracts over many concrete
-runtimes (e.g., the Slack OAuth client across iOS, Android, web, and
-server-side; an agent platform across each running agent or session).
+runtimes (for example, a single OAuth client identifier representing
+an application across iOS, Android, web, and server-side runtimes;
+or an agent platform across each running agent or session).
 This profile makes that class-and-instance relationship explicit so
 each runtime can be named, attested, and bound to access tokens
 individually. For agent platforms, a sub-agent spawned by an agent
@@ -3392,10 +3384,7 @@ matches the access token's `cnf.x5t#S256`.
 * **IANA.** Established the "OAuth Client Instance Subject
   Syntaxes" sub-registry (Specification Required) seeded with
   `uri` and `spiffe`. Added the `client_instance_assertion`
-  token-endpoint-authentication-method registration. Cross-
-  referenced with the companion's "OAuth Client Instance Derived
-  Subject URN Types" sub-registry to distinguish descriptor-side
-  from token-side identifiers.
+  token-endpoint-authentication-method registration.
 * **Metadata.** Defined `instance_issuers` client metadata and the
   `client_instance_assertion_supported` AS metadata parameter.
 * **Editorial.** Retitled to "OAuth 2.0 Client Instance Assertion".
