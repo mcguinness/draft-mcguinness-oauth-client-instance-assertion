@@ -58,13 +58,6 @@ informative:
   RFC7009:
   RFC8037:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
-  CIA-ATTEST-EVIDENCE:
-    title: "Attestation-Based Client Instance Evidence for OAuth 2.0"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-attestation-evidence.html
-    author:
-      -
-        fullname: Karl McGuinness
-    date: 2026-05
   WIMSE-ARCH: I-D.ietf-wimse-arch
   WIMSE-CREDS: I-D.ietf-wimse-workload-creds
   SPIFFE:
@@ -176,10 +169,6 @@ What this document does *not* do:
 * It does not define authorization endpoint interactions for
   conveying actor identity; like {{ACTOR-PROFILE}}, this is left for
   future work.
-* It does not define how a validated OAuth Client Attestation
-  ({{ATTEST-CLIENT-AUTH}}) can substitute for a Client Instance
-  Assertion; that composition is defined by the separate companion
-  {{CIA-ATTEST-EVIDENCE}}.
 
 # Conventions and Definitions
 
@@ -217,15 +206,6 @@ Client Instance Assertion:
   Assertion" and "instance assertion" are used interchangeably in
   prose; "the presented assertion" denotes the JWT carried by either
   parameter, with processing identical in both cases.
-
-Client Instance Evidence:
-: The material an authorization server uses to identify and bind a
-  client instance for the purposes of this profile. The primary
-  form is a Client Instance Assertion presented as defined above.
-  Companion specifications may define additional forms; for
-  example, {{CIA-ATTEST-EVIDENCE}} defines validated OAuth
-  Attestation-Based Client Authentication material as an
-  alternative form of Client Instance Evidence.
 
 Delegation Case:
 : A token request whose grant produces a principal distinct from the
@@ -316,13 +296,11 @@ surfacing gap.
 
 The two specifications are orthogonal: this profile does not
 require {{ATTEST-CLIENT-AUTH}} and does not redefine or extend it.
-A separate companion document {{CIA-ATTEST-EVIDENCE}} defines a
-composition mode in which an AS that has validated a Client
-Attestation with a DPoP proof of possession may consume that
-material as Client Instance Evidence without requiring a separate
-Client Instance Assertion. Deployments using {{ATTEST-CLIENT-AUTH}}
-that need this profile's instance-identity surfacing should consult
-that companion.
+Deployments may combine them by presenting a Client Instance
+Assertion alongside a Client Attestation, in which case the Client
+Attestation continues to authenticate the client instance for
+client-authentication purposes while the Client Instance Assertion
+provides this profile's resource-server-visible instance identity.
 
 {{ATTEST-CLIENT-AUTH}} additionally defines a Client Attestation
 presentation path directly to a resource server (Client Attestation
@@ -1032,19 +1010,15 @@ and JWT payload):
 # Token Endpoint Processing {#token-endpoint}
 
 This section specifies AS-side processing for token requests that
-provide client instance evidence. The primary evidence is a Client
-Instance Assertion, presented either as the
-`client_instance_assertion` request parameter on the grants in
-{{permitted-grants}} ({{cia-param}}) or as the `actor_token`
-parameter with `actor_token_type` =
+provide a Client Instance Assertion. The assertion is presented
+either as the `client_instance_assertion` request parameter on the
+grants in {{permitted-grants}} ({{cia-param}}) or as the
+`actor_token` parameter with `actor_token_type` =
 `urn:ietf:params:oauth:token-type:client-instance-jwt` on the
-token-exchange grant ({{token-exchange-presentation}}). The
-companion {{CIA-ATTEST-EVIDENCE}} defines an optional attestation-
-based evidence path that does not require a separate Client Instance
-Assertion. This section defines the validation, authorization-time
-consistency, sender-constraint, representation, refresh, client
-authentication, SPIFFE compatibility, and error rules for the
-Client Instance Assertion path.
+token-exchange grant ({{token-exchange-presentation}}). This
+section defines the validation, authorization-time consistency,
+sender-constraint, representation, refresh, client authentication,
+SPIFFE compatibility, and error rules.
 
 This profile applies whether the AS issues JWT access tokens
 ({{RFC9068}}) or opaque (reference) access tokens. The
@@ -1069,13 +1043,6 @@ using the parameter appropriate to the grant:
   presented as the `actor_token` parameter with `actor_token_type`
   set to `urn:ietf:params:oauth:token-type:client-instance-jwt`
   ({{token-exchange-presentation}}).
-
-A deployment that uses {{ATTEST-CLIENT-AUTH}} for client
-authentication MAY use the composition defined by
-{{CIA-ATTEST-EVIDENCE}}, in which the validated Client Attestation
-and DPoP proof serve as Client Instance Evidence without a
-separate Client Instance Assertion. That composition is independent
-of this section.
 
 The following example shows a client credentials grant carrying a
 Client Instance Assertion. The client authenticates with
@@ -1639,12 +1606,7 @@ Such namespacing is a deployment-side choice and does not affect
 the wire format of the Client Instance Assertion. AS-applied
 namespacing produces an AS-scoped subject identifier; resource-
 server policy and audit tooling need to treat it as AS-issued
-rather than issuer-native. This mechanism is distinct from the
-attestation-evidence fallback defined in {{CIA-ATTEST-EVIDENCE}},
-which derives `sub` from the bound DPoP key under a registered URN
-form; deployments that produce access tokens through both paths
-will have heterogeneous `sub` shapes unless a deployment-defined
-mapping is used to unify them.
+rather than issuer-native.
 
 For a worked example see {{appendix-examples-client-credentials}}.
 
@@ -1920,9 +1882,7 @@ Section 2.2.2. This profile uses the existing OAuth error codes:
   including signature, JWT claim validation, descriptor lookup or
   shape, `client_id` binding, SPIFFE compatibility conditions,
   classification ambiguity, and a presented assertion carrying an
-  `act` claim. Companion specifications such as
-  {{CIA-ATTEST-EVIDENCE}} may define additional `invalid_grant`
-  failure cases for their own processing paths.
+  `act` claim.
 * `unsupported_token_type` ({{RFC8693}}): on a token-exchange grant,
   an unrecognized `actor_token_type`.
 * `invalid_client`: when the presented assertion is the client
@@ -1973,13 +1933,6 @@ presence or absence of `act`, not on the format of `sub`.
 **Authorization policy SHOULD evaluate instance identity.**
 Policies that authorize solely on `client_id` lose the
 instance-level distinction this profile is designed to provide.
-When a companion profile defines an instance-subject form that is
-not globally unique by itself, such as the `cnf.jkt` URN fallback
-defined by {{CIA-ATTEST-EVIDENCE}}, resource servers MUST
-evaluate the tuple identified by that profile (for example,
-`(client_id, act.sub)` in delegation tokens or
-`(client_id, sub)` in self-acting tokens) rather than the
-instance-subject value alone.
 
 ## Introspection Responses {#rs-processing-introspection}
 
@@ -2049,9 +2002,7 @@ silently ignore unrecognized parameters and issue an unbound access
 token. The metadata values are coarse capability signals; clients
 may still need registration-time or deployment agreement for grant-
 specific use, raw JWT-SVID compatibility, accepted sender-constraint
-methods, and refresh-token behavior. ASes that additionally support
-the composition with {{ATTEST-CLIENT-AUTH}} advertise it via the
-mechanism defined in {{CIA-ATTEST-EVIDENCE}}.
+methods, and refresh-token behavior.
 
 A client MAY add `instance_issuers` at any time. A client that wants
 to mandate Client Instance Assertions for every issued access token
@@ -2061,7 +2012,7 @@ intrinsically requires the assertion.
 
 Re-minted Client Instance Assertions require `cnf` ({{claims}}).
 A deployment whose workload identity system does not yet emit
-per-instance keys has three options:
+per-instance keys has two options:
 
 * **Adapter pattern**: an OAuth-aware adapter wraps an existing
   workload identity system (for example, platform-managed identity
@@ -2094,13 +2045,6 @@ per-instance keys has three options:
   X.509-SVID at TLS under {{RFC8705}} is the common pattern). See
   {{appendix-examples-spiffe}} for a worked example.
 
-* **Attestation-based instance evidence**: deployments already
-  using {{ATTEST-CLIENT-AUTH}} with DPoP combined mode can adopt
-  the composition defined in {{CIA-ATTEST-EVIDENCE}}, in which the
-  validated Client Attestation and bound DPoP key supply both the
-  per-instance binding and the instance-subject derivation. No
-  per-instance Client Instance Assertion is required on the wire.
-
 ASes and OAuth client operators SHOULD NOT enable the
 `client_instance_assertion` authentication method
 ({{instance-assertion-auth}}) without `cnf`: that mode has no
@@ -2130,11 +2074,6 @@ assertions per {{claims}}, {{signing}}, and
 {{trust-model-delegation}}. A resource server MUST process
 delegated tokens per {{ACTOR-PROFILE}} and apply the self-acting
 semantics in {{rs-processing}} when `act` is absent.
-
-Composition with OAuth Attestation-Based Client Authentication
-({{ATTEST-CLIENT-AUTH}}) is defined by the separate companion
-{{CIA-ATTEST-EVIDENCE}} and is OPTIONAL; an AS conforming to this
-document need not implement that composition.
 
 # Security Considerations {#security}
 
@@ -2548,12 +2487,7 @@ A Client Instance Subject Syntax is a short identifier appearing in
 the `subject_syntax` member of an instance issuer descriptor
 ({{instance-issuers}}). It declares the syntactic form of the `sub`
 claim used by the issuer and selects validation rules the AS
-applies to that claim. This registry covers the descriptor-side
-identifier; the related token-side identifier (the URN form of
-the access-token instance subject when derived without an
-issuer-supplied value) is covered by the separate "OAuth Client
-Instance Derived Subject URN Types" sub-registry established by
-{{CIA-ATTEST-EVIDENCE}}.
+applies to that claim.
 
 Registry fields:
 
@@ -3424,11 +3358,6 @@ matches the access token's `cnf.x5t#S256`.
   `urn:ietf:params:oauth:token-type:client-instance-jwt`.
   Dropped the previous "actor token grant extension" framing and
   the generalization over arbitrary actor-token profiles.
-* **Scope.** Split the attestation-based instance evidence
-  composition (with {{ATTEST-CLIENT-AUTH}}) into the companion
-  document {{CIA-ATTEST-EVIDENCE}}, which now owns the
-  composition's processing path, security considerations, IANA
-  sub-registry, and AS metadata flag.
 * **Access token surfacing.** §access-token specifies how a
   validated Client Instance Assertion surfaces in the issued
   access token: `act` (delegation case) or top-level `sub`
