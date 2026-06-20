@@ -1317,11 +1317,25 @@ instance-subject URNs used under this path.<a href="#section-1-4" class="pilcrow
 "<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
 described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
-<p id="section-2-2">This document uses the terms "Client Instance Assertion", "Client
-Instance Evidence", "instance issuer", "client instance", and
-"OAuth client" as defined in <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>. It uses "Client
-Attestation", "Client Attestation PoP", and "DPoP combined mode" as
-defined in <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<p id="section-2-2">This document uses the terms "Client Instance Assertion", "instance
+issuer", "client instance", and "OAuth client" as defined in
+<span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>. It uses "Client Attestation", "Client Attestation
+PoP", and "DPoP combined mode" as defined in
+<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">Client Instance Evidence:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">The material an authorization server uses to identify and bind a
+client instance for the purposes of <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s
+instance-identity surfacing. Under <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> alone, the
+evidence is a signed Client Instance Assertion presented at the
+token endpoint. This document defines an alternative form: a
+validated Client Attestation (<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>) together
+with the matching DPoP proof, consumed directly by the AS
+without requiring a separate Client Instance Assertion.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
 </section>
 </div>
 <div id="relationships">

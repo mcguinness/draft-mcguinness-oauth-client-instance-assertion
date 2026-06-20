@@ -150,11 +150,19 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-   This document uses the terms "Client Instance Assertion", "Client
-   Instance Evidence", "instance issuer", "client instance", and "OAuth
-   client" as defined in [CIA-CORE].  It uses "Client Attestation",
-   "Client Attestation PoP", and "DPoP combined mode" as defined in
-   [ATTEST-CLIENT-AUTH].
+   This document uses the terms "Client Instance Assertion", "instance
+   issuer", "client instance", and "OAuth client" as defined in
+   [CIA-CORE].  It uses "Client Attestation", "Client Attestation PoP",
+   and "DPoP combined mode" as defined in [ATTEST-CLIENT-AUTH].
+
+   Client Instance Evidence:  The material an authorization server uses
+      to identify and bind a client instance for the purposes of
+      [CIA-CORE]'s instance-identity surfacing.  Under [CIA-CORE] alone,
+      the evidence is a signed Client Instance Assertion presented at
+      the token endpoint.  This document defines an alternative form: a
+      validated Client Attestation ([ATTEST-CLIENT-AUTH]) together with
+      the matching DPoP proof, consumed directly by the AS without
+      requiring a separate Client Instance Assertion.
 
 3.  Relationship to Other Specifications
 
