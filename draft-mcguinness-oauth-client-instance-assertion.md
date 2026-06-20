@@ -632,7 +632,11 @@ absent, the AS MUST reject the descriptor as invalid client metadata.
 : An HTTPS URL of a SPIFFE trust bundle endpoint {{SPIFFE}} from
   which the AS resolves verification keys for instance assertions
   issued by this issuer. When present, `subject_syntax` MUST be
-  "spiffe".
+  "spiffe", and the AS MUST validate assertions from this issuer
+  under SPIFFE semantics: it MUST treat the assertion as a SPIFFE
+  JWT-SVID (or a re-minted Client Instance Assertion signed with
+  a key distributed in the SPIFFE bundle) and apply the
+  validation rules of {{spiffe-compatibility}}.
 
   This descriptor field is intended for JWT-SVID validation and for
   other assertions signed with keys distributed in the SPIFFE
@@ -1589,16 +1593,10 @@ split); when the client cannot guarantee disjointness, the AS
 SHOULD apply AS-scoped namespacing that incorporates both the
 matched descriptor's `issuer` and the original `sub` value, to
 prevent a compromised issuer from spoofing another's `sub`. The
-specific encoding is a deployment choice; ASes MUST pick a form
-that is unambiguously parseable and does not collide with
-issuer-native subject forms an RS might also see (in particular,
-ad-hoc separators such as `#` are not appropriate when issuer
-identifiers are URIs, because `#` is the URI fragment delimiter).
-Such namespacing is a deployment-side choice and does not affect
-the wire format of the Client Instance Assertion. AS-applied
-namespacing produces an AS-scoped subject identifier; resource-
-server policy and audit tooling need to treat it as AS-issued
-rather than issuer-native.
+specific encoding is a deployment choice. AS-applied namespacing
+produces an AS-scoped subject identifier; resource-server policy
+and audit tooling need to treat it as AS-issued rather than
+issuer-native.
 
 For a worked example see {{appendix-examples-client-credentials}}.
 
@@ -2289,9 +2287,14 @@ The replay-cache key is `(iss, jti)`; ASes MUST NOT widen the key
 to include `client_id`. `jti` uniqueness is the responsibility of
 the instance issuer within its own `iss` namespace, so two
 different OAuth clients that list the same instance issuer share
-the same replay state for that issuer. The cache MUST be scoped at
-least to a single AS instance; distributed AS deployments share
-the cache or coordinate as specified below.
+the same replay state for that issuer. An attacker controlling
+traffic under one OAuth `client_id` cannot replay assertions
+under another, but high-volume traffic under one client can cause
+replay-cache pressure for other clients sharing the same instance
+issuer; ASes SHOULD apply per-issuer rate limits and bounded cache
+caps. The cache MUST be scoped at least to a single AS instance;
+distributed AS deployments share the cache or coordinate as
+specified below.
 
 An AS MAY skip the replay check for cnf-bound assertions that have
 been PoP-verified at presentation, treating them as reusable
