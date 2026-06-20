@@ -245,14 +245,6 @@ Table of Contents
    *  Defines authorization server metadata so that clients can discover
       support.
 
-   To enable instance assertions to be presented on grants other than
-   token-exchange, this document defines the client_instance_assertion
-   request parameter for the authorization_code, client_credentials,
-   refresh_token, and JWT bearer ([RFC7523]) grants; see Section 4.  On
-   the token-exchange grant ([RFC8693]), the same assertion is carried
-   as actor_token per [RFC8693]'s conventions (Section 4.2).  The two
-   parameter names are wire-syntax siblings for the same artifact.
-
    What this document does _not_ do:
 
    *  It does not introduce a client_instance identifier parameter
@@ -453,7 +445,7 @@ Table of Contents
    Assertion.  For sender-constraint, this profile pins the binding
    member of cnf to jkt ([RFC9449]) or x5t#S256 ([RFC8705]); WIMSE-
    defined binding mechanisms (for example, a future Workload Proof
-   Token) can be added by a companion profile when those mechanisms
+   Token) can be added by a future specification when those mechanisms
    reach deployment maturity.
 
 4.  Client Instance Assertion Request Parameter
@@ -524,10 +516,11 @@ Table of Contents
 5.  Client Instance Model
 
    A registered OAuth client commonly abstracts over many concrete
-   runtimes (e.g., the Slack OAuth client across iOS, Android, web, and
-   server-side; an agent platform across each running agent or session).
-   This profile makes that class-and-instance relationship explicit so
-   each runtime can be named, attested, and bound to access tokens
+   runtimes (for example, a single OAuth client identifier representing
+   an application across iOS, Android, web, and server-side runtimes; or
+   an agent platform across each running agent or session).  This
+   profile makes that class-and-instance relationship explicit so each
+   runtime can be named, attested, and bound to access tokens
    individually.  For agent platforms, a sub-agent spawned by an agent
    is represented as a nested actor via token-exchange (Section 8.6.4).
 
@@ -3619,9 +3612,7 @@ Document History
    *  *IANA.* Established the "OAuth Client Instance Subject Syntaxes"
       sub-registry (Specification Required) seeded with uri and spiffe.
       Added the client_instance_assertion token-endpoint-authentication-
-      method registration.  Cross- referenced with the companion's
-      "OAuth Client Instance Derived Subject URN Types" sub-registry to
-      distinguish descriptor-side from token-side identifiers.
+      method registration.
 
    *  *Metadata.* Defined instance_issuers client metadata and the
       client_instance_assertion_supported AS metadata parameter.

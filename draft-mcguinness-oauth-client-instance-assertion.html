@@ -1587,30 +1587,22 @@ optional direct presentation of JWT-SVIDs without re-minting.<a href="#section-1
 discover support.<a href="#section-1-4.6.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-5">To enable instance assertions to be presented on grants other than
-token-exchange, this document defines the <code>client_instance_assertion</code>
-request parameter for the <code>authorization_code</code>,
-<code>client_credentials</code>, <code>refresh_token</code>, and JWT bearer (<span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>)
-grants; see <a href="#cia-param" class="auto internal xref">Section 4</a>. On the token-exchange grant
-(<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>), the same assertion is carried as <code>actor_token</code> per
-<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>'s conventions (<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>). The two
-parameter names are wire-syntax siblings for the same artifact.<a href="#section-1-5" class="pilcrow">¶</a></p>
-<p id="section-1-6">What this document does <em>not</em> do:<a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-5">What this document does <em>not</em> do:<a href="#section-1-5" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1-7.1">
-          <p id="section-1-7.1.1">It does not introduce a <code>client_instance</code> identifier parameter
+<li class="normal" id="section-1-6.1">
+          <p id="section-1-6.1.1">It does not introduce a <code>client_instance</code> identifier parameter
 flowing through the authorization request, token request,
 introspection, or access token (see
-<a href="#rationale-no-instance-identifier" class="auto internal xref">Appendix "Why not a client_instance identifier parameter?"</a>).<a href="#section-1-7.1.1" class="pilcrow">¶</a></p>
+<a href="#rationale-no-instance-identifier" class="auto internal xref">Appendix "Why not a client_instance identifier parameter?"</a>).<a href="#section-1-6.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-1-7.2">
-          <p id="section-1-7.2.1">It does not change the syntax or processing of the <code>act</code> claim
-beyond what <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> already defines.<a href="#section-1-7.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-1-6.2">
+          <p id="section-1-6.2.1">It does not change the syntax or processing of the <code>act</code> claim
+beyond what <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> already defines.<a href="#section-1-6.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-1-7.3">
-          <p id="section-1-7.3.1">It does not define authorization endpoint interactions for
+        <li class="normal" id="section-1-6.3">
+          <p id="section-1-6.3.1">It does not define authorization endpoint interactions for
 conveying actor identity; like <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, this is left for
-future work.<a href="#section-1-7.3.1" class="pilcrow">¶</a></p>
+future work.<a href="#section-1-6.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -1850,8 +1842,8 @@ projected service-account token, or other workload credential
 a Client Instance Assertion. For sender-constraint, this
 profile pins the binding member of <code>cnf</code> to <code>jkt</code> (<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>) or
 <code>x5t#S256</code> (<span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>); WIMSE-defined binding mechanisms (for
-example, a future Workload Proof Token) can be added by a companion
-profile when those mechanisms reach deployment maturity.<a href="#section-3-10" class="pilcrow">¶</a></p>
+example, a future Workload Proof Token) can be added by a future
+specification when those mechanisms reach deployment maturity.<a href="#section-3-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="cia-param">
@@ -1938,8 +1930,9 @@ token-exchange, where <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-client-instance-model" class="section-name selfRef">Client Instance Model</a>
       </h2>
 <p id="section-5-1">A registered OAuth client commonly abstracts over many concrete
-runtimes (e.g., the Slack OAuth client across iOS, Android, web, and
-server-side; an agent platform across each running agent or session).
+runtimes (for example, a single OAuth client identifier representing
+an application across iOS, Android, web, and server-side runtimes;
+or an agent platform across each running agent or session).
 This profile makes that class-and-instance relationship explicit so
 each runtime can be named, attested, and bound to access tokens
 individually. For agent platforms, a sub-agent spawned by an agent
@@ -5819,10 +5812,7 @@ considerations for the auth-method mode.<a href="#appendix-C.1-1.5.1" class="pil
             <p id="appendix-C.1-1.7.1"><strong>IANA.</strong> Established the "OAuth Client Instance Subject
 Syntaxes" sub-registry (Specification Required) seeded with
 <code>uri</code> and <code>spiffe</code>. Added the <code>client_instance_assertion</code>
-token-endpoint-authentication-method registration. Cross-
-referenced with the companion's "OAuth Client Instance Derived
-Subject URN Types" sub-registry to distinguish descriptor-side
-from token-side identifiers.<a href="#appendix-C.1-1.7.1" class="pilcrow">¶</a></p>
+token-endpoint-authentication-method registration.<a href="#appendix-C.1-1.7.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-C.1-1.8">
             <p id="appendix-C.1-1.8.1"><strong>Metadata.</strong> Defined <code>instance_issuers</code> client metadata and the
