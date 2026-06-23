@@ -1682,24 +1682,17 @@ token's <code>sub</code> is the instance and <code>act</code> is omitted per
       <h2 id="name-relationship-to-other-speci">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-relationship-to-other-speci" class="section-name selfRef">Relationship to Other Specifications</a>
       </h2>
-<p id="section-3-1"><strong>RFC 8693 (Token Exchange).</strong> <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> defines <code>actor_token</code> and
-<code>actor_token_type</code> on the token-exchange grant. On token-exchange,
-this profile presents its Client Instance Assertion as <code>actor_token</code>
-with <code>actor_token_type</code> set to
-<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>; processing
-under <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> continues to apply
-(<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>). On the four other grants listed
-in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>, this profile defines a dedicated
-<code>client_instance_assertion</code> request parameter (<a href="#cia-param" class="auto internal xref">Section 4</a>) that
-carries the same assertion under identical validation rules. The
-parameter to use is determined by the grant; the assertion format,
-trust resolution, sender-constraint, and access-token representation
-are identical across both presentation paths. For the
-<code>client-instance-jwt</code> token type, delegation requests represent the
-instance in <code>act</code> (<a href="#access-token-delegation" class="auto internal xref">Section 8.6.2</a>) and self-acting
-requests (notably <code>client_credentials</code>) represent it in top-level
-<code>sub</code> (<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>); see
-<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-1"><strong>RFC 8693 (Token Exchange).</strong> On the token-exchange grant the
+assertion is presented as <code>actor_token</code> with <code>actor_token_type</code>
+set to <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>,
+per <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>'s conventions
+(<a href="#token-exchange-presentation" class="auto internal xref">Section 4.2</a>); on the other grants in
+<a href="#permitted-grants" class="auto internal xref">Section 4.1</a> the assertion is the
+<code>client_instance_assertion</code> request parameter (<a href="#cia-param" class="auto internal xref">Section 4</a>).
+The parameter to use is determined by the grant; the assertion
+format, validation, sender-constraint, and access-token surfacing
+are identical across both paths
+(<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>).<a href="#section-3-1" class="pilcrow">¶</a></p>
 <p id="section-3-2"><strong>OAuth Actor Profile.</strong> <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> defines the structure of
 the <code>act</code> claim, the <code>sub_profile</code> claim, and nested actor
 representation. This document does not redefine those constructs;
@@ -1992,20 +1985,13 @@ and trust delegation model (<a href="#trust-model" class="auto internal xref">Se
 +--------------------+
 </pre><a href="#section-5.1-4" class="pilcrow">¶</a>
 </div>
-<p id="section-5.1-5">The client identifier (the CIMD URL or RFC 7591 <code>client_id</code>) is
-the OAuth client identifier; the instance issuer identifier is the
-JWT <code>iss</code> of the instance assertion. They are distinct trust anchors: the AS
-authenticates the client using its registered client
-authentication method (typically <code>private_key_jwt</code> with keys from the
-client's registered <code>jwks_uri</code>) and authenticates the instance
-through the instance assertion.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
-<p id="section-5.1-6">When the client registers <code>token_endpoint_auth_method</code>
-          <code>client_instance_assertion</code> (<a href="#instance-assertion-auth" class="auto internal xref">Section 8.3</a>), these two trust
-anchors collapse onto a single artifact: the instance assertion
-both authenticates the client (via the client metadata
-endorsement of its issuer) and identifies the instance. In that mode the request
-carries no separate <code>client_assertion</code>. See <a href="#instance-assertion-auth" class="auto internal xref">Section 8.3</a>
-for the token request and validation procedure.<a href="#section-5.1-6" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">When the client registers <code>token_endpoint_auth_method</code> =
+<code>client_instance_assertion</code> (<a href="#instance-assertion-auth" class="auto internal xref">Section 8.3</a>), the
+two trust anchors (client credential and instance issuer)
+collapse onto a single artifact: the instance assertion both
+authenticates the client (via the client metadata endorsement of
+its issuer) and identifies the instance, and the request carries
+no separate <code>client_assertion</code>.<a href="#section-5.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="registration-models">
@@ -2247,7 +2233,11 @@ used to verify signatures of instance assertions issued by this issuer.<a href="
               <p id="section-6.1.1-6.6.1">An HTTPS URL of a SPIFFE trust bundle endpoint <span>[<a href="#SPIFFE" class="cite xref">SPIFFE</a>]</span> from
 which the AS resolves verification keys for instance assertions
 issued by this issuer. When present, <code>subject_syntax</code> <span class="bcp14">MUST</span> be
-"spiffe".<a href="#section-6.1.1-6.6.1" class="pilcrow">¶</a></p>
+"spiffe", and the AS <span class="bcp14">MUST</span> validate assertions from this issuer
+under SPIFFE semantics: it <span class="bcp14">MUST</span> treat the assertion as a SPIFFE
+JWT-SVID (or a re-minted Client Instance Assertion signed with
+a key distributed in the SPIFFE bundle) and apply the
+validation rules of <a href="#spiffe-compatibility" class="auto internal xref">Section 8.8</a>.<a href="#section-6.1.1-6.6.1" class="pilcrow">¶</a></p>
 <p id="section-6.1.1-6.6.2">This descriptor field is intended for JWT-SVID validation and for
 other assertions signed with keys distributed in the SPIFFE
 bundle for the relevant trust domain. OAuth-aware adapters that
@@ -2765,37 +2755,29 @@ is identical regardless of which parameter carried the assertion.<a href="#secti
 <code>invalid_request</code> if any of the following pre-conditions hold:<a href="#section-8.2-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-8.2-4.1">
-            <p id="section-8.2-4.1.1">On a token-exchange request, exactly one of <code>actor_token</code> and
-<code>actor_token_type</code> is present;<a href="#section-8.2-4.1.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-4.1.1"><strong>Parameter on the wrong grant.</strong> The Client Instance Assertion
+is carried as <code>client_instance_assertion</code> on grants in
+<a href="#permitted-grants" class="auto internal xref">Section 4.1</a> and as <code>actor_token</code> (with
+<code>actor_token_type</code> =
+<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>) on the
+token-exchange grant. The AS <span class="bcp14">MUST</span> reject a request that
+carries <code>client_instance_assertion</code> on the token-exchange
+grant, carries <code>client_instance_assertion</code> on a grant not
+listed in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>, or carries <code>actor_token</code> with
+the client-instance-jwt token type on any grant other than
+token-exchange.<a href="#section-8.2-4.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.2-4.2">
-            <p id="section-8.2-4.2.1">On a token-exchange request, <code>actor_token_type</code> is
+            <p id="section-8.2-4.2.1"><strong>Token-exchange <code>actor_token</code> / <code>actor_token_type</code> mismatch.</strong>
+The AS <span class="bcp14">MUST</span> reject a token-exchange request in which exactly one
+of <code>actor_token</code> and <code>actor_token_type</code> is present, or in which
+<code>actor_token_type</code> is
 <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code> but
-<code>actor_token</code> is absent or is present but is not a syntactically
-valid JWT;<a href="#section-8.2-4.2.1" class="pilcrow">¶</a></p>
+<code>actor_token</code> is absent.<a href="#section-8.2-4.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.2-4.3">
-            <p id="section-8.2-4.3.1">On a token-exchange request, <code>client_instance_assertion</code> is
-present (it is not permitted on this grant per
-<a href="#permitted-grants" class="auto internal xref">Section 4.1</a>);<a href="#section-8.2-4.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.2-4.4">
-            <p id="section-8.2-4.4.1">On any grant other than token-exchange, <code>actor_token</code> is present
-with <code>actor_token_type</code> equal to
-<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code> (the
-Client Instance Assertion <span class="bcp14">MUST</span> be carried as
-<code>client_instance_assertion</code> on grants in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>; on
-grants outside <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>, this profile does not define
-a presentation path);<a href="#section-8.2-4.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.2-4.5">
-            <p id="section-8.2-4.5.1">On any grant not listed in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>,
-<code>client_instance_assertion</code> is present;<a href="#section-8.2-4.5.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-8.2-4.6">
-            <p id="section-8.2-4.6.1">On any grant listed in <a href="#permitted-grants" class="auto internal xref">Section 4.1</a>,
-<code>client_instance_assertion</code> is present but is not a syntactically
-valid JWT.<a href="#section-8.2-4.6.1" class="pilcrow">¶</a></p>
+            <p id="section-8.2-4.3.1"><strong>Malformed assertion.</strong> The AS <span class="bcp14">MUST</span> reject a request whose
+presented assertion is not a syntactically valid JWT.<a href="#section-8.2-4.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <ol start="1" type="1" class="normal type-1" id="section-8.2-5">
@@ -3404,16 +3386,10 @@ split); when the client cannot guarantee disjointness, the AS
 <span class="bcp14">SHOULD</span> apply AS-scoped namespacing that incorporates both the
 matched descriptor's <code>issuer</code> and the original <code>sub</code> value, to
 prevent a compromised issuer from spoofing another's <code>sub</code>. The
-specific encoding is a deployment choice; ASes <span class="bcp14">MUST</span> pick a form
-that is unambiguously parseable and does not collide with
-issuer-native subject forms an RS might also see (in particular,
-ad-hoc separators such as <code>#</code> are not appropriate when issuer
-identifiers are URIs, because <code>#</code> is the URI fragment delimiter).
-Such namespacing is a deployment-side choice and does not affect
-the wire format of the Client Instance Assertion. AS-applied
-namespacing produces an AS-scoped subject identifier; resource-
-server policy and audit tooling need to treat it as AS-issued
-rather than issuer-native.<a href="#section-8.6.3-4" class="pilcrow">¶</a></p>
+specific encoding is a deployment choice. AS-applied namespacing
+produces an AS-scoped subject identifier; resource-server policy
+and audit tooling need to treat it as AS-issued rather than
+issuer-native.<a href="#section-8.6.3-4" class="pilcrow">¶</a></p>
 <p id="section-8.6.3-5">For a worked example see <a href="#appendix-examples-client-credentials" class="auto internal xref">Appendix "Client Credentials (Self-Acting)"</a>.<a href="#section-8.6.3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -3942,28 +3918,17 @@ per-instance keys has two options:<a href="#section-10-5" class="pilcrow">¶</a>
 <ul class="normal">
 <li class="normal" id="section-10-6.1">
           <p id="section-10-6.1.1"><strong>Adapter pattern</strong>: an OAuth-aware adapter wraps an existing
-workload identity system (for example, platform-managed identity
-services such as cluster-issued projected service-account tokens,
-cloud-instance metadata services, or a SPIFFE control plane) and
-re-mints a Client Instance
-Assertion with <code>cnf</code> from the underlying credential, signing with
-a key registered in the issuer's descriptor. From the AS's
-perspective, the adapter is the instance issuer
-(<a href="#issuer-obligations" class="auto internal xref">Section 7.1</a>); the adapter enforces the per-client
-authorization rule, since underlying workload-identity systems
-typically do not know about OAuth clients or their
-class-and-instance relationship. The adapter holds the
-workload-identifier → <code>client_id</code> mapping, the OAuth signing
-keys, and re-issues at the underlying credential's rotation
-cadence. Recommended for non-SPIFFE deployments and for SPIFFE
-deployments that can run an adapter. Operationally, an adapter is
-an instance-issuer-equivalent trust root: its signing keys, its
-workload-to-<code>client_id</code> mapping, and its availability all bear on
-the assertions it produces and the access tokens those assertions
-yield. Deployments operating an adapter inherit the obligations of
-<a href="#issuer-obligations" class="auto internal xref">Section 7.1</a> and the trust-model and lifecycle
-considerations in <a href="#security-trust-model" class="auto internal xref">Section 12.1</a> and
-<a href="#security-lifecycle" class="auto internal xref">Section 12.3</a>.<a href="#section-10-6.1.1" class="pilcrow">¶</a></p>
+workload identity system (cluster-issued projected
+service-account tokens, cloud-instance metadata services, a
+SPIFFE control plane, etc.) and re-mints a Client Instance
+Assertion with <code>cnf</code> from the underlying credential. From the
+AS's perspective the adapter is the instance issuer
+(<a href="#issuer-obligations" class="auto internal xref">Section 7.1</a>) and inherits the obligations and trust
+model of that role. The adapter holds the workload-identifier
+to <code>client_id</code> mapping and the OAuth signing keys, since
+underlying workload-identity systems typically do not know
+about OAuth clients. Recommended for non-SPIFFE deployments and
+for SPIFFE deployments that can run an adapter.<a href="#section-10-6.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-10-6.2">
           <p id="section-10-6.2.1"><strong>Raw JWT-SVID compatibility</strong>: the SVID is presented as the
@@ -4277,9 +4242,14 @@ sender-constraint, short SVID lifetimes, and audience restriction.<a href="#sect
 to include <code>client_id</code>. <code>jti</code> uniqueness is the responsibility of
 the instance issuer within its own <code>iss</code> namespace, so two
 different OAuth clients that list the same instance issuer share
-the same replay state for that issuer. The cache <span class="bcp14">MUST</span> be scoped at
-least to a single AS instance; distributed AS deployments share
-the cache or coordinate as specified below.<a href="#section-12.5-3" class="pilcrow">¶</a></p>
+the same replay state for that issuer. An attacker controlling
+traffic under one OAuth <code>client_id</code> cannot replay assertions
+under another, but high-volume traffic under one client can cause
+replay-cache pressure for other clients sharing the same instance
+issuer; ASes <span class="bcp14">SHOULD</span> apply per-issuer rate limits and bounded cache
+caps. The cache <span class="bcp14">MUST</span> be scoped at least to a single AS instance;
+distributed AS deployments share the cache or coordinate as
+specified below.<a href="#section-12.5-3" class="pilcrow">¶</a></p>
 <p id="section-12.5-4">An AS <span class="bcp14">MAY</span> skip the replay check for cnf-bound assertions that have
 been PoP-verified at presentation, treating them as reusable
 within their <code>exp</code> window, provided the deployment documents this
