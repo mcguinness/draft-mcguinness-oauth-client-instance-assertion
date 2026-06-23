@@ -33,7 +33,6 @@ author:
 
 normative:
   RFC6749:
-  RFC6755:
   RFC7515:
   RFC7517:
   RFC7518:
@@ -55,6 +54,7 @@ normative:
   SPIFFE-CLIENT-AUTH: I-D.ietf-oauth-spiffe-client-auth
 
 informative:
+  RFC6755:
   RFC7009:
   RFC8037:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
