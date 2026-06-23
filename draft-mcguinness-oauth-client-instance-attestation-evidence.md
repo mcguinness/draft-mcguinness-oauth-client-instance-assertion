@@ -6,7 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-attestation-evidence-latest
 submissiontype: IETF
 stand_alone: yes
-date: 2026-05-28
+date: 2026-06-23
 ipr: trust200902
 area: "Security"
 workgroup: "Web Authorization Protocol"

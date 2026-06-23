@@ -6,7 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-assertion-latest
 submissiontype: IETF
 number:
-date: 2026-05-28
+date: 2026-06-23
 v: 3
 ipr: trust200902
 area: "Security"
