@@ -3316,66 +3316,21 @@ matches the access token's `cnf.x5t#S256`.
 ## -01 {#history-01}
 {:numbered="false"}
 
-* **Wire surface.** Introduced the
-  `client_instance_assertion` request parameter on
-  `authorization_code`, `client_credentials`, `refresh_token`, and
-  JWT bearer grants, and the JOSE `typ` value `client-instance+jwt`.
-  Token-exchange continues to present the assertion as
-  `actor_token` with the registered token type
-  `urn:ietf:params:oauth:token-type:client-instance-jwt`.
-  Dropped the previous "actor token grant extension" framing and
-  the generalization over arbitrary actor-token profiles.
-* **Access token surfacing.** §access-token specifies how a
-  validated Client Instance Assertion surfaces in the issued
-  access token: `act` (delegation case) or top-level `sub`
-  (self-acting case), with `sub_profile` ({{ACTOR-PROFILE}})
-  signalling the kind of subject, and sender-constraint binding
-  per §sender-constrained. The generic JWT access-token contract
-  is inherited from {{RFC9068}}; this profile does not restate
-  the {{RFC9068}} claim set. Added §rs-processing-introspection
-  requiring opaque tokens to surface the same set of claims via
-  introspection.
-* **Validation procedure.** Specified the
-  `client_instance_assertion` token-endpoint authentication
-  method ({{instance-assertion-auth}}) with its validation
-  procedure and `invalid_client` re-coding. Ordered
-  §as-processing so PoP verification precedes replay checking
-  (enabling the cnf-bound reusable-mode optimization). Specified
-  octet-equality for `iss`/`sub`/`client_id`/`aud`/`spiffe_id`
-  comparisons. Specified `(iss, jti)` replay-cache scope.
-* **SPIFFE.** Added §spiffe-compatibility for raw JWT-SVID
-  presentation without re-minting, with sender-constraint
-  established via an independent binding key per
-  §spiffe-binding.
-* **Security additions.** New sections on multi-tenancy under a
-  single `client_id` ({{security-multi-tenancy}}) and the AS's
-  inability to verify issuer-side compliance with the per-client
-  minting rule.
-  Softened §trust-model-as on AS-side issuer configuration from
-  prescriptive to advisory. Added trust-root-collapse
-  considerations for the auth-method mode.
-* **Signing.** Declared `ES256` mandatory-to-implement; `RS256`
-  SHOULD-support.
-* **IANA.** Established the "OAuth Client Instance Subject
-  Syntaxes" sub-registry (Specification Required) seeded with
-  `uri` and `spiffe`. Added the `client_instance_assertion`
-  token-endpoint-authentication-method registration.
-* **Metadata.** Defined `instance_issuers` client metadata and the
-  `client_instance_assertion_supported` AS metadata parameter.
-* **Editorial.** Retitled to "OAuth 2.0 Client Instance Assertion".
-  Added worked examples for authorization-code,
-  client-credentials, token-exchange, refresh (with and without a
-  fresh CIA), the `client_instance_assertion` auth method, and
-  SPIFFE JWT-SVID reuse. Inverted and expanded §Design Rationale.
-  Trimmed operational/deployment content not in scope for an
-  OAuth protocol spec: removed the cross-instance-session-continuity
-  recipes in §refresh; dropped the specific TTL "recommended
-  defaults" in §security-trust-withdrawal-latency; removed the
-  "Defer adoption" bullet from §Adoption; generalized
-  §Introduction use-case language; trimmed §rs-processing's
-  restatement of {{ACTOR-PROFILE}} to just the three additions
-  this profile makes. Aligned the §instance-issuers example with
-  the worked examples (`app.example.com/agent`).
+* Replaced the generic actor-token-grant-extension framing with
+  a dedicated `client_instance_assertion` request parameter on
+  the four non-token-exchange grants ({{cia-param}}).
+  Token-exchange continues to use `actor_token`.
+* Added §spiffe-compatibility (raw JWT-SVID presentation), the
+  optional `client_instance_assertion` token-endpoint
+  authentication method, §security-multi-tenancy, and the
+  "OAuth Client Instance Subject Syntaxes" IANA sub-registry.
+* Specified the validation procedure ({{as-processing}}) including
+  octet-equality comparisons and PoP-before-replay ordering, MTI
+  signing (`ES256`), and access-token surfacing aligned with
+  {{RFC9068}}.
+* Added worked examples covering all five grants, the auth
+  method, refresh, and SPIFFE JWT-SVID reuse.
+* Retitled to "OAuth 2.0 Client Instance Assertion".
 
 ## -00 {#history-00}
 {:numbered="false"}
