@@ -1,13 +1,22 @@
 <!-- regenerate: on (set to off if you edit this file) -->
 
-# OAuth 2.0 Client Instance Assertion Profile
+# OAUTH Drafts
 
-This is the working area for the individual Internet-Draft, "OAuth 2.0 Client Instance Assertion Profile".
+This is the working area for individual Internet-Drafts.
+
+## OAuth 2.0 Client Instance Assertion
 
 * [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.html)
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-assertion)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.diff)
+
+## Attestation-Based Client Instance Evidence for OAuth 2.0
+
+* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-attestation-evidence.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-attestation-evidence)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-attestation-evidence)
+* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-attestation-evidence.diff)
 
 
 ## Contributing
@@ -28,3 +37,4 @@ $ make
 
 Command line usage requires that you have the necessary software installed.  See
 [the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
+
