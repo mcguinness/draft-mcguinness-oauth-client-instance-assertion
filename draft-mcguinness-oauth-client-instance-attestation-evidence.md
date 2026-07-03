@@ -36,7 +36,6 @@ normative:
   RFC7800:
   RFC8126:
   RFC8414:
-  RFC8705:
   RFC9449:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
   CIA-CORE:
@@ -45,9 +44,10 @@ normative:
     author:
       -
         fullname: Karl McGuinness
-    date: 2026-05
+    date: 2026-06
 
 informative:
+  RFC8705:
   ACME-DEVICE-ATTEST: I-D.ietf-acme-device-attest
   OPENID4VCI:
     title: "OpenID for Verifiable Credential Issuance"
@@ -159,6 +159,23 @@ when both of the following conditions hold:
   the DPoP public key matches the Client Attestation JWT `cnf`
   ({{RFC7800}}) key.
 
+Applying this evidence path changes the shape of the client's
+issued access tokens (adding `act` or an instance-derived `sub`
+per {{CIA-CORE}}). Whether the AS applies the path for a given
+client is therefore AS policy established at registration time or
+by out-of-band agreement with the client; an AS MUST NOT apply
+this path to a client that has not agreed to receive
+{{CIA-CORE}}'s instance representation in its tokens.
+
+This evidence path is available on the grants covered by
+{{CIA-CORE}}'s access-token classification (authorization_code,
+`client_credentials`, `refresh_token`, JWT bearer, and
+token-exchange); grants outside that classification are refused
+per {{CIA-CORE}}. Because this path carries no request parameter,
+its activation substitutes for {{CIA-CORE}}'s parameter-presence
+trigger: on token-exchange in particular, the path applies even
+when no `actor_token` is present.
+
 ## Deriving the Instance Subject {#attestation-evidence-subject}
 
 The Client Attestation JWT `sub` identifies the OAuth client under
@@ -167,9 +184,11 @@ resource-server-visible instance subject under {{CIA-CORE}}. The AS
 derives the instance subject from one of the following sources:
 
 1. **Deployment-defined or companion-profile-defined mapping.** If
-   the AS or the authenticated client has configured a mapping from
-   a Client Attestation claim or out-of-band data to a client
-   instance subject, the AS uses the mapped value. The mapped value
+   a mapping from a Client Attestation claim or out-of-band data to
+   a client instance subject has been configured for the
+   authenticated client (at registration time or by out-of-band
+   agreement; this document defines no in-band mechanism for a
+   client to supply a mapping), the AS uses the mapped value. The mapped value
    MUST be specific to the client instance rather than to the OAuth
    client as a class. If the mapping also supplies a subject profile,
    that value is used as `sub_profile`; otherwise the AS uses
@@ -391,11 +410,11 @@ feeds into).
 
 # Conformance {#conformance}
 
-An AS conforms to this document by:
+An AS conforms to this document by, on each request processed
+under this evidence path:
 
-* completing the {{ATTEST-CLIENT-AUTH}} processing path for the
-  request, including DPoP combined-mode validation per
-  {{RFC9449}};
+* completing the {{ATTEST-CLIENT-AUTH}} processing path,
+  including DPoP combined-mode validation per {{RFC9449}};
 * applying the instance-subject derivation rules in
   {{attestation-evidence-subject}} (deployment-defined mapping,
   or the `cnf.jkt` URN fallback when no mapping is configured and
@@ -407,12 +426,12 @@ An AS conforms to this document by:
   `sub_profile` set to `client_instance` (or to a
   mapping-supplied value);
 * applying the refresh-token continuity rules in
-  {{attestation-evidence-refresh}};
+  {{attestation-evidence-refresh}}; and
 * applying the precedence rule in {{composition-with-cia}} when a
-  Client Instance Assertion is also presented; and
-* advertising support via
-  `client_instance_attestation_evidence_supported`
-  ({{as-metadata}}).
+  Client Instance Assertion is also presented.
+
+A conforming AS additionally advertises support via
+`client_instance_attestation_evidence_supported` ({{as-metadata}}).
 
 Resource servers consuming tokens issued through the `cnf.jkt`
 fallback conform to this document by evaluating the `(client_id,
@@ -487,6 +506,25 @@ instance-identity assurance of {{CIA-CORE}}. Operators SHOULD
 evaluate Attester custody, lifecycle, and rotation accordingly,
 and SHOULD ensure incident-response procedures for an Attester
 compromise cover access-token revocation under both specifications.
+
+## Attestation Freshness {#security-attestation-freshness}
+
+Under {{CIA-CORE}}, instance assertions are recommended to have
+short lifetimes (five minutes or less), so the "how recently was
+this instance attested" property is tightly bounded. Under this
+evidence path, that property is instead governed by the Client
+Attestation's lifetime -- which some Attester ecosystems set to
+hours or days -- plus the DPoP proof freshness rules of
+{{RFC9449}}. The DPoP proof establishes recent possession of the
+bound key; it does not establish recent Attester endorsement of
+the instance.
+
+Deployments that require attestation currency comparable to
+{{CIA-CORE}}'s assertion-lifetime guidance SHOULD require
+short-lived Client Attestations from their Attesters, and SHOULD
+require fresh attestation-based instance evidence on refresh
+({{attestation-evidence-refresh}}) rather than permitting refresh
+from stored originating instance state.
 
 # IANA Considerations {#iana}
 
