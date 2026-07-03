@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                             28 May 2026
-Expires: 29 November 2026
+Intended status: Standards Track                            23 June 2026
+Expires: 25 December 2026
 
 
         Attestation-Based Client Instance Evidence for OAuth 2.0
@@ -57,7 +57,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 29 November 2026.
+   This Internet-Draft will expire on 25 December 2026.
 
 Copyright Notice
 
@@ -90,6 +90,7 @@ Table of Contents
      8.1.  Instance Subject Derived from cnf.jkt
      8.2.  Shared Trust Root with Attestation-Based Client
            Authentication
+     8.3.  Attestation Freshness
    9.  IANA Considerations
      9.1.  OAuth Client Instance Derived Subject URN Types
      9.2.  OAuth Authorization Server Metadata
@@ -150,11 +151,19 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-   This document uses the terms "Client Instance Assertion", "Client
-   Instance Evidence", "instance issuer", "client instance", and "OAuth
-   client" as defined in [CIA-CORE].  It uses "Client Attestation",
-   "Client Attestation PoP", and "DPoP combined mode" as defined in
-   [ATTEST-CLIENT-AUTH].
+   This document uses the terms "Client Instance Assertion", "instance
+   issuer", "client instance", and "OAuth client" as defined in
+   [CIA-CORE].  It uses "Client Attestation", "Client Attestation PoP",
+   and "DPoP combined mode" as defined in [ATTEST-CLIENT-AUTH].
+
+   Client Instance Evidence:  The material an authorization server uses
+      to identify and bind a client instance for the purposes of
+      [CIA-CORE]'s instance-identity surfacing.  Under [CIA-CORE] alone,
+      the evidence is a signed Client Instance Assertion presented at
+      the token endpoint.  This document defines an alternative form: a
+      validated Client Attestation ([ATTEST-CLIENT-AUTH]) together with
+      the matching DPoP proof, consumed directly by the AS without
+      requiring a separate Client Instance Assertion.
 
 3.  Relationship to Other Specifications
 
@@ -192,6 +201,22 @@ Table of Contents
       the DPoP public key matches the Client Attestation JWT cnf
       ([RFC7800]) key.
 
+   Applying this evidence path changes the shape of the client's issued
+   access tokens (adding act or an instance-derived sub per [CIA-CORE]).
+   Whether the AS applies the path for a given client is therefore AS
+   policy established at registration time or by out-of-band agreement
+   with the client; an AS MUST NOT apply this path to a client that has
+   not agreed to receive [CIA-CORE]'s instance representation in its
+   tokens.
+
+   This evidence path is available on the grants covered by [CIA-CORE]'s
+   access-token classification (authorization_code, client_credentials,
+   refresh_token, JWT bearer, and token-exchange); grants outside that
+   classification are refused per [CIA-CORE].  Because this path carries
+   no request parameter, its activation substitutes for [CIA-CORE]'s
+   parameter-presence trigger: on token-exchange in particular, the path
+   applies even when no actor_token is present.
+
 4.1.  Deriving the Instance Subject
 
    The Client Attestation JWT sub identifies the OAuth client under
@@ -199,10 +224,12 @@ Table of Contents
    server-visible instance subject under [CIA-CORE].  The AS derives the
    instance subject from one of the following sources:
 
-   1.  *Deployment-defined or companion-profile-defined mapping.* If the
-       AS or the authenticated client has configured a mapping from a
-       Client Attestation claim or out-of-band data to a client instance
-       subject, the AS uses the mapped value.  The mapped value MUST be
+   1.  *Deployment-defined or companion-profile-defined mapping.* If a
+       mapping from a Client Attestation claim or out-of-band data to a
+       client instance subject has been configured for the authenticated
+       client (at registration time or by out-of-band agreement; this
+       document defines no in-band mechanism for a client to supply a
+       mapping), the AS uses the mapped value.  The mapped value MUST be
        specific to the client instance rather than to the OAuth client
        as a class.  If the mapping also supplies a subject profile, that
        value is used as sub_profile; otherwise the AS uses
@@ -415,10 +442,11 @@ Table of Contents
 
 7.  Conformance
 
-   An AS conforms to this document by:
+   An AS conforms to this document by, on each request processed under
+   this evidence path:
 
-   *  completing the [ATTEST-CLIENT-AUTH] processing path for the
-      request, including DPoP combined-mode validation per [RFC9449];
+   *  completing the [ATTEST-CLIENT-AUTH] processing path, including
+      DPoP combined-mode validation per [RFC9449];
 
    *  applying the instance-subject derivation rules in Section 4.1
       (deployment-defined mapping, or the cnf.jkt URN fallback when no
@@ -432,13 +460,13 @@ Table of Contents
       Representation section of [CIA-CORE], with sub_profile set to
       client_instance (or to a mapping-supplied value);
 
-   *  applying the refresh-token continuity rules in Section 4.3;
+   *  applying the refresh-token continuity rules in Section 4.3; and
 
    *  applying the precedence rule in Section 5 when a Client Instance
-      Assertion is also presented; and
+      Assertion is also presented.
 
-   *  advertising support via
-      client_instance_attestation_evidence_supported (Section 4.4).
+   A conforming AS additionally advertises support via
+   client_instance_attestation_evidence_supported (Section 4.4).
 
    Resource servers consuming tokens issued through the cnf.jkt fallback
    conform to this document by evaluating the (client_id, sub) tuple (or
@@ -511,6 +539,23 @@ Table of Contents
    Attester custody, lifecycle, and rotation accordingly, and SHOULD
    ensure incident-response procedures for an Attester compromise cover
    access-token revocation under both specifications.
+
+8.3.  Attestation Freshness
+
+   Under [CIA-CORE], instance assertions are recommended to have short
+   lifetimes (five minutes or less), so the "how recently was this
+   instance attested" property is tightly bounded.  Under this evidence
+   path, that property is instead governed by the Client Attestation's
+   lifetime -- which some Attester ecosystems set to hours or days --
+   plus the DPoP proof freshness rules of [RFC9449].  The DPoP proof
+   establishes recent possession of the bound key; it does not establish
+   recent Attester endorsement of the instance.
+
+   Deployments that require attestation currency comparable to
+   [CIA-CORE]'s assertion-lifetime guidance SHOULD require short-lived
+   Client Attestations from their Attesters, and SHOULD require fresh
+   attestation-based instance evidence on refresh (Section 4.3) rather
+   than permitting refresh from stored originating instance state.
 
 9.  IANA Considerations
 
@@ -606,12 +651,6 @@ Table of Contents
               DOI 10.17487/RFC8414, June 2018,
               <https://www.rfc-editor.org/rfc/rfc8414>.
 
-   [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
-              Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
-              and Certificate-Bound Access Tokens", RFC 8705,
-              DOI 10.17487/RFC8705, February 2020,
-              <https://www.rfc-editor.org/rfc/rfc8705>.
-
    [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
               Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
               Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
@@ -625,8 +664,8 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               attestation-based-client-auth-09>.
 
-   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion", May
-              2026, <https://mcguinness.github.io/draft-mcguinness-
+   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion",
+              June 2026, <https://mcguinness.github.io/draft-mcguinness-
               oauth-client-instance-assertion/draft-mcguinness-oauth-
               client-instance-assertion.html>.
 
@@ -641,13 +680,19 @@ Table of Contents
 
 10.2.  Informative References
 
+   [RFC8705]  Campbell, B., Bradley, J., Sakimura, N., and T.
+              Lodderstedt, "OAuth 2.0 Mutual-TLS Client Authentication
+              and Certificate-Bound Access Tokens", RFC 8705,
+              DOI 10.17487/RFC8705, February 2020,
+              <https://www.rfc-editor.org/rfc/rfc8705>.
+
    [ACME-DEVICE-ATTEST]
               Weeks, B., Mallaya, G., Rajala, S., Bonnell, C., and R.
               Hurst, "Automated Certificate Management Environment
               (ACME) Device Attestation Extension", Work in Progress,
-              Internet-Draft, draft-ietf-acme-device-attest-05, 19 May
+              Internet-Draft, draft-ietf-acme-device-attest-07, 13 June
               2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
-              acme-device-attest-05>.
+              acme-device-attest-07>.
 
    [OPENID4VCI]
               OpenID Foundation, "OpenID for Verifiable Credential
