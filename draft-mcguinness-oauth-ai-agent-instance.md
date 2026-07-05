@@ -44,6 +44,7 @@ normative:
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
 
 informative:
+  RFC7636:
   RFC9396:
   TXN-TOKENS: I-D.ietf-oauth-transaction-tokens
   ID-CHAINING: I-D.ietf-oauth-identity-chaining
@@ -263,7 +264,10 @@ profile of this document defines their processing.
   trusted-execution attestation results. This document defines one
   member: `eat` (OPTIONAL), containing an Entity Attestation Token
   ({{RFC9711}}), carried as the JWT compact serialization when the
-  EAT is in JWT form or base64url-encoded when in CWT form. Additional
+  EAT is in JWT form or base64url-encoded when in CWT form. The two
+  forms are distinguishable by structure: a JWT compact
+  serialization contains period separators, while a
+  base64url-encoded CWT does not. Additional
   members MAY be defined by deployments or companion profiles;
   unknown members MUST be ignored. `agent_runtime` is consumed by
   the AS for policy and is not surfaced to resource servers by
@@ -323,7 +327,7 @@ it to a client that has not agreed to receive instance
 representation in its tokens.
 
 This carrier is available on the grants covered by
-{{CIA-CORE}}'s access-token classification (authorization_code,
+{{CIA-CORE}}'s access-token classification (`authorization_code`,
 `client_credentials`, `refresh_token`, JWT bearer, and
 token-exchange); grants outside that classification are refused
 per {{CIA-CORE}}. Because this carrier presents no request
@@ -377,10 +381,22 @@ per {{RFC7591}}, applicable to any registration model supported by
 
 `ai_agent_instance_profile` (client metadata):
 : OPTIONAL. Boolean, default `false`. When `true`, the client is
-  registered for this profile: the AS MUST require
-  `agent_instance_id` in the client's Agent Instance Evidence
-  ({{agent-claims}}), MUST apply the surfacing rules of
-  {{surfacing}}, and, when the Client Attestation carrier is used,
+  registered for this profile. The AS MUST require Agent Instance
+  Evidence on every token request from the client on the grants
+  covered by {{CIA-CORE}}'s access-token classification, except
+  `refresh_token` requests, which follow {{refresh}}; a covered
+  request presenting no evidence MUST be rejected ({{errors}}).
+  Without this requirement, an instance could omit evidence and
+  obtain tokens indistinguishable from an ordinary client's,
+  silently escaping the attribution this profile provides. The
+  client's registration or AS policy MAY exempt designated grant
+  types whose requests are not made by agent instances (for
+  example, `client_credentials` used by the platform's control
+  plane); exempted requests are processed as ordinary OAuth
+  requests and receive no instance representation. The AS MUST
+  require `agent_instance_id` in the client's Agent Instance
+  Evidence ({{agent-claims}}) and MUST apply the surfacing rules
+  of {{surfacing}}; when the Client Attestation carrier is used,
   this registration constitutes the client's agreement required by
   {{carrier-attest}}. Deployments without access to
   this parameter MAY establish the same registration by
@@ -390,8 +406,9 @@ per {{RFC7591}}, applicable to any registration model supported by
 : OPTIONAL. Boolean. Indicates that the AS supports this profile:
   validating agent instance claims, deriving the instance subject
   per {{subject}}, and surfacing per {{surfacing}}. An AS
-  implementing this profile MUST publish this parameter set to
-  `true`. Clients SHOULD verify it before depending on agent
+  implementing this profile MUST include this parameter, set to
+  `true`, in any authorization server metadata it publishes.
+  Clients SHOULD verify it before depending on agent
   instance surfacing, since an AS without support may process the
   underlying carrier without applying this profile's
   representation.
@@ -496,10 +513,11 @@ no additional cross-domain rules.
 Refresh-token handling follows {{CIA-CORE}}, with the derived
 instance subject, the Agent Attester, and any surfaced provenance
 claims recorded as originating instance state. Fresh Agent
-Instance Evidence presented on refresh MUST carry the same
-`agent_instance_id` recorded at original issuance; the AS MUST
-reject a refresh presenting evidence for a different instance with
-`invalid_grant`. A refresh processed without fresh evidence
+Instance Evidence presented on refresh MUST be issued by the same
+Agent Attester and carry the same `agent_instance_id` recorded at
+original issuance; the AS MUST reject a refresh presenting
+evidence from a different Attester or for a different instance
+with `invalid_grant`. A refresh processed without fresh evidence
 re-surfaces the provenance recorded at original issuance; see
 {{security-freshness}} for the staleness this implies across
 refresh chains.
@@ -548,9 +566,9 @@ hardware-rooted or independent attestation.
 Agent instances do not necessarily run on platform
 infrastructure: command-line and desktop agents execute on
 end-user machines, typically as public clients ({{RFC6749}}) using
-the authorization_code grant with PKCE and without a client-level
-credential. This profile applies to such deployments with the
-following pattern:
+the `authorization_code` grant with PKCE ({{RFC7636}}) and without
+a client-level credential. This profile applies to such
+deployments with the following pattern:
 
 * The local agent instance generates its per-instance
   proof-of-possession key locally and authenticates to the agent
@@ -589,6 +607,10 @@ following `invalid_grant` cases (returned as `invalid_client`
 when, per {{CIA-CORE}}, the evidence is the client authentication
 credential):
 
+* a token request on a covered grant other than `refresh_token`
+  presents no Agent Instance Evidence, and neither the client's
+  registration nor AS policy exempts the grant type
+  ({{metadata}});
 * the Agent Instance Evidence omits `agent_instance_id` and the
   client is registered for this profile ({{metadata}});
 * an object-valued agent claim is malformed
@@ -598,14 +620,15 @@ credential):
 * under carrier precedence, the binding keys or
   `agent_instance_id` values of the two artifacts do not match
   ({{carrier-precedence}});
-* on refresh, presented evidence carries a different
-  `agent_instance_id` than recorded at original issuance
-  ({{refresh}}).
+* on refresh, presented evidence is issued by a different Agent
+  Attester or carries a different `agent_instance_id` than
+  recorded at original issuance ({{refresh}}).
 
 # Conformance {#conformance}
 
 An AS conforms to this profile by supporting at least one evidence
-carrier ({{carriers}}); validating the agent instance claims per
+carrier ({{carriers}}); requiring evidence from registered clients
+per {{metadata}}; validating the agent instance claims per
 {{agent-claims}}; deriving the instance subject per {{subject}};
 surfacing per {{surfacing}}, including the `ai_agent` and
 `client_instance` values in the surfaced `sub_profile`; applying
@@ -745,14 +768,38 @@ client's instances), but the AS is nonetheless accepting a trust
 root and a token-shape obligation from an unvetted source.
 
 An AS accepting dynamic registration SHOULD NOT honor
-`instance_issuers` entries or the `ai_agent_instance_profile`
-flag from unauthenticated registrations unless the listed Agent
-Attester is validated against AS policy, for example an AS-side
-allowlist of recognized platform Attesters, or a signed software
-statement ({{RFC7591}}) from an authority the AS trusts.
-AS-operated allowlists of well-known agent platform Attesters are
-the expected deployment pattern for resource ecosystems serving
-dynamically registered agent clients.
+`instance_issuers` entries from unauthenticated registrations
+unless each listed Agent Attester is validated against AS policy,
+for example an AS-side allowlist of recognized platform Attesters,
+or a signed software statement ({{RFC7591}}) from an authority the
+AS trusts. The `ai_agent_instance_profile` flag on a registration
+listing no `instance_issuers` implicates the Client Attestation
+carrier, whose Attester trust is AS-configured
+({{carrier-attest}}); honoring the flag there accepts a
+token-shape obligation but no new trust root. AS-operated
+allowlists of well-known agent platform Attesters are the expected
+deployment pattern for resource ecosystems serving dynamically
+registered agent clients.
+
+## Local Instance Keys and Evidence Minting {#security-local-keys}
+
+For locally executing instances ({{local-agents}}), the instance
+binding key is held on an end-user machine rather than on platform
+infrastructure. A process that extracts the key and current
+evidence can act as the instance until they expire. Local
+instances SHOULD generate and hold binding keys in a platform
+keystore or hardware-backed key store where the host provides one,
+and Attesters SHOULD issue short-lived evidence to locally
+executing instances.
+
+The Attester's evidence-minting interface is part of the identity
+boundary: whoever can authenticate to it obtains evidence binding
+a key they control, so possession of a user's platform credentials
+suffices to mint agent instances attributed to that account.
+Attesters SHOULD bind evidence minting to the authenticated
+session through which the instance was established, SHOULD audit
+minting events with the same rigor as token issuance, and SHOULD
+rate-limit minting per account.
 
 ## Privacy {#security-privacy}
 
@@ -901,21 +948,21 @@ IANA is requested to register the following value in the "OAuth
 Entity Profiles" registry established by {{ENTITY-PROFILES}}. This
 registration is contingent on the establishment of that registry.
 
-Profile Name:
+Entity Profile Name:
 : `ai_agent`
 
-Profile Description:
+Entity Profile Description:
 : An AI agent instance: an autonomous or semi-autonomous software
   actor, typically driven by a machine-learning model, acting as a
   concrete runtime instance of an OAuth client.
 
-Profile Usage Location:
-: Actor Profile
+Usage Location:
+: "Subject Profile", "Actor Profile"
 
 Change Controller:
 : IETF
 
-Specification Document(s):
+Specification Document:
 : This document
 
 --- back
@@ -1047,7 +1094,8 @@ as a trusted instance issuer per {{CIA-CORE}}:
 {:numbered="false"}
 
 Alice authorizes the assistant through a standard
-authorization_code flow with PKCE; her consent covers the client as
+`authorization_code` flow with PKCE ({{RFC7636}}); her consent
+covers the client as
 a whole, per {{CIA-CORE}}'s authorization-time consistency rules.
 To handle her request, the platform's control plane spawns agent
 instance `sess-9f2c`, provisions it a per-instance DPoP key, and,
