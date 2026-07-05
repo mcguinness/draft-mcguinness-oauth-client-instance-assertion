@@ -104,9 +104,11 @@ instance identifier:
   conveying the agent platform, the model an agent instance runs,
   and evidence about its runtime environment, so resource servers
   can apply provenance-aware policy.
-* **A registered actor profile** (`ai_agent`) so resource servers
-  can distinguish agent actors from other workload actors with a
-  single signal ({{surfacing}}).
+* **A uniform agent classification**: surfacing rules that mark
+  agent actors with the `ai_agent` entity profile registered by
+  {{ENTITY-PROFILES}}, so resource servers can distinguish agent
+  actors from other workload actors with a single signal
+  ({{surfacing}}).
 * **Attested delegation chains** ({{chains}}): when an agent
   spawns a sub-agent, each hop presents its own instance evidence,
   producing an `act` chain in which every actor was attested rather
@@ -166,8 +168,9 @@ Agent Instance Evidence:
 This profile depends normatively on {{CIA-CORE}} for token-endpoint
 processing, sender-constraint binding, access-token representation,
 refresh-token semantics, and resource-server processing. It
-registers the `ai_agent` actor profile in the registry established
-by {{ENTITY-PROFILES}}. When the Client Attestation carrier is
+surfaces the `ai_agent` entity profile defined and registered by
+{{ENTITY-PROFILES}}, profiling its use for attested agent
+instances. When the Client Attestation carrier is
 used, it depends on {{ATTEST-CLIENT-AUTH}} for attestation
 validation, including DPoP combined mode ({{RFC9449}}).
 
@@ -457,7 +460,7 @@ This profile additionally specifies:
 
 * The surfaced `sub_profile` (top-level in self-acting cases,
   `act.sub_profile` in delegation cases) MUST include both the
-  value `ai_agent` ({{iana-entity-profile}}) and the value
+  value `ai_agent` (defined by {{ENTITY-PROFILES}}) and the value
   `client_instance` (registered by {{CIA-CORE}}), per the list
   syntax of the underlying registry. Every agent instance is a
   client instance; including both values lets resource servers
@@ -948,28 +951,12 @@ Change Controller:
 Specification Document(s):
 : {{metadata}} of this document
 
-## OAuth Entity Profile {#iana-entity-profile}
+## OAuth Entity Profiles Registry
 
-IANA is requested to register the following value in the "OAuth
-Entity Profiles" registry established by {{ENTITY-PROFILES}}. This
-registration is contingent on the establishment of that registry.
-
-Entity Profile Name:
-: `ai_agent`
-
-Entity Profile Description:
-: An AI agent instance: an autonomous or semi-autonomous software
-  actor, typically driven by a machine-learning model, acting as a
-  concrete runtime instance of an OAuth client.
-
-Usage Location:
-: "Subject Profile", "Actor Profile"
-
-Change Controller:
-: IETF
-
-Specification Document:
-: This document
+This document requests no registration in the "OAuth Entity
+Profiles" registry: the `ai_agent` entity profile this document
+surfaces ({{surfacing}}) is registered by {{ENTITY-PROFILES}} as
+part of that registry's initial contents.
 
 --- back
 
