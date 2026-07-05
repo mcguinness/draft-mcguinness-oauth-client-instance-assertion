@@ -133,8 +133,8 @@ or deployment-specific scope design.
 
 This document uses the terms "Client Instance Assertion", "client
 instance", "instance issuer", and "OAuth client" as defined in
-{{CIA-CORE}}, and "Client Attestation" and "DPoP combined mode" as
-defined in {{ATTEST-CLIENT-AUTH}}.
+{{CIA-CORE}}, and "Client Attestation", "Client Attester", and
+"DPoP combined mode" as defined in {{ATTEST-CLIENT-AUTH}}.
 
 Agent:
 : An autonomous or semi-autonomous software actor, typically driven
@@ -154,7 +154,7 @@ Agent Attester:
 : The authority that authenticates agent instances and mints the
   agent instance claims defined in {{agent-claims}}. Depending on
   the carrier ({{carriers}}), the Agent Attester is a {{CIA-CORE}}
-  instance issuer or an {{ATTEST-CLIENT-AUTH}} Attester. It is
+  instance issuer or an {{ATTEST-CLIENT-AUTH}} Client Attester. It is
   typically the agent platform's control plane, but MAY be a
   distinct party (see {{trust}}).
 
@@ -317,7 +317,7 @@ may attest its instances.
 
 ## Client Attestation Carrier {#carrier-attest}
 
-The Agent Attester acts as an {{ATTEST-CLIENT-AUTH}} Attester and
+The Agent Attester acts as an {{ATTEST-CLIENT-AUTH}} Client Attester and
 includes the claims of {{agent-claims}} in the Client Attestation
 JWT. The client authenticates per {{ATTEST-CLIENT-AUTH}} using
 DPoP combined mode; the DPoP key is the instance binding key for
@@ -654,7 +654,7 @@ An Agent Attester conforms by meeting the minting requirements of
 {{agent-claims}} (in particular the uniqueness, stability,
 non-reassignment, and key-independence of `agent_instance_id`)
 and, per carrier, the obligations of a {{CIA-CORE}} instance
-issuer or an {{ATTEST-CLIENT-AUTH}} Attester.
+issuer or an {{ATTEST-CLIENT-AUTH}} Client Attester.
 
 An Agent Platform (OAuth client) conforms by registering for this
 profile ({{metadata}}) and for exactly the carriers it uses,
