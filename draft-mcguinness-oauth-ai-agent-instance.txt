@@ -120,6 +120,8 @@ Table of Contents
    Design Rationale
      Why Attester-minted identifiers rather than key-derived subjects
      Why carrier-pluggable
+     Why the profile is not defined over Attestation-Based Client
+          Authentication alone
      Why flat claims rather than one structured agent claim
      Why both sub and agent_instance_id on the assertion carrier
      Why generic agent_* claim names are registered now
@@ -258,6 +260,12 @@ Table of Contents
    an authorization server applying this profile at issuance carries the
    agent instance identity and provenance into the chained tokens it
    brokers.
+
+   [ATTEST-CLIENT-AUTH] authenticates a client instance at the token
+   endpoint but defines no representation of it in issued tokens; the
+   design rationale appendix records why this profile builds its
+   representation layer on [CIA-CORE] rather than over
+   [ATTEST-CLIENT-AUTH] alone.
 
    Agent identity is an active topic in multiple communities.  This
    profile deliberately limits itself to two things: conveying attested
@@ -1099,6 +1107,33 @@ Why carrier-pluggable
    Attestations and should not need a second artifact carrying the same
    facts.  Binding the agent claims to a single carrier would fragment
    the profile by deployment style without any interoperability gain.
+
+Why the profile is not defined over Attestation-Based Client
+Authentication alone
+
+   A natural question is why this profile does not depend solely on
+   [ATTEST-CLIENT-AUTH], a working-group document, and omit [CIA-CORE].
+   Attestation-based client authentication authenticates a client
+   instance at the token endpoint and deliberately stops there: it
+   defines no representation of the instance in issued access tokens, no
+   instance identifier (the attestation's sub is the client_id; the
+   instance is identified only by its key, the key-as-identity model
+   that Section 7 rejects), no token-exchange or delegation-chain
+   semantics, no introspection content, and no identity continuity
+   across key rotation.  Everything a resource server sees under this
+   profile is machinery imported from [CIA-CORE] on both carriers.
+   Removing the [CIA-CORE] dependency would not remove that machinery;
+   it would relocate it into this document, coupling a general instance-
+   representation layer to the AI-agent use case.  The Client Instance
+   Assertion carrier additionally serves deployments the attestation
+   carrier structurally cannot: platforms that keep an existing client
+   authentication method and add instance evidence rather than replacing
+   their credential, clients requiring in-band control over their
+   Attester set, SPIFFE-based workload reuse, mTLS sender constraint,
+   and short-lived per-issuance evidence.  [ATTEST-CLIENT-AUTH] answers
+   whether a genuine instance of the client is authenticating;
+   [CIA-CORE] defines what the resource server sees afterward.  This
+   profile is a profile of the second question.
 
 Why flat claims rather than one structured agent claim
 

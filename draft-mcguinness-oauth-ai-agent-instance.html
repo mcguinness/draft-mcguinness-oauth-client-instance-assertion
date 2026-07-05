@@ -1306,16 +1306,19 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.18.2.2.1"><a href="#appendix-A.2" class="auto internal xref"></a><a href="#name-why-carrier-pluggable" class="internal xref">Why carrier-pluggable</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.3">
-                <p id="section-toc.1-1.18.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-why-flat-claims-rather-than" class="internal xref">Why flat claims rather than one structured agent claim</a></p>
+                <p id="section-toc.1-1.18.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-why-the-profile-is-not-defi" class="internal xref">Why the profile is not defined over Attestation-Based Client Authentication alone</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.4">
-                <p id="section-toc.1-1.18.2.4.1"><a href="#appendix-A.4" class="auto internal xref"></a><a href="#name-why-both-sub-and-agent_inst" class="internal xref">Why both <code>sub</code> and <code>agent_instance_id</code> on the assertion carrier</a></p>
+                <p id="section-toc.1-1.18.2.4.1"><a href="#appendix-A.4" class="auto internal xref"></a><a href="#name-why-flat-claims-rather-than" class="internal xref">Why flat claims rather than one structured agent claim</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.5">
-                <p id="section-toc.1-1.18.2.5.1"><a href="#appendix-A.5" class="auto internal xref"></a><a href="#name-why-generic-agent_-claim-na" class="internal xref">Why generic <code>agent_*</code> claim names are registered now</a></p>
+                <p id="section-toc.1-1.18.2.5.1"><a href="#appendix-A.5" class="auto internal xref"></a><a href="#name-why-both-sub-and-agent_inst" class="internal xref">Why both <code>sub</code> and <code>agent_instance_id</code> on the assertion carrier</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.6">
-                <p id="section-toc.1-1.18.2.6.1"><a href="#appendix-A.6" class="auto internal xref"></a><a href="#name-why-refresh-tokens-keep-s-k" class="internal xref">Why refresh tokens keep CIA-CORE's key binding</a></p>
+                <p id="section-toc.1-1.18.2.6.1"><a href="#appendix-A.6" class="auto internal xref"></a><a href="#name-why-generic-agent_-claim-na" class="internal xref">Why generic <code>agent_*</code> claim names are registered now</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.7">
+                <p id="section-toc.1-1.18.2.7.1"><a href="#appendix-A.7" class="auto internal xref"></a><a href="#name-why-refresh-tokens-keep-s-k" class="internal xref">Why refresh tokens keep CIA-CORE's key binding</a></p>
 </li>
             </ul>
 </li>
@@ -1508,7 +1511,12 @@ identity across domains; it does not define agent claims. The two
 compose naturally: an authorization server applying this profile
 at issuance carries the agent instance identity and provenance
 into the chained tokens it brokers.<a href="#section-3-5" class="pilcrow">¶</a></p>
-<p id="section-3-6">Agent identity is an active topic in multiple communities. This
+<p id="section-3-6"><span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> authenticates a client instance at the
+token endpoint but defines no representation of it in issued
+tokens; the design rationale appendix records why this profile
+builds its representation layer on <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> rather than over
+<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> alone.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">Agent identity is an active topic in multiple communities. This
 profile deliberately limits itself to two things: conveying
 attested agent instance identity and provenance to the OAuth token
 endpoint, and representing that identity in issued access tokens.
@@ -1518,7 +1526,7 @@ and is designed to compose with, rather than compete with,
 specifications that do. In particular, fine-grained permission
 description composes via Rich Authorization Requests
 (<span>[<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>), and hardware-rooted runtime evidence composes via
-Entity Attestation Token formats (<span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>).<a href="#section-3-6" class="pilcrow">¶</a></p>
+Entity Attestation Token formats (<span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>).<a href="#section-3-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="agent-claims">
@@ -2654,57 +2662,89 @@ the agent claims to a single carrier would fragment the profile by
 deployment style without any interoperability gain.<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="why-flat-claims-rather-than-one-structured-agent-claim">
+<div id="why-the-profile-is-not-defined-over-attestation-based-client-authentication-alone">
 <section id="appendix-A.3">
+        <h3 id="name-why-the-profile-is-not-defi">
+<a href="#name-why-the-profile-is-not-defi" class="section-name selfRef">Why the profile is not defined over Attestation-Based Client Authentication alone</a>
+        </h3>
+<p id="appendix-A.3-1">A natural question is why this profile does not depend solely on
+<span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>, a working-group document, and omit
+<span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>. Attestation-based client authentication
+authenticates a client instance at the token endpoint and
+deliberately stops there: it defines no representation of the
+instance in issued access tokens, no instance identifier (the
+attestation's <code>sub</code> is the <code>client_id</code>; the instance is identified
+only by its key, the key-as-identity model that <a href="#subject" class="auto internal xref">Section 7</a>
+rejects), no token-exchange or delegation-chain semantics, no
+introspection content, and no identity continuity across key
+rotation. Everything a resource server sees under this profile is
+machinery imported from <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> on both carriers. Removing
+the <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> dependency would not remove that machinery; it
+would relocate it into this document, coupling a general
+instance-representation layer to the AI-agent use case. The
+Client Instance Assertion carrier additionally serves deployments
+the attestation carrier structurally cannot: platforms that keep
+an existing client authentication method and add instance
+evidence rather than replacing their credential, clients
+requiring in-band control over their Attester set, SPIFFE-based
+workload reuse, mTLS sender constraint, and short-lived
+per-issuance evidence. <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> answers whether a
+genuine instance of the client is authenticating; <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>
+defines what the resource server sees afterward. This profile is
+a profile of the second question.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="why-flat-claims-rather-than-one-structured-agent-claim">
+<section id="appendix-A.4">
         <h3 id="name-why-flat-claims-rather-than">
 <a href="#name-why-flat-claims-rather-than" class="section-name selfRef">Why flat claims rather than one structured agent claim</a>
         </h3>
-<p id="appendix-A.3-1">A single structured <code>agent</code> claim object was considered. Flat
+<p id="appendix-A.4-1">A single structured <code>agent</code> claim object was considered. Flat
 claims were chosen because individual JWT claim registrations are
 the established practice of the JWT Claims registry, selective
 surfacing (<a href="#surfacing" class="auto internal xref">Section 8</a>) operates naturally per claim, and
 consumers can adopt <code>agent_instance_id</code> without parsing a
 container whose other members they ignore. The two object-valued
 claims (<code>agent_model</code>, <code>agent_runtime</code>) group members that are
-only meaningful together.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+only meaningful together.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="why-both-sub-and-agentinstanceid-on-the-assertion-carrier">
-<section id="appendix-A.4">
+<section id="appendix-A.5">
         <h3 id="name-why-both-sub-and-agent_inst">
 <a href="#name-why-both-sub-and-agent_inst" class="section-name selfRef">Why both <code>sub</code> and <code>agent_instance_id</code> on the assertion carrier</a>
         </h3>
-<p id="appendix-A.4-1">On the Client Instance Assertion carrier the assertion's <code>sub</code>
+<p id="appendix-A.5-1">On the Client Instance Assertion carrier the assertion's <code>sub</code>
 must equal <code>agent_instance_id</code>, which is deliberately redundant.
 Carrying the claim on both carriers gives implementations a single
 code path for subject derivation regardless of carrier, and the
 equality check on the assertion carrier is a cheap integrity
 cross-check. Making the claim optional where <code>sub</code> already carries
 the value was considered and rejected as an invitation to
-carrier-conditional bugs.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+carrier-conditional bugs.<a href="#appendix-A.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="why-generic-agent-claim-names-are-registered-now">
-<section id="appendix-A.5">
+<section id="appendix-A.6">
         <h3 id="name-why-generic-agent_-claim-na">
 <a href="#name-why-generic-agent_-claim-na" class="section-name selfRef">Why generic <code>agent_*</code> claim names are registered now</a>
         </h3>
-<p id="appendix-A.5-1">Agent identity claims are being invented independently across the
+<p id="appendix-A.6-1">Agent identity claims are being invented independently across the
 industry. Registering <code>agent_instance_id</code>, <code>agent_platform</code>,
 <code>agent_model</code>, and <code>agent_runtime</code> early is intended to converge
 that activity on one vocabulary before divergence hardens, not to
 claim the namespace for this document; the semantics here are
 deliberately minimal so that other specifications can profile
 them. Coordination with related work in other bodies is invited,
-and the names are open to revision during working group review.<a href="#appendix-A.5-1" class="pilcrow">¶</a></p>
+and the names are open to revision during working group review.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="why-refresh-tokens-keep-cia-cores-key-binding">
-<section id="appendix-A.6">
+<section id="appendix-A.7">
         <h3 id="name-why-refresh-tokens-keep-s-k">
 <a href="#name-why-refresh-tokens-keep-s-k" class="section-name selfRef">Why refresh tokens keep <span class="cite xref">[CIA-CORE]</span>'s key binding</a>
         </h3>
-<p id="appendix-A.6-1">Allowing a refresh token to be re-bound to a rotated key on
+<p id="appendix-A.7-1">Allowing a refresh token to be re-bound to a rotated key on
 presentation of fresh evidence was considered, since the
 Attester-minted identity makes "same instance, new key" provable.
 It was rejected for this version: it would relax a <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>
@@ -2712,7 +2752,7 @@ It was rejected for this version: it would relax a <span>[<a href="#CIA-CORE" cl
 trust boundary. Identity continuity across rotation is preserved
 without it, since new grants and exchanges under the unchanged
 <code>agent_instance_id</code> carry the same subject (<a href="#refresh" class="auto internal xref">Section 10</a>), at
-the cost of one extra grant round-trip after a rotation.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+the cost of one extra grant round-trip after a rotation.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
