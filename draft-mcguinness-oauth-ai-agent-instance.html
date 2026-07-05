@@ -1315,10 +1315,13 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.18.2.5.1"><a href="#appendix-A.5" class="auto internal xref"></a><a href="#name-why-both-sub-and-agent_inst" class="internal xref">Why both <code>sub</code> and <code>agent_instance_id</code> on the assertion carrier</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.6">
-                <p id="section-toc.1-1.18.2.6.1"><a href="#appendix-A.6" class="auto internal xref"></a><a href="#name-why-generic-agent_-claim-na" class="internal xref">Why generic <code>agent_*</code> claim names are registered now</a></p>
+                <p id="section-toc.1-1.18.2.6.1"><a href="#appendix-A.6" class="auto internal xref"></a><a href="#name-why-no-standardized-assuran" class="internal xref">Why no standardized assurance-tier claim</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.7">
-                <p id="section-toc.1-1.18.2.7.1"><a href="#appendix-A.7" class="auto internal xref"></a><a href="#name-why-refresh-tokens-keep-s-k" class="internal xref">Why refresh tokens keep CIA-CORE's key binding</a></p>
+                <p id="section-toc.1-1.18.2.7.1"><a href="#appendix-A.7" class="auto internal xref"></a><a href="#name-why-generic-agent_-claim-na" class="internal xref">Why generic <code>agent_*</code> claim names are registered now</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.8">
+                <p id="section-toc.1-1.18.2.8.1"><a href="#appendix-A.8" class="auto internal xref"></a><a href="#name-why-refresh-tokens-keep-s-k" class="internal xref">Why refresh tokens keep CIA-CORE's key binding</a></p>
 </li>
             </ul>
 </li>
@@ -2724,27 +2727,45 @@ the value was considered and rejected as an invitation to
 carrier-conditional bugs.<a href="#appendix-A.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="why-generic-agent-claim-names-are-registered-now">
+<div id="why-no-standardized-assurance-tier-claim">
 <section id="appendix-A.6">
+        <h3 id="name-why-no-standardized-assuran">
+<a href="#name-why-no-standardized-assuran" class="section-name selfRef">Why no standardized assurance-tier claim</a>
+        </h3>
+<p id="appendix-A.6-1">This document names three assurance tiers (<a href="#trust" class="auto internal xref">Section 11</a>) but does not
+register a claim conveying them, directing deployments to a
+deployment-defined claim instead (<a href="#surfacing" class="auto internal xref">Section 8</a>). The tiers are
+policy vocabulary between an AS and its resource servers, not
+attested facts: which tier a given Attester provides is an
+operational judgment the AS makes when it configures trust, and a
+standardized claim would present that judgment with the same
+apparent authority as the attested claims it summarizes.
+Registering a tier claim before deployments demonstrate convergent
+semantics would freeze the wrong thing; one can be added by a
+later document without disturbing anything defined here.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="why-generic-agent-claim-names-are-registered-now">
+<section id="appendix-A.7">
         <h3 id="name-why-generic-agent_-claim-na">
 <a href="#name-why-generic-agent_-claim-na" class="section-name selfRef">Why generic <code>agent_*</code> claim names are registered now</a>
         </h3>
-<p id="appendix-A.6-1">Agent identity claims are being invented independently across the
+<p id="appendix-A.7-1">Agent identity claims are being invented independently across the
 industry. Registering <code>agent_instance_id</code>, <code>agent_platform</code>,
 <code>agent_model</code>, and <code>agent_runtime</code> early is intended to converge
 that activity on one vocabulary before divergence hardens, not to
 claim the namespace for this document; the semantics here are
 deliberately minimal so that other specifications can profile
 them. Coordination with related work in other bodies is invited,
-and the names are open to revision during working group review.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
+and the names are open to revision during working group review.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="why-refresh-tokens-keep-cia-cores-key-binding">
-<section id="appendix-A.7">
+<section id="appendix-A.8">
         <h3 id="name-why-refresh-tokens-keep-s-k">
 <a href="#name-why-refresh-tokens-keep-s-k" class="section-name selfRef">Why refresh tokens keep <span class="cite xref">[CIA-CORE]</span>'s key binding</a>
         </h3>
-<p id="appendix-A.7-1">Allowing a refresh token to be re-bound to a rotated key on
+<p id="appendix-A.8-1">Allowing a refresh token to be re-bound to a rotated key on
 presentation of fresh evidence was considered, since the
 Attester-minted identity makes "same instance, new key" provable.
 It was rejected for this version: it would relax a <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>
@@ -2752,7 +2773,7 @@ It was rejected for this version: it would relax a <span>[<a href="#CIA-CORE" cl
 trust boundary. Identity continuity across rotation is preserved
 without it, since new grants and exchanges under the unchanged
 <code>agent_instance_id</code> carry the same subject (<a href="#refresh" class="auto internal xref">Section 10</a>), at
-the cost of one extra grant round-trip after a rotation.<a href="#appendix-A.7-1" class="pilcrow">¶</a></p>
+the cost of one extra grant round-trip after a rotation.<a href="#appendix-A.8-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
