@@ -46,6 +46,7 @@ normative:
 informative:
   RFC9396:
   TXN-TOKENS: I-D.ietf-oauth-transaction-tokens
+  ID-CHAINING: I-D.ietf-oauth-identity-chaining
   MCP:
     title: "Model Context Protocol Specification"
     target: https://modelcontextprotocol.io/specification/
@@ -184,6 +185,16 @@ identity at initial token issuance. The two are complementary: a
 deployment may derive transaction tokens from access tokens issued
 under this profile, carrying the agent instance identity into the
 transaction context.
+
+Identity and authorization chaining ({{ID-CHAINING}}) enables an
+authorization server in one domain to issue tokens redeemable in
+another, the pattern underlying enterprise cross-application
+access deployments in which an enterprise identity provider
+brokers agent access to third-party resources. That work moves
+identity across domains; it does not define agent claims. The two
+compose naturally: an authorization server applying this profile
+at issuance carries the agent instance identity and provenance
+into the chained tokens it brokers.
 
 Agent identity is an active topic in multiple communities. This
 profile deliberately limits itself to two things: conveying
@@ -532,6 +543,43 @@ the tier. Deployments SHOULD document which tier their Attester
 provides and MUST NOT represent platform self-attestation as
 hardware-rooted or independent attestation.
 
+# Local and Public-Client Agent Instances {#local-agents}
+
+Agent instances do not necessarily run on platform
+infrastructure: command-line and desktop agents execute on
+end-user machines, typically as public clients ({{RFC6749}}) using
+the authorization_code grant with PKCE and without a client-level
+credential. This profile applies to such deployments with the
+following pattern:
+
+* The local agent instance generates its per-instance
+  proof-of-possession key locally and authenticates to the agent
+  platform's control plane (how is out of scope; typically the
+  user's platform login). The control plane, acting as the Agent
+  Attester, mints Agent Instance Evidence whose `cnf` binds the
+  key the local instance presented and whose `agent_instance_id`
+  names the local session.
+* The instance presents the evidence at the token endpoint per
+  the Client Instance Assertion carrier ({{carrier-cia}})
+  alongside its normal public-client interaction. Presenting a
+  Client Instance Assertion does not require confidential-client
+  authentication; only {{CIA-CORE}}'s instance-assertion
+  authentication method does, and public clients do not use that
+  method.
+* The issued access token is sender-constrained to the locally
+  held key per {{CIA-CORE}}, and the instance subject, surfacing,
+  and chain semantics of this profile apply unchanged.
+
+Attestation of a local session is platform self-attestation
+({{trust}}) with a narrower meaning: the Attester vouches that it
+issued the session to an authenticated platform account and bound
+the presented key, not for the integrity of the end-user host the
+instance runs on. Resource servers applying tier-conditioned
+policy SHOULD treat locally executing instances accordingly;
+deployments needing runtime-integrity claims for local instances
+can convey hardware-rooted evidence from the host via
+`agent_runtime` ({{agent-claims}}) where available.
+
 # Error Responses {#errors}
 
 Errors are returned per {{RFC6749}} Section 5.2, inheriting the
@@ -683,6 +731,28 @@ attestation carrier: clients SHOULD establish the acceptable
 Attester set as part of that agreement. Deployments in which the
 client requires in-band, auditable control over its attestation
 surface SHOULD use the Client Instance Assertion carrier.
+
+## Attester Trust via Dynamic Registration {#security-dcr}
+
+In deployments where clients register dynamically ({{RFC7591}}),
+including agent applications registering with an authorization
+server discovered at run time, the `instance_issuers` list and the
+`ai_agent_instance_profile` flag arrive as registration metadata
+from a party the AS has no prior relationship with. An
+unauthenticated registrant naming an Attester it controls gains
+nothing against other clients (the Attester attests only that
+client's instances), but the AS is nonetheless accepting a trust
+root and a token-shape obligation from an unvetted source.
+
+An AS accepting dynamic registration SHOULD NOT honor
+`instance_issuers` entries or the `ai_agent_instance_profile`
+flag from unauthenticated registrations unless the listed Agent
+Attester is validated against AS policy, for example an AS-side
+allowlist of recognized platform Attesters, or a signed software
+statement ({{RFC7591}}) from an authority the AS trusts.
+AS-operated allowlists of well-known agent platform Attesters are
+the expected deployment pattern for resource ecosystems serving
+dynamically registered agent clients.
 
 ## Privacy {#security-privacy}
 
