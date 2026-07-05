@@ -1105,14 +1105,16 @@ carrying the claims of {{agent-claims}}:
 ~~~ json
 {
   "iss":       "https://attester.agents.example.com",
-  "sub":       "https://attester.agents.example.com/instances/sess-9f2c",
+  "sub":
+    "https://attester.agents.example.com/instances/sess-9f2c",
   "aud":       "https://as.example.com",
   "client_id": "https://agents.example.com/assistant",
   "sub_profile": "ai_agent",
   "agent_instance_id":
     "https://attester.agents.example.com/instances/sess-9f2c",
   "agent_platform": "urn:example:orchestrator:v5",
-  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "agent_model":
+    { "id": "urn:example:model:atlas", "version": "7.3" },
   "iat": 1770000000,
   "exp": 1770000300,
   "jti": "ag-1a2b3c",
@@ -1163,9 +1165,11 @@ surfaces `agent_model` (but not `agent_platform`) per
   "cnf":       { "jkt": "0ZcOCORZNYy...iguA4I" },
   "act": {
     "iss":         "https://attester.agents.example.com",
-    "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
+    "sub":
+      "https://attester.agents.example.com/instances/sess-9f2c",
     "sub_profile": "ai_agent client_instance",
-    "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+    "agent_model":
+      { "id": "urn:example:model:atlas", "version": "7.3" },
     "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
   }
 }
@@ -1223,13 +1227,16 @@ token-exchange presentation, presenting its assertion as
   "cnf":       { "jkt": "QrS...XyZ" },
   "act": {
     "iss":         "https://attester.agents.example.com",
-    "sub":         "https://attester.agents.example.com/instances/sess-a114",
+    "sub":
+      "https://attester.agents.example.com/instances/sess-a114",
     "sub_profile": "ai_agent client_instance",
-    "agent_model": { "id": "urn:example:model:scout", "version": "2.0" },
+    "agent_model":
+      { "id": "urn:example:model:scout", "version": "2.0" },
     "cnf":         { "jkt": "QrS...XyZ" },
     "act": {
       "iss":         "https://attester.agents.example.com",
-      "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
+      "sub":
+        "https://attester.agents.example.com/instances/sess-9f2c",
       "sub_profile": "ai_agent client_instance"
     }
   }
