@@ -1281,7 +1281,7 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.16.2.3.1"><a href="#section-16.3" class="auto internal xref">16.3</a>.  <a href="#name-oauth-authorization-server-" class="internal xref">OAuth Authorization Server Metadata</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16.2.4">
-                <p id="section-toc.1-1.16.2.4.1"><a href="#section-16.4" class="auto internal xref">16.4</a>.  <a href="#name-oauth-entity-profile" class="internal xref">OAuth Entity Profile</a></p>
+                <p id="section-toc.1-1.16.2.4.1"><a href="#section-16.4" class="auto internal xref">16.4</a>.  <a href="#name-oauth-entity-profiles-regis" class="internal xref">OAuth Entity Profiles Registry</a></p>
 </li>
             </ul>
 </li>
@@ -1402,9 +1402,11 @@ and evidence about its runtime environment, so resource servers
 can apply provenance-aware policy.<a href="#section-1-4.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-4.3">
-          <p id="section-1-4.3.1"><strong>A registered actor profile</strong> (<code>ai_agent</code>) so resource servers
-can distinguish agent actors from other workload actors with a
-single signal (<a href="#surfacing" class="auto internal xref">Section 8</a>).<a href="#section-1-4.3.1" class="pilcrow">¶</a></p>
+          <p id="section-1-4.3.1"><strong>A uniform agent classification</strong>: surfacing rules that mark
+agent actors with the <code>ai_agent</code> entity profile registered by
+<span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>, so resource servers can distinguish agent
+actors from other workload actors with a single signal
+(<a href="#surfacing" class="auto internal xref">Section 8</a>).<a href="#section-1-4.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-4.4">
           <p id="section-1-4.4.1"><strong>Attested delegation chains</strong> (<a href="#chains" class="auto internal xref">Section 9</a>): when an agent
@@ -1488,8 +1490,9 @@ or a Client Attestation with its proof of possession.<a href="#section-2-3.10.1"
 <p id="section-3-1">This profile depends normatively on <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> for token-endpoint
 processing, sender-constraint binding, access-token representation,
 refresh-token semantics, and resource-server processing. It
-registers the <code>ai_agent</code> actor profile in the registry established
-by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>. When the Client Attestation carrier is
+surfaces the <code>ai_agent</code> entity profile defined and registered by
+<span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>, profiling its use for attested agent
+instances. When the Client Attestation carrier is
 used, it depends on <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> for attestation
 validation, including DPoP combined mode (<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>).<a href="#section-3-1" class="pilcrow">¶</a></p>
 <p id="section-3-2">Delegation-chain construction follows the <code>act</code> semantics of
@@ -1821,7 +1824,7 @@ sender-constrained per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>
 <li class="normal" id="section-8-3.1">
           <p id="section-8-3.1.1">The surfaced <code>sub_profile</code> (top-level in self-acting cases,
 <code>act.sub_profile</code> in delegation cases) <span class="bcp14">MUST</span> include both the
-value <code>ai_agent</code> (<a href="#iana-entity-profile" class="auto internal xref">Section 16.4</a>) and the value
+value <code>ai_agent</code> (defined by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>) and the value
 <code>client_instance</code> (registered by <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>), per the list
 syntax of the underlying registry. Every agent instance is a
 client instance; including both values lets resource servers
@@ -2489,43 +2492,15 @@ by <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>.<a href="#sec
 </dl>
 </section>
 </div>
-<div id="iana-entity-profile">
+<div id="oauth-entity-profiles-registry">
 <section id="section-16.4">
-        <h3 id="name-oauth-entity-profile">
-<a href="#section-16.4" class="section-number selfRef">16.4. </a><a href="#name-oauth-entity-profile" class="section-name selfRef">OAuth Entity Profile</a>
+        <h3 id="name-oauth-entity-profiles-regis">
+<a href="#section-16.4" class="section-number selfRef">16.4. </a><a href="#name-oauth-entity-profiles-regis" class="section-name selfRef">OAuth Entity Profiles Registry</a>
         </h3>
-<p id="section-16.4-1">IANA is requested to register the following value in the "OAuth
-Entity Profiles" registry established by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>. This
-registration is contingent on the establishment of that registry.<a href="#section-16.4-1" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-16.4-2">
-          <dt id="section-16.4-2.1">Entity Profile Name:</dt>
-          <dd style="margin-left: 1.5em" id="section-16.4-2.2">
-            <p id="section-16.4-2.2.1"><code>ai_agent</code><a href="#section-16.4-2.2.1" class="pilcrow">¶</a></p>
-</dd>
-          <dd class="break"></dd>
-<dt id="section-16.4-2.3">Entity Profile Description:</dt>
-          <dd style="margin-left: 1.5em" id="section-16.4-2.4">
-            <p id="section-16.4-2.4.1">An AI agent instance: an autonomous or semi-autonomous software
-actor, typically driven by a machine-learning model, acting as a
-concrete runtime instance of an OAuth client.<a href="#section-16.4-2.4.1" class="pilcrow">¶</a></p>
-</dd>
-          <dd class="break"></dd>
-<dt id="section-16.4-2.5">Usage Location:</dt>
-          <dd style="margin-left: 1.5em" id="section-16.4-2.6">
-            <p id="section-16.4-2.6.1">"Subject Profile", "Actor Profile"<a href="#section-16.4-2.6.1" class="pilcrow">¶</a></p>
-</dd>
-          <dd class="break"></dd>
-<dt id="section-16.4-2.7">Change Controller:</dt>
-          <dd style="margin-left: 1.5em" id="section-16.4-2.8">
-            <p id="section-16.4-2.8.1">IETF<a href="#section-16.4-2.8.1" class="pilcrow">¶</a></p>
-</dd>
-          <dd class="break"></dd>
-<dt id="section-16.4-2.9">Specification Document:</dt>
-          <dd style="margin-left: 1.5em" id="section-16.4-2.10">
-            <p id="section-16.4-2.10.1">This document<a href="#section-16.4-2.10.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-</dl>
+<p id="section-16.4-1">This document requests no registration in the "OAuth Entity
+Profiles" registry: the <code>ai_agent</code> entity profile this document
+surfaces (<a href="#surfacing" class="auto internal xref">Section 8</a>) is registered by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span> as
+part of that registry's initial contents.<a href="#section-16.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

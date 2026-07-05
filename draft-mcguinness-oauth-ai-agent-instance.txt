@@ -113,7 +113,7 @@ Table of Contents
        16.1.4.  agent_runtime
      16.2.  OAuth Dynamic Client Registration Metadata
      16.3.  OAuth Authorization Server Metadata
-     16.4.  OAuth Entity Profile
+     16.4.  OAuth Entity Profiles Registry
    17. References
      17.1.  Normative References
      17.2.  Informative References
@@ -170,9 +170,11 @@ Table of Contents
       about its runtime environment, so resource servers can apply
       provenance-aware policy.
 
-   *  *A registered actor profile* (ai_agent) so resource servers can
-      distinguish agent actors from other workload actors with a single
-      signal (Section 8).
+   *  *A uniform agent classification*: surfacing rules that mark agent
+      actors with the ai_agent entity profile registered by
+      [ENTITY-PROFILES], so resource servers can distinguish agent
+      actors from other workload actors with a single signal
+      (Section 8).
 
    *  *Attested delegation chains* (Section 9): when an agent spawns a
       sub-agent, each hop presents its own instance evidence, producing
@@ -231,11 +233,12 @@ Table of Contents
 
    This profile depends normatively on [CIA-CORE] for token-endpoint
    processing, sender-constraint binding, access-token representation,
-   refresh-token semantics, and resource-server processing.  It
-   registers the ai_agent actor profile in the registry established by
-   [ENTITY-PROFILES].  When the Client Attestation carrier is used, it
-   depends on [ATTEST-CLIENT-AUTH] for attestation validation, including
-   DPoP combined mode ([RFC9449]).
+   refresh-token semantics, and resource-server processing.  It surfaces
+   the ai_agent entity profile defined and registered by
+   [ENTITY-PROFILES], profiling its use for attested agent instances.
+   When the Client Attestation carrier is used, it depends on
+   [ATTEST-CLIENT-AUTH] for attestation validation, including DPoP
+   combined mode ([RFC9449]).
 
    Delegation-chain construction follows the act semantics of [RFC8693]
    as profiled by [CIA-CORE].
@@ -507,12 +510,13 @@ Table of Contents
 
    *  The surfaced sub_profile (top-level in self-acting cases,
       act.sub_profile in delegation cases) MUST include both the value
-      ai_agent (Section 16.4) and the value client_instance (registered
-      by [CIA-CORE]), per the list syntax of the underlying registry.
-      Every agent instance is a client instance; including both values
-      lets resource servers that implement [CIA-CORE] but not this
-      profile continue to classify the actor correctly.  Other
-      applicable registered values MAY additionally be included.
+      ai_agent (defined by [ENTITY-PROFILES]) and the value
+      client_instance (registered by [CIA-CORE]), per the list syntax of
+      the underlying registry.  Every agent instance is a client
+      instance; including both values lets resource servers that
+      implement [CIA-CORE] but not this profile continue to classify the
+      actor correctly.  Other applicable registered values MAY
+      additionally be included.
 
    *  The AS MAY surface agent_platform and agent_model subject to local
       policy and the privacy considerations of Section 15.8.  Surfaced
@@ -963,24 +967,12 @@ Table of Contents
 
    Specification Document(s):  Section 6 of this document
 
-16.4.  OAuth Entity Profile
+16.4.  OAuth Entity Profiles Registry
 
-   IANA is requested to register the following value in the "OAuth
-   Entity Profiles" registry established by [ENTITY-PROFILES].  This
-   registration is contingent on the establishment of that registry.
-
-   Entity Profile Name:  ai_agent
-
-   Entity Profile Description:  An AI agent instance: an autonomous or
-      semi-autonomous software actor, typically driven by a machine-
-      learning model, acting as a concrete runtime instance of an OAuth
-      client.
-
-   Usage Location:  "Subject Profile", "Actor Profile"
-
-   Change Controller:  IETF
-
-   Specification Document:  This document
+   This document requests no registration in the "OAuth Entity Profiles"
+   registry: the ai_agent entity profile this document surfaces
+   (Section 8) is registered by [ENTITY-PROFILES] as part of that
+   registry's initial contents.
 
 17.  References
 
