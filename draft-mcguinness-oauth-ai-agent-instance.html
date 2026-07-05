@@ -1244,10 +1244,13 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.15.2.6.1"><a href="#section-15.6" class="auto internal xref">15.6</a>.  <a href="#name-attester-trust-via-dynamic-" class="internal xref">Attester Trust via Dynamic Registration</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7">
-                <p id="section-toc.1-1.15.2.7.1"><a href="#section-15.7" class="auto internal xref">15.7</a>.  <a href="#name-privacy" class="internal xref">Privacy</a></p>
+                <p id="section-toc.1-1.15.2.7.1"><a href="#section-15.7" class="auto internal xref">15.7</a>.  <a href="#name-local-instance-keys-and-evi" class="internal xref">Local Instance Keys and Evidence Minting</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.8">
-                <p id="section-toc.1-1.15.2.8.1"><a href="#section-15.8" class="auto internal xref">15.8</a>.  <a href="#name-scope-of-protection" class="internal xref">Scope of Protection</a></p>
+                <p id="section-toc.1-1.15.2.8.1"><a href="#section-15.8" class="auto internal xref">15.8</a>.  <a href="#name-privacy" class="internal xref">Privacy</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.9">
+                <p id="section-toc.1-1.15.2.9.1"><a href="#section-15.9" class="auto internal xref">15.9</a>.  <a href="#name-scope-of-protection" class="internal xref">Scope of Protection</a></p>
 </li>
             </ul>
 </li>
@@ -1586,7 +1589,10 @@ the agent instance, such as confidential-computing or
 trusted-execution attestation results. This document defines one
 member: <code>eat</code> (<span class="bcp14">OPTIONAL</span>), containing an Entity Attestation Token
 (<span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>), carried as the JWT compact serialization when the
-EAT is in JWT form or base64url-encoded when in CWT form. Additional
+EAT is in JWT form or base64url-encoded when in CWT form. The two
+forms are distinguishable by structure: a JWT compact
+serialization contains period separators, while a
+base64url-encoded CWT does not. Additional
 members <span class="bcp14">MAY</span> be defined by deployments or companion profiles;
 unknown members <span class="bcp14">MUST</span> be ignored. <code>agent_runtime</code> is consumed by
 the AS for policy and is not surfaced to resource servers by
@@ -1653,7 +1659,7 @@ established through the client's registered metadata
 it to a client that has not agreed to receive instance
 representation in its tokens.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">This carrier is available on the grants covered by
-<span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s access-token classification (authorization_code,
+<span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s access-token classification (<code>authorization_code</code>,
 <code>client_credentials</code>, <code>refresh_token</code>, JWT bearer, and
 token-exchange); grants outside that classification are refused
 per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>. Because this carrier presents no request
@@ -1717,10 +1723,22 @@ per <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>, applicable 
 <code>ai_agent_instance_profile</code> (client metadata):</dt>
         <dd style="margin-left: 1.5em" id="section-6-2.2">
           <p id="section-6-2.2.1"><span class="bcp14">OPTIONAL</span>. Boolean, default <code>false</code>. When <code>true</code>, the client is
-registered for this profile: the AS <span class="bcp14">MUST</span> require
-<code>agent_instance_id</code> in the client's Agent Instance Evidence
-(<a href="#agent-claims" class="auto internal xref">Section 4</a>), <span class="bcp14">MUST</span> apply the surfacing rules of
-<a href="#surfacing" class="auto internal xref">Section 8</a>, and, when the Client Attestation carrier is used,
+registered for this profile. The AS <span class="bcp14">MUST</span> require Agent Instance
+Evidence on every token request from the client on the grants
+covered by <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s access-token classification, except
+<code>refresh_token</code> requests, which follow <a href="#refresh" class="auto internal xref">Section 10</a>; a covered
+request presenting no evidence <span class="bcp14">MUST</span> be rejected (<a href="#errors" class="auto internal xref">Section 13</a>).
+Without this requirement, an instance could omit evidence and
+obtain tokens indistinguishable from an ordinary client's,
+silently escaping the attribution this profile provides. The
+client's registration or AS policy <span class="bcp14">MAY</span> exempt designated grant
+types whose requests are not made by agent instances (for
+example, <code>client_credentials</code> used by the platform's control
+plane); exempted requests are processed as ordinary OAuth
+requests and receive no instance representation. The AS <span class="bcp14">MUST</span>
+require <code>agent_instance_id</code> in the client's Agent Instance
+Evidence (<a href="#agent-claims" class="auto internal xref">Section 4</a>) and <span class="bcp14">MUST</span> apply the surfacing rules
+of <a href="#surfacing" class="auto internal xref">Section 8</a>; when the Client Attestation carrier is used,
 this registration constitutes the client's agreement required by
 <a href="#carrier-attest" class="auto internal xref">Section 5.2</a>. Deployments without access to
 this parameter <span class="bcp14">MAY</span> establish the same registration by
@@ -1733,8 +1751,9 @@ out-of-band agreement.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
           <p id="section-6-2.4.1"><span class="bcp14">OPTIONAL</span>. Boolean. Indicates that the AS supports this profile:
 validating agent instance claims, deriving the instance subject
 per <a href="#subject" class="auto internal xref">Section 7</a>, and surfacing per <a href="#surfacing" class="auto internal xref">Section 8</a>. An AS
-implementing this profile <span class="bcp14">MUST</span> publish this parameter set to
-<code>true</code>. Clients <span class="bcp14">SHOULD</span> verify it before depending on agent
+implementing this profile <span class="bcp14">MUST</span> include this parameter, set to
+<code>true</code>, in any authorization server metadata it publishes.
+Clients <span class="bcp14">SHOULD</span> verify it before depending on agent
 instance surfacing, since an AS without support may process the
 underlying carrier without applying this profile's
 representation.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
@@ -1802,7 +1821,7 @@ values <span class="bcp14">MAY</span> additionally be included.<a href="#section
         <li class="normal" id="section-8-3.2">
           <p id="section-8-3.2.1">The AS <span class="bcp14">MAY</span> surface <code>agent_platform</code> and <code>agent_model</code> subject to
 local policy and the privacy considerations of
-<a href="#security-privacy" class="auto internal xref">Section 15.7</a>. Surfaced provenance claims appear within
+<a href="#security-privacy" class="auto internal xref">Section 15.8</a>. Surfaced provenance claims appear within
 the <code>act</code> object in delegation cases (they describe the actor)
 and at top level in self-acting cases (the instance is the
 subject). An AS <span class="bcp14">MUST NOT</span> surface provenance claims that were not
@@ -1863,10 +1882,11 @@ no additional cross-domain rules.<a href="#section-9-4" class="pilcrow">¶</a></
 <p id="section-10-1">Refresh-token handling follows <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>, with the derived
 instance subject, the Agent Attester, and any surfaced provenance
 claims recorded as originating instance state. Fresh Agent
-Instance Evidence presented on refresh <span class="bcp14">MUST</span> carry the same
-<code>agent_instance_id</code> recorded at original issuance; the AS <span class="bcp14">MUST</span>
-reject a refresh presenting evidence for a different instance with
-<code>invalid_grant</code>. A refresh processed without fresh evidence
+Instance Evidence presented on refresh <span class="bcp14">MUST</span> be issued by the same
+Agent Attester and carry the same <code>agent_instance_id</code> recorded at
+original issuance; the AS <span class="bcp14">MUST</span> reject a refresh presenting
+evidence from a different Attester or for a different instance
+with <code>invalid_grant</code>. A refresh processed without fresh evidence
 re-surfaces the provenance recorded at original issuance; see
 <a href="#security-freshness" class="auto internal xref">Section 15.1</a> for the staleness this implies across
 refresh chains.<a href="#section-10-1" class="pilcrow">¶</a></p>
@@ -1929,9 +1949,9 @@ hardware-rooted or independent attestation.<a href="#section-11-3" class="pilcro
 <p id="section-12-1">Agent instances do not necessarily run on platform
 infrastructure: command-line and desktop agents execute on
 end-user machines, typically as public clients (<span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>) using
-the authorization_code grant with PKCE and without a client-level
-credential. This profile applies to such deployments with the
-following pattern:<a href="#section-12-1" class="pilcrow">¶</a></p>
+the <code>authorization_code</code> grant with PKCE (<span>[<a href="#RFC7636" class="cite xref">RFC7636</a>]</span>) and without
+a client-level credential. This profile applies to such
+deployments with the following pattern:<a href="#section-12-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-12-2.1">
           <p id="section-12-2.1.1">The local agent instance generates its per-instance
@@ -1981,26 +2001,32 @@ when, per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>, the
 credential):<a href="#section-13-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-13-2.1">
-          <p id="section-13-2.1.1">the Agent Instance Evidence omits <code>agent_instance_id</code> and the
-client is registered for this profile (<a href="#metadata" class="auto internal xref">Section 6</a>);<a href="#section-13-2.1.1" class="pilcrow">¶</a></p>
+          <p id="section-13-2.1.1">a token request on a covered grant other than <code>refresh_token</code>
+presents no Agent Instance Evidence, and neither the client's
+registration nor AS policy exempts the grant type
+(<a href="#metadata" class="auto internal xref">Section 6</a>);<a href="#section-13-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-13-2.2">
-          <p id="section-13-2.2.1">an object-valued agent claim is malformed
-(<a href="#agent-claims" class="auto internal xref">Section 4</a>);<a href="#section-13-2.2.1" class="pilcrow">¶</a></p>
+          <p id="section-13-2.2.1">the Agent Instance Evidence omits <code>agent_instance_id</code> and the
+client is registered for this profile (<a href="#metadata" class="auto internal xref">Section 6</a>);<a href="#section-13-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-13-2.3">
-          <p id="section-13-2.3.1">on the Client Instance Assertion carrier, the assertion's <code>sub</code>
-does not equal <code>agent_instance_id</code> (<a href="#carrier-cia" class="auto internal xref">Section 5.1</a>);<a href="#section-13-2.3.1" class="pilcrow">¶</a></p>
+          <p id="section-13-2.3.1">an object-valued agent claim is malformed
+(<a href="#agent-claims" class="auto internal xref">Section 4</a>);<a href="#section-13-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-13-2.4">
-          <p id="section-13-2.4.1">under carrier precedence, the binding keys or
-<code>agent_instance_id</code> values of the two artifacts do not match
-(<a href="#carrier-precedence" class="auto internal xref">Section 5.3</a>);<a href="#section-13-2.4.1" class="pilcrow">¶</a></p>
+          <p id="section-13-2.4.1">on the Client Instance Assertion carrier, the assertion's <code>sub</code>
+does not equal <code>agent_instance_id</code> (<a href="#carrier-cia" class="auto internal xref">Section 5.1</a>);<a href="#section-13-2.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-13-2.5">
-          <p id="section-13-2.5.1">on refresh, presented evidence carries a different
-<code>agent_instance_id</code> than recorded at original issuance
-(<a href="#refresh" class="auto internal xref">Section 10</a>).<a href="#section-13-2.5.1" class="pilcrow">¶</a></p>
+          <p id="section-13-2.5.1">under carrier precedence, the binding keys or
+<code>agent_instance_id</code> values of the two artifacts do not match
+(<a href="#carrier-precedence" class="auto internal xref">Section 5.3</a>);<a href="#section-13-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-13-2.6">
+          <p id="section-13-2.6.1">on refresh, presented evidence is issued by a different Agent
+Attester or carries a different <code>agent_instance_id</code> than
+recorded at original issuance (<a href="#refresh" class="auto internal xref">Section 10</a>).<a href="#section-13-2.6.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -2011,7 +2037,8 @@ does not equal <code>agent_instance_id</code> (<a href="#carrier-cia" class="aut
 <a href="#section-14" class="section-number selfRef">14. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
       </h2>
 <p id="section-14-1">An AS conforms to this profile by supporting at least one evidence
-carrier (<a href="#carriers" class="auto internal xref">Section 5</a>); validating the agent instance claims per
+carrier (<a href="#carriers" class="auto internal xref">Section 5</a>); requiring evidence from registered clients
+per <a href="#metadata" class="auto internal xref">Section 6</a>; validating the agent instance claims per
 <a href="#agent-claims" class="auto internal xref">Section 4</a>; deriving the instance subject per <a href="#subject" class="auto internal xref">Section 7</a>;
 surfacing per <a href="#surfacing" class="auto internal xref">Section 8</a>, including the <code>ai_agent</code> and
 <code>client_instance</code> values in the surfaced <code>sub_profile</code>; applying
@@ -2170,58 +2197,85 @@ nothing against other clients (the Attester attests only that
 client's instances), but the AS is nonetheless accepting a trust
 root and a token-shape obligation from an unvetted source.<a href="#section-15.6-1" class="pilcrow">¶</a></p>
 <p id="section-15.6-2">An AS accepting dynamic registration <span class="bcp14">SHOULD NOT</span> honor
-<code>instance_issuers</code> entries or the <code>ai_agent_instance_profile</code>
-flag from unauthenticated registrations unless the listed Agent
-Attester is validated against AS policy, for example an AS-side
-allowlist of recognized platform Attesters, or a signed software
-statement (<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>) from an authority the AS trusts.
-AS-operated allowlists of well-known agent platform Attesters are
-the expected deployment pattern for resource ecosystems serving
-dynamically registered agent clients.<a href="#section-15.6-2" class="pilcrow">¶</a></p>
+<code>instance_issuers</code> entries from unauthenticated registrations
+unless each listed Agent Attester is validated against AS policy,
+for example an AS-side allowlist of recognized platform Attesters,
+or a signed software statement (<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>) from an authority the
+AS trusts. The <code>ai_agent_instance_profile</code> flag on a registration
+listing no <code>instance_issuers</code> implicates the Client Attestation
+carrier, whose Attester trust is AS-configured
+(<a href="#carrier-attest" class="auto internal xref">Section 5.2</a>); honoring the flag there accepts a
+token-shape obligation but no new trust root. AS-operated
+allowlists of well-known agent platform Attesters are the expected
+deployment pattern for resource ecosystems serving dynamically
+registered agent clients.<a href="#section-15.6-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-local-keys">
+<section id="section-15.7">
+        <h3 id="name-local-instance-keys-and-evi">
+<a href="#section-15.7" class="section-number selfRef">15.7. </a><a href="#name-local-instance-keys-and-evi" class="section-name selfRef">Local Instance Keys and Evidence Minting</a>
+        </h3>
+<p id="section-15.7-1">For locally executing instances (<a href="#local-agents" class="auto internal xref">Section 12</a>), the instance
+binding key is held on an end-user machine rather than on platform
+infrastructure. A process that extracts the key and current
+evidence can act as the instance until they expire. Local
+instances <span class="bcp14">SHOULD</span> generate and hold binding keys in a platform
+keystore or hardware-backed key store where the host provides one,
+and Attesters <span class="bcp14">SHOULD</span> issue short-lived evidence to locally
+executing instances.<a href="#section-15.7-1" class="pilcrow">¶</a></p>
+<p id="section-15.7-2">The Attester's evidence-minting interface is part of the identity
+boundary: whoever can authenticate to it obtains evidence binding
+a key they control, so possession of a user's platform credentials
+suffices to mint agent instances attributed to that account.
+Attesters <span class="bcp14">SHOULD</span> bind evidence minting to the authenticated
+session through which the instance was established, <span class="bcp14">SHOULD</span> audit
+minting events with the same rigor as token issuance, and <span class="bcp14">SHOULD</span>
+rate-limit minting per account.<a href="#section-15.7-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-privacy">
-<section id="section-15.7">
+<section id="section-15.8">
         <h3 id="name-privacy">
-<a href="#section-15.7" class="section-number selfRef">15.7. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
+<a href="#section-15.8" class="section-number selfRef">15.8. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
         </h3>
-<p id="section-15.7-1">Agent provenance claims reveal implementation details
+<p id="section-15.8-1">Agent provenance claims reveal implementation details
 (orchestrator, model identity and version, and indirectly the
 platform's upgrade cadence) to every resource server that
 receives them. Surfacing is therefore selective (<a href="#surfacing" class="auto internal xref">Section 8</a>):
 the AS surfaces only what local policy requires, and
-<code>agent_runtime</code> evidence is never surfaced verbatim.<a href="#section-15.7-1" class="pilcrow">¶</a></p>
-<p id="section-15.7-2"><code>agent_instance_id</code> is a per-instance identifier linkable across
+<code>agent_runtime</code> evidence is never surfaced verbatim.<a href="#section-15.8-1" class="pilcrow">¶</a></p>
+<p id="section-15.8-2"><code>agent_instance_id</code> is a per-instance identifier linkable across
 every request the instance makes for its lifetime. Platforms
 <span class="bcp14">SHOULD</span> scope instance lifetimes to the task or session they
 represent; long-lived instances accumulate long linkable
 histories at every resource server they touch. Where instances
 act on behalf of users, the identifier's granularity <span class="bcp14">SHOULD NOT</span> be
 chosen such that it becomes a stable pseudonym for the user across
-contexts the user would consider separate.<a href="#section-15.7-2" class="pilcrow">¶</a></p>
+contexts the user would consider separate.<a href="#section-15.8-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-scope">
-<section id="section-15.8">
+<section id="section-15.9">
         <h3 id="name-scope-of-protection">
-<a href="#section-15.8" class="section-number selfRef">15.8. </a><a href="#name-scope-of-protection" class="section-name selfRef">Scope of Protection</a>
+<a href="#section-15.9" class="section-number selfRef">15.9. </a><a href="#name-scope-of-protection" class="section-name selfRef">Scope of Protection</a>
         </h3>
-<p id="section-15.8-1">Instance identity supports attribution, per-agent policy, and
+<p id="section-15.9-1">Instance identity supports attribution, per-agent policy, and
 containment; it does not constrain what a compromised or
 prompt-injected agent does within the scope it was granted. An
 attested chain records which instance acted; it does not make
 the action safe. Least-privilege composition (scope design,
 <span>[<a href="#RFC9396" class="cite xref">RFC9396</a>]</span> authorization details, per-exchange attenuation as in
 <a href="#chains" class="auto internal xref">Section 9</a>) remains the containment mechanism; this profile makes
-its enforcement and audit per-agent rather than per-platform.<a href="#section-15.8-1" class="pilcrow">¶</a></p>
-<p id="section-15.8-2">Similarly, the <code>ai_agent</code> classification is a policy-routing
+its enforcement and audit per-agent rather than per-platform.<a href="#section-15.9-1" class="pilcrow">¶</a></p>
+<p id="section-15.9-2">Similarly, the <code>ai_agent</code> classification is a policy-routing
 signal whose membership is determined by the Agent Attester; this
 profile defines no test for what constitutes an agent, and the
 boundary (autonomous agent versus script versus assistive tool) is
 inherently a judgment of the attesting party. Resource servers
 <span class="bcp14">MUST NOT</span> derive security guarantees from the classification
 itself, as distinct from the attested identity and provenance
-that accompany it.<a href="#section-15.8-2" class="pilcrow">¶</a></p>
+that accompany it.<a href="#section-15.9-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2433,21 +2487,21 @@ by <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>.<a href="#sec
 Entity Profiles" registry established by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>. This
 registration is contingent on the establishment of that registry.<a href="#section-16.4-1" class="pilcrow">¶</a></p>
 <span class="break"></span><dl class="dlParallel" id="section-16.4-2">
-          <dt id="section-16.4-2.1">Profile Name:</dt>
+          <dt id="section-16.4-2.1">Entity Profile Name:</dt>
           <dd style="margin-left: 1.5em" id="section-16.4-2.2">
             <p id="section-16.4-2.2.1"><code>ai_agent</code><a href="#section-16.4-2.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-16.4-2.3">Profile Description:</dt>
+<dt id="section-16.4-2.3">Entity Profile Description:</dt>
           <dd style="margin-left: 1.5em" id="section-16.4-2.4">
             <p id="section-16.4-2.4.1">An AI agent instance: an autonomous or semi-autonomous software
 actor, typically driven by a machine-learning model, acting as a
 concrete runtime instance of an OAuth client.<a href="#section-16.4-2.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-16.4-2.5">Profile Usage Location:</dt>
+<dt id="section-16.4-2.5">Usage Location:</dt>
           <dd style="margin-left: 1.5em" id="section-16.4-2.6">
-            <p id="section-16.4-2.6.1">Actor Profile<a href="#section-16.4-2.6.1" class="pilcrow">¶</a></p>
+            <p id="section-16.4-2.6.1">"Subject Profile", "Actor Profile"<a href="#section-16.4-2.6.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
 <dt id="section-16.4-2.7">Change Controller:</dt>
@@ -2455,7 +2509,7 @@ concrete runtime instance of an OAuth client.<a href="#section-16.4-2.4.1" class
             <p id="section-16.4-2.8.1">IETF<a href="#section-16.4-2.8.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-16.4-2.9">Specification Document(s):</dt>
+<dt id="section-16.4-2.9">Specification Document:</dt>
           <dd style="margin-left: 1.5em" id="section-16.4-2.10">
             <p id="section-16.4-2.10.1">This document<a href="#section-16.4-2.10.1" class="pilcrow">¶</a></p>
 </dd>
@@ -2533,6 +2587,10 @@ concrete runtime instance of an OAuth client.<a href="#section-16.4-2.4.1" class
 <a href="#section-17.2" class="section-number selfRef">17.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="RFC7636">[RFC7636]</dt>
+        <dd>
+<span class="refAuthor">Sakimura, N., Ed.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Agarwal</span>, <span class="refTitle">"Proof Key for Code Exchange by OAuth Public Clients"</span>, <span class="seriesInfo">RFC 7636</span>, <span class="seriesInfo">DOI 10.17487/RFC7636</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7636">https://www.rfc-editor.org/rfc/rfc7636</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC9396">[RFC9396]</dt>
         <dd>
 <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Richer, J.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"OAuth 2.0 Rich Authorization Requests"</span>, <span class="seriesInfo">RFC 9396</span>, <span class="seriesInfo">DOI 10.17487/RFC9396</span>, <time datetime="2023-05" class="refDate">May 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9396">https://www.rfc-editor.org/rfc/rfc9396</a>&gt;</span>. </dd>
@@ -2715,7 +2773,8 @@ as a trusted instance issuer per <span>[<a href="#CIA-CORE" class="cite xref">CI
 <a href="#name-delegation-and-instance-spa" class="section-name selfRef">Delegation and Instance Spawn</a>
         </h3>
 <p id="appendix-B.1-1">Alice authorizes the assistant through a standard
-authorization_code flow with PKCE; her consent covers the client as
+<code>authorization_code</code> flow with PKCE (<span>[<a href="#RFC7636" class="cite xref">RFC7636</a>]</span>); her consent
+covers the client as
 a whole, per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s authorization-time consistency rules.
 To handle her request, the platform's control plane spawns agent
 instance <code>sess-9f2c</code>, provisions it a per-instance DPoP key, and,
