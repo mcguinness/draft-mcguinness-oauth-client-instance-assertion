@@ -34,15 +34,18 @@ author:
 normative:
   RFC6749:
   RFC7519:
+  RFC7591:
+  RFC8414:
   RFC8693:
   RFC9449:
+  RFC9711:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
   CIA-CORE: I-D.mcguinness-oauth-client-instance-assertion
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
 
 informative:
   RFC9396:
-  RFC9711:
+  TXN-TOKENS: I-D.ietf-oauth-transaction-tokens
   MCP:
     title: "Model Context Protocol Specification"
     target: https://modelcontextprotocol.io/specification/
@@ -71,9 +74,9 @@ Attestation-Based Client Authentication.
 AI agent platforms are OAuth clients. A platform registers a single
 `client_id` and then runs many concurrent agent instances under it:
 one per user session, task, or delegated workflow. Resource servers
-receiving access tokens from these platforms -- including Model
-Context Protocol servers ({{MCP}}), which use OAuth for
-authorization -- see only the platform's `client_id`. Every agent
+receiving access tokens from these platforms see only the
+platform's `client_id`; this includes Model Context Protocol
+servers ({{MCP}}), which use OAuth for authorization. Every agent
 session collapses into one identity, defeating per-agent
 authorization, audit attribution, incident response, and abuse
 containment.
@@ -92,8 +95,8 @@ instance identifier:
 
 * **A stable, attester-minted agent instance identifier**
   ({{agent-claims}}). The instance subject is an identifier the
-  agent attester mints for the agent session -- not a key
-  thumbprint -- so it survives key rotation and names something an
+  agent attester mints for the agent session rather than a key
+  thumbprint, so it survives key rotation and names something an
   audit record can act on.
 * **Attested agent provenance** ({{agent-claims}}): optional claims
   conveying the agent platform, the model an agent instance runs,
@@ -152,9 +155,9 @@ Agent Attester:
   distinct party (see {{trust}}).
 
 Agent Instance Evidence:
-: The carrier artifact -- a Client Instance Assertion or a Client
-  Attestation with its proof of possession -- conveying the agent
-  instance claims of {{agent-claims}} to the AS.
+: The carrier artifact conveying the agent instance claims of
+  {{agent-claims}} to the AS: either a Client Instance Assertion,
+  or a Client Attestation with its proof of possession.
 
 # Relationship to Other Specifications {#relationships}
 
@@ -169,9 +172,18 @@ validation, including DPoP combined mode ({{RFC9449}}).
 Delegation-chain construction follows the `act` semantics of
 {{RFC8693}} as profiled by {{CIA-CORE}}.
 
-Runtime-environment evidence semantics are aligned with the Entity
-Attestation Token ({{RFC9711}}) where applicable; this profile does
-not define an evidence format of its own.
+Runtime-environment evidence is conveyed using the Entity
+Attestation Token ({{RFC9711}}) via the `agent_runtime` claim
+({{agent-claims}}); this profile does not define an evidence
+format of its own.
+
+Transaction Tokens ({{TXN-TOKENS}}) address propagation of
+immutable context across workloads within a trust domain after
+initial authorization; this profile addresses agent instance
+identity at initial token issuance. The two are complementary: a
+deployment may derive transaction tokens from access tokens issued
+under this profile, carrying the agent instance identity into the
+transaction context.
 
 Agent identity is an active topic in multiple communities. This
 profile deliberately limits itself to two things: conveying
@@ -179,7 +191,7 @@ attested agent instance identity and provenance to the OAuth token
 endpoint, and representing that identity in issued access tokens.
 It does not define agent-to-agent authentication protocols, agent
 discovery, capability or tool description, or model governance,
-and is designed to compose with -- rather than compete with --
+and is designed to compose with, rather than compete with,
 specifications that do. In particular, fine-grained permission
 description composes via Rich Authorization Requests
 ({{RFC9396}}), and hardware-rooted runtime evidence composes via
@@ -197,8 +209,10 @@ profile of this document defines their processing.
 `agent_instance_id` (REQUIRED):
 : A StringOrURI ({{RFC7519}}) identifying this agent instance,
   minted by the Agent Attester. The value MUST be unique among all
-  instances attested by this Attester for this OAuth client and
-  MUST be stable for the lifetime of the agent instance. The value
+  instances attested by this Attester (across every OAuth client
+  the Attester serves, so that resource servers evaluating the
+  identifier need not qualify it by `client_id`) and MUST be
+  stable for the lifetime of the agent instance. The value
   MUST NOT be derived from a proof-of-possession key: keys are
   binding material, not identity ({{subject}}). The Attester MUST
   NOT reassign an active or audit-relevant value to a different
@@ -216,33 +230,39 @@ profile of this document defines their processing.
   conveyed by `client_id`.
 
 `agent_model` (OPTIONAL):
-: A JSON object describing the primary model the agent instance is
-  operating with. The object contains an `id` member (REQUIRED, a
-  StringOrURI model identifier) and MAY contain a `version` member
-  (a string). The attested model is fixed per evidence issuance:
-  when the model serving an instance changes, previously issued
-  evidence no longer describes the instance and the Attester MUST
-  issue fresh evidence before the instance obtains further tokens
-  under this profile ({{security-freshness}}). A registry of model
-  identifiers is out of scope; `agent_model.id` interoperability is
-  an agreement between the Attester and the resource servers that
-  consume it.
+: A JSON object characterizing the primary model configured for
+  the agent instance, as determined by the Agent Attester at
+  evidence issuance. The object contains an `id` member (REQUIRED,
+  a StringOrURI model identifier) and MAY contain a `version`
+  member (a string). The claim describes the instance's
+  configuration, not each individual operation: an agent instance
+  may route individual operations to other models (for example,
+  routing, fallback, or auxiliary models) without invalidating the
+  claim. A change to the primary configured model, however, means
+  previously issued evidence no longer describes the instance, and
+  the Attester MUST issue fresh evidence before the instance
+  obtains further tokens under this profile
+  ({{security-freshness}}). A registry of model identifiers is out
+  of scope; `agent_model.id` interoperability is an agreement
+  between the Attester and the resource servers that consume it.
 
 `agent_runtime` (OPTIONAL):
 : A JSON object conveying evidence about the runtime environment of
   the agent instance, such as confidential-computing or
-  trusted-execution attestation results. This document does not
-  define members of this object; deployments or companion profiles
-  define them, and where the evidence originates from an Entity
-  Attestation Token, member semantics SHOULD follow {{RFC9711}}.
-  `agent_runtime` is consumed by the AS for policy and is not
-  surfaced to resource servers by default ({{surfacing}}).
+  trusted-execution attestation results. This document defines one
+  member: `eat` (OPTIONAL), containing an Entity Attestation Token
+  ({{RFC9711}}), carried as the JWT compact serialization when the
+  EAT is in JWT form or base64url-encoded when in CWT form. Additional
+  members MAY be defined by deployments or companion profiles;
+  unknown members MUST be ignored. `agent_runtime` is consumed by
+  the AS for policy and is not surfaced to resource servers by
+  default ({{surfacing}}).
 
 An AS that receives Agent Instance Evidence for a client
-registered for this profile MUST reject evidence that omits
-`agent_instance_id` ({{errors}}). Evidence whose object-valued
-claims are malformed (for example, `agent_model` without an `id`
-member) MUST be rejected the same way.
+registered for this profile ({{metadata}}) MUST reject evidence
+that omits `agent_instance_id` ({{errors}}). Evidence whose
+object-valued claims are malformed (for example, `agent_model`
+without an `id` member) MUST be rejected the same way.
 
 # Evidence Carriers {#carriers}
 
@@ -286,22 +306,42 @@ comes exclusively from the `agent_instance_id` claim.
 
 Applying this carrier changes the shape of the client's issued
 access tokens. Whether the AS applies it for a given client is
-policy established at registration time or by out-of-band
-agreement; an AS MUST NOT apply it to a client that has not agreed
-to receive instance representation in its tokens.
+established through the client's registered metadata
+({{metadata}}) or by out-of-band agreement; an AS MUST NOT apply
+it to a client that has not agreed to receive instance
+representation in its tokens.
+
+This carrier is available on the grants covered by
+{{CIA-CORE}}'s access-token classification (authorization_code,
+`client_credentials`, `refresh_token`, JWT bearer, and
+token-exchange); grants outside that classification are refused
+per {{CIA-CORE}}. Because this carrier presents no request
+parameter, its activation (per the client's profile registration)
+substitutes for {{CIA-CORE}}'s parameter-presence trigger: on
+token-exchange in particular, it applies even when no
+`actor_token` is present.
 
 The {{CIA-CORE}} validation steps that depend on a presented
-assertion -- descriptor lookup, signature verification, claim
-validation, `client_id` binding, and replay checking -- are
-satisfied on this carrier by the completed {{ATTEST-CLIENT-AUTH}}
-validation together with the claim requirements of
-{{agent-claims}}. Replay protection is provided by
+assertion (token-type matching, descriptor lookup, signature
+verification, claim validation, `client_id` binding, and replay
+checking) are satisfied on this carrier by the completed
+{{ATTEST-CLIENT-AUTH}} validation together with the claim
+requirements of {{agent-claims}}. Replay protection is provided by
 {{ATTEST-CLIENT-AUTH}} validation, including the DPoP proof
 freshness rules of {{RFC9449}}; {{CIA-CORE}}'s `(iss, jti)`
 replay cache does not apply because no Client Instance Assertion
 is presented. Trust for this carrier is the AS-to-Attester trust
 of {{ATTEST-CLIENT-AUTH}}; {{CIA-CORE}}'s `instance_issuers`
 metadata is not consulted.
+
+For delegation cases on this carrier, the AS MUST set `act.iss` to
+the issuer identifier of the validated Client Attestation JWT. For
+self-acting cases, the Attester issuer is not represented as a
+standard access-token claim; the AS MUST retain it with token
+state for revocation, introspection, audit, and issuer-aware
+resource-server policy; in particular, per-instance revocation
+keyed on the issuer-and-subject pair per {{CIA-CORE}} depends on
+it.
 
 ## Carrier Precedence {#carrier-precedence}
 
@@ -317,6 +357,34 @@ reject the request with `invalid_grant`. If both artifacts carry
 `agent_instance_id`, the values MUST be equal; the AS MUST reject
 the request with `invalid_grant` otherwise.
 
+# Client and Authorization Server Metadata {#metadata}
+
+This document defines one client metadata parameter (registered
+per {{RFC7591}}, applicable to any registration model supported by
+{{CIA-CORE}}) and one authorization server metadata parameter
+(registered per {{RFC8414}}):
+
+`ai_agent_instance_profile` (client metadata):
+: OPTIONAL. Boolean, default `false`. When `true`, the client is
+  registered for this profile: the AS MUST require
+  `agent_instance_id` in the client's Agent Instance Evidence
+  ({{agent-claims}}), MUST apply the surfacing rules of
+  {{surfacing}}, and, when the Client Attestation carrier is used,
+  this registration constitutes the client's agreement required by
+  {{carrier-attest}}. Deployments without access to
+  this parameter MAY establish the same registration by
+  out-of-band agreement.
+
+`ai_agent_instance_profile_supported` (AS metadata):
+: OPTIONAL. Boolean. Indicates that the AS supports this profile:
+  validating agent instance claims, deriving the instance subject
+  per {{subject}}, and surfacing per {{surfacing}}. An AS
+  implementing this profile MUST publish this parameter set to
+  `true`. Clients SHOULD verify it before depending on agent
+  instance surfacing, since an AS without support may process the
+  underlying carrier without applying this profile's
+  representation.
+
 # Instance Subject Derivation {#subject}
 
 The instance subject used for access-token surfacing is the
@@ -330,7 +398,7 @@ access token's `cnf` confirmation claim directly.
 Because the subject is Attester-minted and key-independent:
 
 * the identity is stable across DPoP or binding-key rotation
-  within an instance's lifetime -- access tokens obtained with a
+  within an instance's lifetime: access tokens obtained with a
   rotated key carry the same instance subject, so resource-server
   policy state and audit trails keyed on the subject survive
   rotation ({{refresh}} covers the refresh-token interaction);
@@ -389,6 +457,13 @@ resulting `act` chain nests the spawning agent's actor entry per
 {{CIA-CORE}}'s chain merging, and scope attenuation at each
 exchange follows {{RFC8693}}.
 
+Whether a given instance is permitted to perform such an exchange
+is AS authorization policy under {{RFC8693}} and {{CIA-CORE}};
+this profile defines no separate spawn-permission mechanism.
+Because chain merging preserves the spawning agent's entry,
+spawning cannot be used to shed identity: a compromised instance
+that spawns sub-agents remains visible in every descendant chain.
+
 The property this profile targets: every actor entry the AS
 introduces into a chain corresponds to an instance that presented
 Agent Instance Evidence at the hop where it was introduced. An AS
@@ -408,11 +483,15 @@ no additional cross-domain rules.
 # Refresh Tokens {#refresh}
 
 Refresh-token handling follows {{CIA-CORE}}, with the derived
-instance subject and the Agent Attester recorded as originating
-instance state. Fresh Agent Instance Evidence presented on refresh
-MUST carry the same `agent_instance_id` recorded at original
-issuance; the AS MUST reject a refresh presenting evidence for a
-different instance with `invalid_grant`.
+instance subject, the Agent Attester, and any surfaced provenance
+claims recorded as originating instance state. Fresh Agent
+Instance Evidence presented on refresh MUST carry the same
+`agent_instance_id` recorded at original issuance; the AS MUST
+reject a refresh presenting evidence for a different instance with
+`invalid_grant`. A refresh processed without fresh evidence
+re-surfaces the provenance recorded at original issuance; see
+{{security-freshness}} for the staleness this implies across
+refresh chains.
 
 Refresh tokens remain bound to the binding key present at their
 issuance, per {{CIA-CORE}}; this profile does not relax that
@@ -421,8 +500,8 @@ after migrating between nodes) therefore cannot use a
 previously issued refresh token with the new key; it obtains new
 tokens through a fresh grant or token exchange, presenting fresh
 evidence that carries its unchanged `agent_instance_id`. The
-instance's identity -- and everything resource servers key on it
--- is unaffected by the rotation ({{subject}}).
+instance's identity, and everything resource servers key on it,
+is unaffected by the rotation ({{subject}}).
 
 # Trust Model and Assurance Tiers {#trust}
 
@@ -463,7 +542,7 @@ when, per {{CIA-CORE}}, the evidence is the client authentication
 credential):
 
 * the Agent Instance Evidence omits `agent_instance_id` and the
-  client is registered for this profile;
+  client is registered for this profile ({{metadata}});
 * an object-valued agent claim is malformed
   ({{agent-claims}});
 * on the Client Instance Assertion carrier, the assertion's `sub`
@@ -483,22 +562,24 @@ carrier ({{carriers}}); validating the agent instance claims per
 surfacing per {{surfacing}}, including the `ai_agent` and
 `client_instance` values in the surfaced `sub_profile`; applying
 the refresh rules of {{refresh}};
-and applying carrier precedence ({{carrier-precedence}}) when both
-artifacts are presented. An AS supporting the Client Instance
-Assertion carrier conforms to {{CIA-CORE}}; an AS supporting the
-Client Attestation carrier conforms to {{ATTEST-CLIENT-AUTH}} and
-to the activation-policy requirement of {{carrier-attest}}.
+applying carrier precedence ({{carrier-precedence}}) when both
+artifacts are presented; and advertising support via
+`ai_agent_instance_profile_supported` ({{metadata}}). An AS
+supporting the Client Instance Assertion carrier conforms to
+{{CIA-CORE}}; an AS supporting the Client Attestation carrier
+conforms to {{ATTEST-CLIENT-AUTH}} and to the activation-policy
+requirement of {{carrier-attest}}.
 
 An Agent Attester conforms by meeting the minting requirements of
-{{agent-claims}} -- in particular the uniqueness, stability,
-non-reassignment, and key-independence of `agent_instance_id` --
+{{agent-claims}} (in particular the uniqueness, stability,
+non-reassignment, and key-independence of `agent_instance_id`)
 and, per carrier, the obligations of a {{CIA-CORE}} instance
 issuer or an {{ATTEST-CLIENT-AUTH}} Attester.
 
-An Agent Platform (OAuth client) conforms by registering for
-exactly the carriers it uses, listing its Agent Attester per
-{{carrier-cia}} where applicable, and ensuring the Attester is
-authorized to attest its instances.
+An Agent Platform (OAuth client) conforms by registering for this
+profile ({{metadata}}) and for exactly the carriers it uses,
+listing its Agent Attester per {{carrier-cia}} where applicable,
+and ensuring the Attester is authorized to attest its instances.
 
 A resource server conforms by processing delegated and self-acting
 tokens per {{CIA-CORE}}'s resource-server rules, treating actors
@@ -525,13 +606,24 @@ are trusting the Attester's issuance discipline.
 On the Client Instance Assertion carrier, {{CIA-CORE}}'s short
 assertion lifetimes bound the drift window. On the Client
 Attestation carrier, the window is bounded by the Client
-Attestation's lifetime -- which some Attester ecosystems set to
-hours or days -- plus DPoP proof freshness; the DPoP proof
+Attestation's lifetime, which some Attester ecosystems set to
+hours or days, plus DPoP proof freshness; the DPoP proof
 establishes recent possession of the bound key, not recent
 Attester endorsement. Deployments requiring current provenance
 SHOULD use short-lived evidence and SHOULD require fresh evidence
 on refresh rather than permitting refresh from stored originating
 instance state.
+
+Surfaced provenance is additionally static for the lifetime of
+each issued access token: a token surfacing `agent_model` remains
+valid after the platform upgrades the instance's primary model,
+until the token expires. Refresh processed from stored originating
+state ({{refresh}}) extends this window across the refresh-token
+lifetime. Resource servers gating sensitive operations on
+provenance SHOULD account for the access-token TTL in their policy
+assumptions, and ASes serving such resource servers SHOULD keep
+access-token lifetimes short relative to the deployment's model
+upgrade cadence.
 
 ## Instance Identifier Lifecycle {#security-lifecycle}
 
@@ -594,9 +686,9 @@ surface SHOULD use the Client Instance Assertion carrier.
 
 ## Privacy {#security-privacy}
 
-Agent provenance claims reveal implementation details --
-orchestrator, model identity and version, indirectly the
-platform's upgrade cadence -- to every resource server that
+Agent provenance claims reveal implementation details
+(orchestrator, model identity and version, and indirectly the
+platform's upgrade cadence) to every resource server that
 receives them. Surfacing is therefore selective ({{surfacing}}):
 the AS surfaces only what local policy requires, and
 `agent_runtime` evidence is never surfaced verbatim.
@@ -615,11 +707,20 @@ contexts the user would consider separate.
 Instance identity supports attribution, per-agent policy, and
 containment; it does not constrain what a compromised or
 prompt-injected agent does within the scope it was granted. An
-attested chain records which instance acted -- it does not make
+attested chain records which instance acted; it does not make
 the action safe. Least-privilege composition (scope design,
 {{RFC9396}} authorization details, per-exchange attenuation as in
 {{chains}}) remains the containment mechanism; this profile makes
 its enforcement and audit per-agent rather than per-platform.
+
+Similarly, the `ai_agent` classification is a policy-routing
+signal whose membership is determined by the Agent Attester; this
+profile defines no test for what constitutes an agent, and the
+boundary (autonomous agent versus script versus assistive tool) is
+inherently a judgment of the attesting party. Resource servers
+MUST NOT derive security guarantees from the classification
+itself, as distinct from the attested identity and provenance
+that accompany it.
 
 # IANA Considerations {#iana}
 
@@ -686,6 +787,44 @@ Change Controller:
 Specification Document(s):
 : {{agent-claims}} of this document
 
+## OAuth Dynamic Client Registration Metadata {#iana-client-metadata}
+
+IANA is requested to register the following parameter in the
+"OAuth Dynamic Client Registration Metadata" registry established
+by {{RFC7591}}.
+
+Client Metadata Name:
+: `ai_agent_instance_profile`
+
+Client Metadata Description:
+: Boolean indicating that the client is registered for the OAuth
+  2.0 AI Agent Instance Profile
+
+Change Controller:
+: IETF
+
+Specification Document(s):
+: {{metadata}} of this document
+
+## OAuth Authorization Server Metadata {#iana-as-metadata}
+
+IANA is requested to register the following parameter in the
+"OAuth Authorization Server Metadata" registry established by
+{{RFC8414}}.
+
+Metadata Name:
+: `ai_agent_instance_profile_supported`
+
+Metadata Description:
+: Boolean indicating authorization server support for the OAuth
+  2.0 AI Agent Instance Profile
+
+Change Controller:
+: IETF
+
+Specification Document(s):
+: {{metadata}} of this document
+
 ## OAuth Entity Profile {#iana-entity-profile}
 
 IANA is requested to register the following value in the "OAuth
@@ -721,8 +860,8 @@ text.
 {:numbered="false"}
 
 Deriving the instance subject from a proof-of-possession key
-thumbprint is superficially attractive -- it requires no minting
-infrastructure -- but fails as identity. A key thumbprint carries
+thumbprint is superficially attractive, since it requires no
+minting infrastructure, but fails as identity. A key thumbprint carries
 no semantic content an audit record or policy can act on; key
 rotation silently mints a new actor, orphaning audit trails and
 resource-server policy state at exactly the moments (migration,
@@ -737,7 +876,7 @@ key-independent identifier and forbids key-derived subjects
 {:numbered="false"}
 
 The interoperable surface of this profile is the claims, the
-subject derivation, and the token surfacing -- not the transport
+subject derivation, and the token surfacing, not the transport
 that conveys the claims to the AS. Workload-style agent platforms
 already operate instance issuers and fit {{CIA-CORE}}'s assertion
 carrier; platforms in ecosystems deploying
@@ -758,6 +897,30 @@ container whose other members they ignore. The two object-valued
 claims (`agent_model`, `agent_runtime`) group members that are
 only meaningful together.
 
+## Why both `sub` and `agent_instance_id` on the assertion carrier
+{:numbered="false"}
+
+On the Client Instance Assertion carrier the assertion's `sub`
+must equal `agent_instance_id`, which is deliberately redundant.
+Carrying the claim on both carriers gives implementations a single
+code path for subject derivation regardless of carrier, and the
+equality check on the assertion carrier is a cheap integrity
+cross-check. Making the claim optional where `sub` already carries
+the value was considered and rejected as an invitation to
+carrier-conditional bugs.
+
+## Why generic `agent_*` claim names are registered now
+{:numbered="false"}
+
+Agent identity claims are being invented independently across the
+industry. Registering `agent_instance_id`, `agent_platform`,
+`agent_model`, and `agent_runtime` early is intended to converge
+that activity on one vocabulary before divergence hardens, not to
+claim the namespace for this document; the semantics here are
+deliberately minimal so that other specifications can profile
+them. Coordination with related work in other bodies is invited,
+and the names are open to revision during working group review.
+
 ## Why refresh tokens keep {{CIA-CORE}}'s key binding
 {:numbered="false"}
 
@@ -767,8 +930,8 @@ Attester-minted identity makes "same instance, new key" provable.
 It was rejected for this version: it would relax a {{CIA-CORE}}
 MUST and enlarge the refresh-token replay surface to the Attester
 trust boundary. Identity continuity across rotation is preserved
-without it -- new grants and exchanges under the unchanged
-`agent_instance_id` carry the same subject ({{refresh}}) -- at
+without it, since new grants and exchanges under the unchanged
+`agent_instance_id` carry the same subject ({{refresh}}), at
 the cost of one extra grant round-trip after a rotation.
 
 # Worked Example: Agent Calling an MCP Server {#appendix-example-mcp}
@@ -799,6 +962,7 @@ as a trusted instance issuer per {{CIA-CORE}}:
   "client_id": "https://agents.example.com/assistant",
   "jwks_uri": "https://agents.example.com/assistant/jwks.json",
   "token_endpoint_auth_method": "private_key_jwt",
+  "ai_agent_instance_profile": true,
   "instance_issuers": [
     {
       "issuer": "https://attester.agents.example.com",
@@ -816,8 +980,8 @@ Alice authorizes the assistant through a standard
 authorization_code flow with PKCE; her consent covers the client as
 a whole, per {{CIA-CORE}}'s authorization-time consistency rules.
 To handle her request, the platform's control plane spawns agent
-instance `sess-9f2c`, provisions it a per-instance DPoP key, and --
-acting as the Agent Attester -- mints a Client Instance Assertion
+instance `sess-9f2c`, provisions it a per-instance DPoP key, and,
+acting as the Agent Attester, mints a Client Instance Assertion
 carrying the claims of {{agent-claims}}:
 
 ~~~ json
@@ -901,9 +1065,13 @@ only `client_id`:
   human-in-the-loop confirmation for destructive tools).
 * Local policy requires `agent_model.version` of at least `7` for
   `issues.write`; a token surfacing an older attested model would
-  be limited to read-only tools.
+  be limited to read-only tools. (The attested model characterizes
+  the instance's primary configuration at evidence issuance, not
+  each individual operation, and is static for the token lifetime;
+  see {{agent-claims}} and {{security-freshness}} for the limits
+  of such policy.)
 * Rate limits and anomaly detection are keyed on
-  `(client_id, act.sub)` -- one runaway session is throttled
+  `(client_id, act.sub)`: one runaway session is throttled
   without affecting the platform's other agents.
 * The audit record attributes the action end to end:
   "`alice@example.com` via agent instance `sess-9f2c` (model
@@ -911,14 +1079,14 @@ only `client_id`:
 
 If `sess-9f2c` misbehaves, the MCP server reports `act.sub`; the
 platform terminates the session, and the AS applies per-instance
-revocation keyed on `(act.iss, act.sub)` per {{CIA-CORE}} --
+revocation keyed on `(act.iss, act.sub)` per {{CIA-CORE}},
 containing one agent without revoking the platform's client
 registration.
 
 ## Sub-Agent Spawn (Attested Chain)
 {:numbered="false"}
 
-The agent delegates a subtask -- summarizing a long issue thread --
+The agent delegates a subtask (summarizing a long issue thread)
 to a specialized sub-agent. The platform spawns instance
 `sess-a114` running a smaller model, with its own DPoP key and its
 own assertion (`agent_instance_id` `.../instances/sess-a114`,
