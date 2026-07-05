@@ -1061,6 +1061,21 @@ cross-check. Making the claim optional where `sub` already carries
 the value was considered and rejected as an invitation to
 carrier-conditional bugs.
 
+## Why no standardized assurance-tier claim
+{:numbered="false"}
+
+This document names three assurance tiers ({{trust}}) but does not
+register a claim conveying them, directing deployments to a
+deployment-defined claim instead ({{surfacing}}). The tiers are
+policy vocabulary between an AS and its resource servers, not
+attested facts: which tier a given Attester provides is an
+operational judgment the AS makes when it configures trust, and a
+standardized claim would present that judgment with the same
+apparent authority as the attested claims it summarizes.
+Registering a tier claim before deployments demonstrate convergent
+semantics would freeze the wrong thing; one can be added by a
+later document without disturbing anything defined here.
+
 ## Why generic `agent_*` claim names are registered now
 {:numbered="false"}
 
