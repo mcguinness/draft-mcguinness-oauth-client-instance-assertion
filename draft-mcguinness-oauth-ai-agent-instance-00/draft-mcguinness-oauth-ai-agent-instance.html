@@ -1241,7 +1241,7 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.15.2.5.1"><a href="#section-15.5" class="auto internal xref">15.5</a>.  <a href="#name-carrier-trust-asymmetry" class="internal xref">Carrier Trust Asymmetry</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.6">
-                <p id="section-toc.1-1.15.2.6.1"><a href="#section-15.6" class="auto internal xref">15.6</a>.  <a href="#name-attester-trust-via-dynamic-" class="internal xref">Attester Trust via Dynamic Registration</a></p>
+                <p id="section-toc.1-1.15.2.6.1"><a href="#section-15.6" class="auto internal xref">15.6</a>.  <a href="#name-attester-trust-from-client-" class="internal xref">Attester Trust from Client-Asserted Metadata</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.7">
                 <p id="section-toc.1-1.15.2.7.1"><a href="#section-15.7" class="auto internal xref">15.7</a>.  <a href="#name-local-instance-keys-and-evi" class="internal xref">Local Instance Keys and Evidence Minting</a></p>
@@ -2198,31 +2198,40 @@ surface <span class="bcp14">SHOULD</span> use the Client Instance Assertion carr
 </div>
 <div id="security-dcr">
 <section id="section-15.6">
-        <h3 id="name-attester-trust-via-dynamic-">
-<a href="#section-15.6" class="section-number selfRef">15.6. </a><a href="#name-attester-trust-via-dynamic-" class="section-name selfRef">Attester Trust via Dynamic Registration</a>
+        <h3 id="name-attester-trust-from-client-">
+<a href="#section-15.6" class="section-number selfRef">15.6. </a><a href="#name-attester-trust-from-client-" class="section-name selfRef">Attester Trust from Client-Asserted Metadata</a>
         </h3>
-<p id="section-15.6-1">In deployments where clients register dynamically (<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>),
-including agent applications registering with an authorization
-server discovered at run time, the <code>instance_issuers</code> list and the
-<code>ai_agent_instance_profile</code> flag arrive as registration metadata
-from a party the AS has no prior relationship with. An
-unauthenticated registrant naming an Attester it controls gains
-nothing against other clients (the Attester attests only that
-client's instances), but the AS is nonetheless accepting a trust
-root and a token-shape obligation from an unvetted source.<a href="#section-15.6-1" class="pilcrow">¶</a></p>
-<p id="section-15.6-2">An AS accepting dynamic registration <span class="bcp14">SHOULD NOT</span> honor
-<code>instance_issuers</code> entries from unauthenticated registrations
-unless each listed Agent Attester is validated against AS policy,
-for example an AS-side allowlist of recognized platform Attesters,
-or a signed software statement (<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>) from an authority the
-AS trusts. The <code>ai_agent_instance_profile</code> flag on a registration
-listing no <code>instance_issuers</code> implicates the Client Attestation
-carrier, whose Attester trust is AS-configured
+<p id="section-15.6-1">In deployments where the client's metadata originates from the
+client itself rather than from a vetted registration process,
+the <code>instance_issuers</code> list and the <code>ai_agent_instance_profile</code>
+flag arrive from a party the AS has no prior relationship with.
+This is the case for unauthenticated dynamic registration
+(<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>) and equally for clients identified by a Client ID
+Metadata Document (<span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>), where the metadata document is
+authored and hosted by the client at a URL it controls; both
+occur when agent applications register with an authorization
+server discovered at run time. An unauthenticated registrant
+naming an Attester it controls gains nothing against other
+clients (the Attester attests only that client's instances), but
+the AS is nonetheless accepting a trust root and a token-shape
+obligation from an unvetted source.<a href="#section-15.6-1" class="pilcrow">¶</a></p>
+<p id="section-15.6-2">An AS accepting client-asserted metadata <span class="bcp14">SHOULD NOT</span> honor
+<code>instance_issuers</code> entries from such a source unless each listed
+Agent Attester is validated against AS policy, for example an
+AS-side allowlist of recognized platform Attesters, or, for
+dynamic registration, a signed software statement (<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>)
+from an authority the AS trusts. Software statements do not exist
+in the <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> model; there, the allowlist applies unchanged, and
+the AS <span class="bcp14">MAY</span> additionally condition acceptance on the provenance of
+the client identifier itself, which is a URL the client
+demonstrably controls. The <code>ai_agent_instance_profile</code> flag in
+metadata listing no <code>instance_issuers</code> implicates the Client
+Attestation carrier, whose Attester trust is AS-configured
 (<a href="#carrier-attest" class="auto internal xref">Section 5.2</a>); honoring the flag there accepts a
 token-shape obligation but no new trust root. AS-operated
 allowlists of well-known agent platform Attesters are the expected
 deployment pattern for resource ecosystems serving dynamically
-registered agent clients.<a href="#section-15.6-2" class="pilcrow">¶</a></p>
+registered or <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>-identified agent clients.<a href="#section-15.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-local-keys">
@@ -2580,6 +2589,10 @@ part of that registry's initial contents.<a href="#section-16.4-1" class="pilcro
 <dt id="RFC9396">[RFC9396]</dt>
         <dd>
 <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Richer, J.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"OAuth 2.0 Rich Authorization Requests"</span>, <span class="seriesInfo">RFC 9396</span>, <span class="seriesInfo">DOI 10.17487/RFC9396</span>, <time datetime="2023-05" class="refDate">May 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9396">https://www.rfc-editor.org/rfc/rfc9396</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CIMD">[CIMD]</dt>
+        <dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-01</span>, <time datetime="2026-03-01" class="refDate">1 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-01">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-01</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="TXN-TOKENS">[TXN-TOKENS]</dt>
         <dd>
