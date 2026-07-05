@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2026-07-02T02:47:37.737526+00:00",
+  "timestamp": "2026-07-05T02:37:25.174080+00:00",
   "repo": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
   "labels": [
     {
@@ -361,6 +361,34 @@
       "mergedBy": "mcguinness",
       "mergeCommit": {
         "oid": "ccfebdf6563e108bc7752159222a122a066d049d"
+      },
+      "comments": [],
+      "reviews": []
+    },
+    {
+      "number": 12,
+      "id": "PR_kwDOSR4lzs7tbzZ5",
+      "title": "Companion review fixes: activation policy, grant scope, attestation freshness",
+      "url": "https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion/pull/12",
+      "state": "MERGED",
+      "author": "mcguinness",
+      "authorAssociation": "OWNER",
+      "assignees": [],
+      "labels": [],
+      "body": "## Summary\n\nResolves four substantive findings from the pre-submission review of the companion, plus mechanical cleanup. Net diff: +52 / \u221214.\n\n## Substantive\n\n**1. Activation policy (\u00a7attestation-instance-evidence).** The path previously activated implicitly for any ATTEST-authenticated client on a supporting AS \u2014 silently changing the client's issued-token shape (`act` claims, URN subjects). New normative text: applying the path is AS policy established at registration time or out-of-band; an AS MUST NOT apply it to a client that hasn't agreed to receive CIA-CORE's instance representation.\n\n**2. Applicable grants (\u00a7attestation-instance-evidence).** Now stated explicitly: the path covers the grants in CIA-CORE's classification table, and its activation substitutes for CIA-CORE's parameter-presence trigger (on token-exchange the path applies with no `actor_token` present \u2014 which the worked example already showed but the normative text never said).\n\n**3. \u00a7security-attestation-freshness (new).** Instance-evidence freshness under this path = Client Attestation lifetime (hours/days in some ecosystems) + DPoP proof freshness. The DPoP proof proves recent key possession, not recent Attester endorsement. Deployments needing CIA-CORE-like currency (\u22645-minute assertions) SHOULD require short-lived attestations and fresh evidence on refresh.\n\n**4. RFC 8705 \u2192 informative.** Cited once, only to say TLS-cert binding falls outside this composition. Same reference-hygiene class as the core's RFC 6755 fix.\n\n## Minor\n\n* Mapping source 1: clarified no in-band mechanism exists for client-supplied mappings (registration-time/out-of-band only).\n* CIA-CORE reference date refreshed to 2026-06 (matches the core's current date).\n* \u00a7Conformance: per-request bullets separated from the implementation-level metadata-advertising requirement.\n\n## Test plan\n\n- [x] `make html` clean for both documents\n- [x] RFC 8705 citation still resolves (now from informative)",
+      "createdAt": "2026-07-03T05:07:59Z",
+      "updatedAt": "2026-07-03T05:09:12Z",
+      "baseRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "baseRefName": "main",
+      "baseRefOid": "ccfebdf6563e108bc7752159222a122a066d049d",
+      "headRepository": "mcguinness/draft-mcguinness-oauth-client-instance-assertion",
+      "headRefName": "companion-review-fixes",
+      "headRefOid": "11073be5ba7c6d0603421e1435ba2f40c4f927a4",
+      "closedAt": "2026-07-03T05:09:08Z",
+      "mergedAt": "2026-07-03T05:09:08Z",
+      "mergedBy": "mcguinness",
+      "mergeCommit": {
+        "oid": "d054406585ccd2ee31b356a13bc21185ffabe8f5"
       },
       "comments": [],
       "reviews": []
