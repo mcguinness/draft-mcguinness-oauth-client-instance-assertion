@@ -46,6 +46,7 @@ normative:
 informative:
   RFC7636:
   RFC9396:
+  CIMD: I-D.ietf-oauth-client-id-metadata-document
   TXN-TOKENS: I-D.ietf-oauth-transaction-tokens
   ID-CHAINING: I-D.ietf-oauth-identity-chaining
   MCP:
@@ -764,31 +765,40 @@ Attester set as part of that agreement. Deployments in which the
 client requires in-band, auditable control over its attestation
 surface SHOULD use the Client Instance Assertion carrier.
 
-## Attester Trust via Dynamic Registration {#security-dcr}
+## Attester Trust from Client-Asserted Metadata {#security-dcr}
 
-In deployments where clients register dynamically ({{RFC7591}}),
-including agent applications registering with an authorization
-server discovered at run time, the `instance_issuers` list and the
-`ai_agent_instance_profile` flag arrive as registration metadata
-from a party the AS has no prior relationship with. An
-unauthenticated registrant naming an Attester it controls gains
-nothing against other clients (the Attester attests only that
-client's instances), but the AS is nonetheless accepting a trust
-root and a token-shape obligation from an unvetted source.
+In deployments where the client's metadata originates from the
+client itself rather than from a vetted registration process,
+the `instance_issuers` list and the `ai_agent_instance_profile`
+flag arrive from a party the AS has no prior relationship with.
+This is the case for unauthenticated dynamic registration
+({{RFC7591}}) and equally for clients identified by a Client ID
+Metadata Document ({{CIMD}}), where the metadata document is
+authored and hosted by the client at a URL it controls; both
+occur when agent applications register with an authorization
+server discovered at run time. An unauthenticated registrant
+naming an Attester it controls gains nothing against other
+clients (the Attester attests only that client's instances), but
+the AS is nonetheless accepting a trust root and a token-shape
+obligation from an unvetted source.
 
-An AS accepting dynamic registration SHOULD NOT honor
-`instance_issuers` entries from unauthenticated registrations
-unless each listed Agent Attester is validated against AS policy,
-for example an AS-side allowlist of recognized platform Attesters,
-or a signed software statement ({{RFC7591}}) from an authority the
-AS trusts. The `ai_agent_instance_profile` flag on a registration
-listing no `instance_issuers` implicates the Client Attestation
-carrier, whose Attester trust is AS-configured
+An AS accepting client-asserted metadata SHOULD NOT honor
+`instance_issuers` entries from such a source unless each listed
+Agent Attester is validated against AS policy, for example an
+AS-side allowlist of recognized platform Attesters, or, for
+dynamic registration, a signed software statement ({{RFC7591}})
+from an authority the AS trusts. Software statements do not exist
+in the {{CIMD}} model; there, the allowlist applies unchanged, and
+the AS MAY additionally condition acceptance on the provenance of
+the client identifier itself, which is a URL the client
+demonstrably controls. The `ai_agent_instance_profile` flag in
+metadata listing no `instance_issuers` implicates the Client
+Attestation carrier, whose Attester trust is AS-configured
 ({{carrier-attest}}); honoring the flag there accepts a
 token-shape obligation but no new trust root. AS-operated
 allowlists of well-known agent platform Attesters are the expected
 deployment pattern for resource ecosystems serving dynamically
-registered agent clients.
+registered or {{CIMD}}-identified agent clients.
 
 ## Local Instance Keys and Evidence Minting {#security-local-keys}
 
