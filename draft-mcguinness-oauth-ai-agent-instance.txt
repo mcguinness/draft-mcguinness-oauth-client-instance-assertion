@@ -101,7 +101,7 @@ Table of Contents
      15.3.  Provenance Assurance
      15.4.  Shared Trust Root on the Client Attestation Carrier
      15.5.  Carrier Trust Asymmetry
-     15.6.  Attester Trust via Dynamic Registration
+     15.6.  Attester Trust from Client-Asserted Metadata
      15.7.  Local Instance Keys and Evidence Minting
      15.8.  Privacy
      15.9.  Scope of Protection
@@ -806,30 +806,38 @@ Table of Contents
    auditable control over its attestation surface SHOULD use the Client
    Instance Assertion carrier.
 
-15.6.  Attester Trust via Dynamic Registration
+15.6.  Attester Trust from Client-Asserted Metadata
 
-   In deployments where clients register dynamically ([RFC7591]),
-   including agent applications registering with an authorization server
-   discovered at run time, the instance_issuers list and the
-   ai_agent_instance_profile flag arrive as registration metadata from a
-   party the AS has no prior relationship with.  An unauthenticated
+   In deployments where the client's metadata originates from the client
+   itself rather than from a vetted registration process, the
+   instance_issuers list and the ai_agent_instance_profile flag arrive
+   from a party the AS has no prior relationship with.  This is the case
+   for unauthenticated dynamic registration ([RFC7591]) and equally for
+   clients identified by a Client ID Metadata Document ([CIMD]), where
+   the metadata document is authored and hosted by the client at a URL
+   it controls; both occur when agent applications register with an
+   authorization server discovered at run time.  An unauthenticated
    registrant naming an Attester it controls gains nothing against other
    clients (the Attester attests only that client's instances), but the
    AS is nonetheless accepting a trust root and a token-shape obligation
    from an unvetted source.
 
-   An AS accepting dynamic registration SHOULD NOT honor
-   instance_issuers entries from unauthenticated registrations unless
-   each listed Agent Attester is validated against AS policy, for
-   example an AS-side allowlist of recognized platform Attesters, or a
-   signed software statement ([RFC7591]) from an authority the AS
-   trusts.  The ai_agent_instance_profile flag on a registration listing
-   no instance_issuers implicates the Client Attestation carrier, whose
+   An AS accepting client-asserted metadata SHOULD NOT honor
+   instance_issuers entries from such a source unless each listed Agent
+   Attester is validated against AS policy, for example an AS-side
+   allowlist of recognized platform Attesters, or, for dynamic
+   registration, a signed software statement ([RFC7591]) from an
+   authority the AS trusts.  Software statements do not exist in the
+   [CIMD] model; there, the allowlist applies unchanged, and the AS MAY
+   additionally condition acceptance on the provenance of the client
+   identifier itself, which is a URL the client demonstrably controls.
+   The ai_agent_instance_profile flag in metadata listing no
+   instance_issuers implicates the Client Attestation carrier, whose
    Attester trust is AS-configured (Section 5.2); honoring the flag
    there accepts a token-shape obligation but no new trust root.  AS-
    operated allowlists of well-known agent platform Attesters are the
    expected deployment pattern for resource ecosystems serving
-   dynamically registered agent clients.
+   dynamically registered or [CIMD]-identified agent clients.
 
 15.7.  Local Instance Keys and Evidence Minting
 
@@ -1052,6 +1060,12 @@ Table of Contents
               Rich Authorization Requests", RFC 9396,
               DOI 10.17487/RFC9396, May 2023,
               <https://www.rfc-editor.org/rfc/rfc9396>.
+
+   [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
+              Document", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-client-id-metadata-document-01, 1 March 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              client-id-metadata-document-01>.
 
    [TXN-TOKENS]
               Tulshibagwale, A., Fletcher, G., and P. Kasselman,
