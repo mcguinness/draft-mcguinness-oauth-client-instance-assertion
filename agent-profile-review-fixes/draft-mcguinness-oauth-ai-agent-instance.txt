@@ -92,28 +92,31 @@ Table of Contents
    9.  Attested Delegation Chains
    10. Refresh Tokens
    11. Trust Model and Assurance Tiers
-   12. Error Responses
-   13. Conformance
-   14. Security Considerations
-     14.1.  Attestation Freshness and Model Drift
-     14.2.  Instance Identifier Lifecycle
-     14.3.  Provenance Assurance
-     14.4.  Shared Trust Root on the Client Attestation Carrier
-     14.5.  Carrier Trust Asymmetry
-     14.6.  Privacy
-     14.7.  Scope of Protection
-   15. IANA Considerations
-     15.1.  JSON Web Token Claims Registration
-       15.1.1.  agent_instance_id
-       15.1.2.  agent_platform
-       15.1.3.  agent_model
-       15.1.4.  agent_runtime
-     15.2.  OAuth Dynamic Client Registration Metadata
-     15.3.  OAuth Authorization Server Metadata
-     15.4.  OAuth Entity Profile
-   16. References
-     16.1.  Normative References
-     16.2.  Informative References
+   12. Local and Public-Client Agent Instances
+   13. Error Responses
+   14. Conformance
+   15. Security Considerations
+     15.1.  Attestation Freshness and Model Drift
+     15.2.  Instance Identifier Lifecycle
+     15.3.  Provenance Assurance
+     15.4.  Shared Trust Root on the Client Attestation Carrier
+     15.5.  Carrier Trust Asymmetry
+     15.6.  Attester Trust via Dynamic Registration
+     15.7.  Local Instance Keys and Evidence Minting
+     15.8.  Privacy
+     15.9.  Scope of Protection
+   16. IANA Considerations
+     16.1.  JSON Web Token Claims Registration
+       16.1.1.  agent_instance_id
+       16.1.2.  agent_platform
+       16.1.3.  agent_model
+       16.1.4.  agent_runtime
+     16.2.  OAuth Dynamic Client Registration Metadata
+     16.3.  OAuth Authorization Server Metadata
+     16.4.  OAuth Entity Profile
+   17. References
+     17.1.  Normative References
+     17.2.  Informative References
    Design Rationale
      Why Attester-minted identifiers rather than key-derived subjects
      Why carrier-pluggable
@@ -246,6 +249,16 @@ Table of Contents
    profile, carrying the agent instance identity into the transaction
    context.
 
+   Identity and authorization chaining ([ID-CHAINING]) enables an
+   authorization server in one domain to issue tokens redeemable in
+   another, the pattern underlying enterprise cross-application access
+   deployments in which an enterprise identity provider brokers agent
+   access to third-party resources.  That work moves identity across
+   domains; it does not define agent claims.  The two compose naturally:
+   an authorization server applying this profile at issuance carries the
+   agent instance identity and provenance into the chained tokens it
+   brokers.
+
    Agent identity is an active topic in multiple communities.  This
    profile deliberately limits itself to two things: conveying attested
    agent instance identity and provenance to the OAuth token endpoint,
@@ -261,7 +274,7 @@ Table of Contents
 
    The following claims are conveyed in the Agent Instance Evidence by
    the Agent Attester.  Claim names are registered in the JSON Web Token
-   Claims registry (Section 15.1).  The claims are validated by the AS
+   Claims registry (Section 16.1).  The claims are validated by the AS
    as part of carrier validation (Section 5); unknown members within
    object-valued claims MUST be ignored unless a profile of this
    document defines their processing.
@@ -275,7 +288,7 @@ Table of Contents
       MUST NOT be derived from a proof-of-possession key: keys are
       binding material, not identity (Section 7).  The Attester MUST NOT
       reassign an active or audit-relevant value to a different
-      instance; see Section 14.2.  Attesters SHOULD mint URI-shaped
+      instance; see Section 15.2.  Attesters SHOULD mint URI-shaped
       values within a namespace they control (for example,
       https://attester.example.com/instances/sess-9f2c), which makes the
       minting authority evident to consumers of the identifier.
@@ -298,7 +311,7 @@ Table of Contents
       claim.  A change to the primary configured model, however, means
       previously issued evidence no longer describes the instance, and
       the Attester MUST issue fresh evidence before the instance obtains
-      further tokens under this profile (Section 14.1).  A registry of
+      further tokens under this profile (Section 15.1).  A registry of
       model identifiers is out of scope; agent_model.id interoperability
       is an agreement between the Attester and the resource servers that
       consume it.
@@ -309,14 +322,16 @@ Table of Contents
       defines one member: eat (OPTIONAL), containing an Entity
       Attestation Token ([RFC9711]), carried as the JWT compact
       serialization when the EAT is in JWT form or base64url-encoded
-      when in CWT form.  Additional members MAY be defined by
-      deployments or companion profiles; unknown members MUST be
+      when in CWT form.  The two forms are distinguishable by structure:
+      a JWT compact serialization contains period separators, while a
+      base64url-encoded CWT does not.  Additional members MAY be defined
+      by deployments or companion profiles; unknown members MUST be
       ignored. agent_runtime is consumed by the AS for policy and is not
       surfaced to resource servers by default (Section 8).
 
    An AS that receives Agent Instance Evidence for a client registered
    for this profile (Section 6) MUST reject evidence that omits
-   agent_instance_id (Section 12).  Evidence whose object-valued claims
+   agent_instance_id (Section 13).  Evidence whose object-valued claims
    are malformed (for example, agent_model without an id member) MUST be
    rejected the same way.
 
@@ -416,21 +431,33 @@ Table of Contents
 
    ai_agent_instance_profile (client metadata):  OPTIONAL.  Boolean,
       default false.  When true, the client is registered for this
-      profile: the AS MUST require agent_instance_id in the client's
-      Agent Instance Evidence (Section 4), MUST apply the surfacing
-      rules of Section 8, and, when the Client Attestation carrier is
-      used, this registration constitutes the client's agreement
-      required by Section 5.2.  Deployments without access to this
-      parameter MAY establish the same registration by out-of-band
-      agreement.
+      profile.  The AS MUST require Agent Instance Evidence on every
+      token request from the client on the grants covered by
+      [CIA-CORE]'s access-token classification, except refresh_token
+      requests, which follow Section 10; a covered request presenting no
+      evidence MUST be rejected (Section 13).  Without this requirement,
+      an instance could omit evidence and obtain tokens
+      indistinguishable from an ordinary client's, silently escaping the
+      attribution this profile provides.  The client's registration or
+      AS policy MAY exempt designated grant types whose requests are not
+      made by agent instances (for example, client_credentials used by
+      the platform's control plane); exempted requests are processed as
+      ordinary OAuth requests and receive no instance representation.
+      The AS MUST require agent_instance_id in the client's Agent
+      Instance Evidence (Section 4) and MUST apply the surfacing rules
+      of Section 8; when the Client Attestation carrier is used, this
+      registration constitutes the client's agreement required by
+      Section 5.2.  Deployments without access to this parameter MAY
+      establish the same registration by out-of-band agreement.
 
    ai_agent_instance_profile_supported (AS metadata):  OPTIONAL.
       Boolean.  Indicates that the AS supports this profile: validating
       agent instance claims, deriving the instance subject per
       Section 7, and surfacing per Section 8.  An AS implementing this
-      profile MUST publish this parameter set to true.  Clients SHOULD
-      verify it before depending on agent instance surfacing, since an
-      AS without support may process the underlying carrier without
+      profile MUST include this parameter, set to true, in any
+      authorization server metadata it publishes.  Clients SHOULD verify
+      it before depending on agent instance surfacing, since an AS
+      without support may process the underlying carrier without
       applying this profile's representation.
 
 7.  Instance Subject Derivation
@@ -471,7 +498,7 @@ Table of Contents
 
    *  The surfaced sub_profile (top-level in self-acting cases,
       act.sub_profile in delegation cases) MUST include both the value
-      ai_agent (Section 15.4) and the value client_instance (registered
+      ai_agent (Section 16.4) and the value client_instance (registered
       by [CIA-CORE]), per the list syntax of the underlying registry.
       Every agent instance is a client instance; including both values
       lets resource servers that implement [CIA-CORE] but not this
@@ -479,7 +506,7 @@ Table of Contents
       applicable registered values MAY additionally be included.
 
    *  The AS MAY surface agent_platform and agent_model subject to local
-      policy and the privacy considerations of Section 14.6.  Surfaced
+      policy and the privacy considerations of Section 15.8.  Surfaced
       provenance claims appear within the act object in delegation cases
       (they describe the actor) and at top level in self-acting cases
       (the instance is the subject).  An AS MUST NOT surface provenance
@@ -532,11 +559,12 @@ Table of Contents
    Refresh-token handling follows [CIA-CORE], with the derived instance
    subject, the Agent Attester, and any surfaced provenance claims
    recorded as originating instance state.  Fresh Agent Instance
-   Evidence presented on refresh MUST carry the same agent_instance_id
-   recorded at original issuance; the AS MUST reject a refresh
-   presenting evidence for a different instance with invalid_grant.  A
+   Evidence presented on refresh MUST be issued by the same Agent
+   Attester and carry the same agent_instance_id recorded at original
+   issuance; the AS MUST reject a refresh presenting evidence from a
+   different Attester or for a different instance with invalid_grant.  A
    refresh processed without fresh evidence re-surfaces the provenance
-   recorded at original issuance; see Section 14.1 for the staleness
+   recorded at original issuance; see Section 15.1 for the staleness
    this implies across refresh chains.
 
    Refresh tokens remain bound to the binding key present at their
@@ -576,13 +604,53 @@ Table of Contents
    provides and MUST NOT represent platform self-attestation as
    hardware-rooted or independent attestation.
 
-12.  Error Responses
+12.  Local and Public-Client Agent Instances
+
+   Agent instances do not necessarily run on platform infrastructure:
+   command-line and desktop agents execute on end-user machines,
+   typically as public clients ([RFC6749]) using the authorization_code
+   grant with PKCE ([RFC7636]) and without a client-level credential.
+   This profile applies to such deployments with the following pattern:
+
+   *  The local agent instance generates its per-instance proof-of-
+      possession key locally and authenticates to the agent platform's
+      control plane (how is out of scope; typically the user's platform
+      login).  The control plane, acting as the Agent Attester, mints
+      Agent Instance Evidence whose cnf binds the key the local instance
+      presented and whose agent_instance_id names the local session.
+
+   *  The instance presents the evidence at the token endpoint per the
+      Client Instance Assertion carrier (Section 5.1) alongside its
+      normal public-client interaction.  Presenting a Client Instance
+      Assertion does not require confidential-client authentication;
+      only [CIA-CORE]'s instance-assertion authentication method does,
+      and public clients do not use that method.
+
+   *  The issued access token is sender-constrained to the locally held
+      key per [CIA-CORE], and the instance subject, surfacing, and chain
+      semantics of this profile apply unchanged.
+
+   Attestation of a local session is platform self-attestation
+   (Section 11) with a narrower meaning: the Attester vouches that it
+   issued the session to an authenticated platform account and bound the
+   presented key, not for the integrity of the end-user host the
+   instance runs on.  Resource servers applying tier-conditioned policy
+   SHOULD treat locally executing instances accordingly; deployments
+   needing runtime-integrity claims for local instances can convey
+   hardware-rooted evidence from the host via agent_runtime (Section 4)
+   where available.
+
+13.  Error Responses
 
    Errors are returned per [RFC6749] Section 5.2, inheriting the error
    taxonomy of [CIA-CORE] and, on the Client Attestation carrier, of
    [ATTEST-CLIENT-AUTH].  This profile adds the following invalid_grant
    cases (returned as invalid_client when, per [CIA-CORE], the evidence
    is the client authentication credential):
+
+   *  a token request on a covered grant other than refresh_token
+      presents no Agent Instance Evidence, and neither the client's
+      registration nor AS policy exempts the grant type (Section 6);
 
    *  the Agent Instance Evidence omits agent_instance_id and the client
       is registered for this profile (Section 6);
@@ -595,23 +663,24 @@ Table of Contents
    *  under carrier precedence, the binding keys or agent_instance_id
       values of the two artifacts do not match (Section 5.3);
 
-   *  on refresh, presented evidence carries a different
-      agent_instance_id than recorded at original issuance (Section 10).
+   *  on refresh, presented evidence is issued by a different Agent
+      Attester or carries a different agent_instance_id than recorded at
+      original issuance (Section 10).
 
-13.  Conformance
+14.  Conformance
 
    An AS conforms to this profile by supporting at least one evidence
-   carrier (Section 5); validating the agent instance claims per
-   Section 4; deriving the instance subject per Section 7; surfacing per
-   Section 8, including the ai_agent and client_instance values in the
-   surfaced sub_profile; applying the refresh rules of Section 10;
-   applying carrier precedence (Section 5.3) when both artifacts are
-   presented; and advertising support via
-   ai_agent_instance_profile_supported (Section 6).  An AS supporting
-   the Client Instance Assertion carrier conforms to [CIA-CORE]; an AS
-   supporting the Client Attestation carrier conforms to
-   [ATTEST-CLIENT-AUTH] and to the activation-policy requirement of
-   Section 5.2.
+   carrier (Section 5); requiring evidence from registered clients per
+   Section 6; validating the agent instance claims per Section 4;
+   deriving the instance subject per Section 7; surfacing per Section 8,
+   including the ai_agent and client_instance values in the surfaced
+   sub_profile; applying the refresh rules of Section 10; applying
+   carrier precedence (Section 5.3) when both artifacts are presented;
+   and advertising support via ai_agent_instance_profile_supported
+   (Section 6).  An AS supporting the Client Instance Assertion carrier
+   conforms to [CIA-CORE]; an AS supporting the Client Attestation
+   carrier conforms to [ATTEST-CLIENT-AUTH] and to the activation-policy
+   requirement of Section 5.2.
 
    An Agent Attester conforms by meeting the minting requirements of
    Section 4 (in particular the uniqueness, stability, non-reassignment,
@@ -628,15 +697,15 @@ Table of Contents
    tokens per [CIA-CORE]'s resource-server rules, treating actors whose
    sub_profile includes ai_agent as agent instances, and treating
    surfaced provenance claims subject to the assurance-tier
-   considerations of Section 11 and Section 14.3.
+   considerations of Section 11 and Section 15.3.
 
-14.  Security Considerations
+15.  Security Considerations
 
    This document inherits the security considerations of [CIA-CORE] and,
    when the Client Attestation carrier is used, [ATTEST-CLIENT-AUTH] and
    [RFC9449].
 
-14.1.  Attestation Freshness and Model Drift
+15.1.  Attestation Freshness and Model Drift
 
    Agent Instance Evidence describes the instance as of evidence
    issuance.  The claim most exposed to drift is agent_model: a platform
@@ -666,7 +735,7 @@ Table of Contents
    ASes serving such resource servers SHOULD keep access-token lifetimes
    short relative to the deployment's model upgrade cadence.
 
-14.2.  Instance Identifier Lifecycle
+15.2.  Instance Identifier Lifecycle
 
    The value of agent_instance_id to audit and containment depends on
    the Attester honoring its minting obligations (Section 4).  An
@@ -681,7 +750,7 @@ Table of Contents
    Attesters whose practices they have audited, mirroring [CIA-CORE]'s
    issuer-trust guidance.
 
-14.3.  Provenance Assurance
+15.3.  Provenance Assurance
 
    agent_platform, agent_model, and agent_runtime are only as
    trustworthy as the Attester tier that produced them (Section 11).
@@ -693,7 +762,7 @@ Table of Contents
    runtime claims SHOULD use hardware-rooted attestation via
    agent_runtime and [RFC9711]-aligned evidence.
 
-14.4.  Shared Trust Root on the Client Attestation Carrier
+15.4.  Shared Trust Root on the Client Attestation Carrier
 
    On the Client Attestation carrier, the AS-to-Attester trust that
    authenticates the client also underpins the instance identity and
@@ -703,7 +772,7 @@ Table of Contents
    evaluate Attester key custody and rotation accordingly and ensure
    incident response covers access-token revocation for all three.
 
-14.5.  Carrier Trust Asymmetry
+15.5.  Carrier Trust Asymmetry
 
    The two carriers place control over the Attester set with different
    parties.  On the Client Instance Assertion carrier, the _client_
@@ -724,7 +793,51 @@ Table of Contents
    auditable control over its attestation surface SHOULD use the Client
    Instance Assertion carrier.
 
-14.6.  Privacy
+15.6.  Attester Trust via Dynamic Registration
+
+   In deployments where clients register dynamically ([RFC7591]),
+   including agent applications registering with an authorization server
+   discovered at run time, the instance_issuers list and the
+   ai_agent_instance_profile flag arrive as registration metadata from a
+   party the AS has no prior relationship with.  An unauthenticated
+   registrant naming an Attester it controls gains nothing against other
+   clients (the Attester attests only that client's instances), but the
+   AS is nonetheless accepting a trust root and a token-shape obligation
+   from an unvetted source.
+
+   An AS accepting dynamic registration SHOULD NOT honor
+   instance_issuers entries from unauthenticated registrations unless
+   each listed Agent Attester is validated against AS policy, for
+   example an AS-side allowlist of recognized platform Attesters, or a
+   signed software statement ([RFC7591]) from an authority the AS
+   trusts.  The ai_agent_instance_profile flag on a registration listing
+   no instance_issuers implicates the Client Attestation carrier, whose
+   Attester trust is AS-configured (Section 5.2); honoring the flag
+   there accepts a token-shape obligation but no new trust root.  AS-
+   operated allowlists of well-known agent platform Attesters are the
+   expected deployment pattern for resource ecosystems serving
+   dynamically registered agent clients.
+
+15.7.  Local Instance Keys and Evidence Minting
+
+   For locally executing instances (Section 12), the instance binding
+   key is held on an end-user machine rather than on platform
+   infrastructure.  A process that extracts the key and current evidence
+   can act as the instance until they expire.  Local instances SHOULD
+   generate and hold binding keys in a platform keystore or hardware-
+   backed key store where the host provides one, and Attesters SHOULD
+   issue short-lived evidence to locally executing instances.
+
+   The Attester's evidence-minting interface is part of the identity
+   boundary: whoever can authenticate to it obtains evidence binding a
+   key they control, so possession of a user's platform credentials
+   suffices to mint agent instances attributed to that account.
+   Attesters SHOULD bind evidence minting to the authenticated session
+   through which the instance was established, SHOULD audit minting
+   events with the same rigor as token issuance, and SHOULD rate-limit
+   minting per account.
+
+15.8.  Privacy
 
    Agent provenance claims reveal implementation details (orchestrator,
    model identity and version, and indirectly the platform's upgrade
@@ -742,7 +855,7 @@ Table of Contents
    pseudonym for the user across contexts the user would consider
    separate.
 
-14.7.  Scope of Protection
+15.9.  Scope of Protection
 
    Instance identity supports attribution, per-agent policy, and
    containment; it does not constrain what a compromised or prompt-
@@ -761,14 +874,14 @@ Table of Contents
    security guarantees from the classification itself, as distinct from
    the attested identity and provenance that accompany it.
 
-15.  IANA Considerations
+16.  IANA Considerations
 
-15.1.  JSON Web Token Claims Registration
+16.1.  JSON Web Token Claims Registration
 
    IANA is requested to register the following claims in the "JSON Web
    Token Claims" registry established by [RFC7519].
 
-15.1.1.  agent_instance_id
+16.1.1.  agent_instance_id
 
    Claim Name:  agent_instance_id
 
@@ -779,7 +892,7 @@ Table of Contents
 
    Specification Document(s):  Section 4 of this document
 
-15.1.2.  agent_platform
+16.1.2.  agent_platform
 
    Claim Name:  agent_platform
 
@@ -790,7 +903,7 @@ Table of Contents
 
    Specification Document(s):  Section 4 of this document
 
-15.1.3.  agent_model
+16.1.3.  agent_model
 
    Claim Name:  agent_model
 
@@ -801,7 +914,7 @@ Table of Contents
 
    Specification Document(s):  Section 4 of this document
 
-15.1.4.  agent_runtime
+16.1.4.  agent_runtime
 
    Claim Name:  agent_runtime
 
@@ -812,7 +925,7 @@ Table of Contents
 
    Specification Document(s):  Section 4 of this document
 
-15.2.  OAuth Dynamic Client Registration Metadata
+16.2.  OAuth Dynamic Client Registration Metadata
 
    IANA is requested to register the following parameter in the "OAuth
    Dynamic Client Registration Metadata" registry established by
@@ -827,7 +940,7 @@ Table of Contents
 
    Specification Document(s):  Section 6 of this document
 
-15.3.  OAuth Authorization Server Metadata
+16.3.  OAuth Authorization Server Metadata
 
    IANA is requested to register the following parameter in the "OAuth
    Authorization Server Metadata" registry established by [RFC8414].
@@ -841,27 +954,28 @@ Table of Contents
 
    Specification Document(s):  Section 6 of this document
 
-15.4.  OAuth Entity Profile
+16.4.  OAuth Entity Profile
 
    IANA is requested to register the following value in the "OAuth
    Entity Profiles" registry established by [ENTITY-PROFILES].  This
    registration is contingent on the establishment of that registry.
 
-   Profile Name:  ai_agent
+   Entity Profile Name:  ai_agent
 
-   Profile Description:  An AI agent instance: an autonomous or semi-
-      autonomous software actor, typically driven by a machine-learning
-      model, acting as a concrete runtime instance of an OAuth client.
+   Entity Profile Description:  An AI agent instance: an autonomous or
+      semi-autonomous software actor, typically driven by a machine-
+      learning model, acting as a concrete runtime instance of an OAuth
+      client.
 
-   Profile Usage Location:  Actor Profile
+   Usage Location:  "Subject Profile", "Actor Profile"
 
    Change Controller:  IETF
 
-   Specification Document(s):  This document
+   Specification Document:  This document
 
-16.  References
+17.  References
 
-16.1.  Normative References
+17.1.  Normative References
 
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
@@ -926,7 +1040,12 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-16.2.  Informative References
+17.2.  Informative References
+
+   [RFC7636]  Sakimura, N., Ed., Bradley, J., and N. Agarwal, "Proof Key
+              for Code Exchange by OAuth Public Clients", RFC 7636,
+              DOI 10.17487/RFC7636, September 2015,
+              <https://www.rfc-editor.org/rfc/rfc7636>.
 
    [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
               Rich Authorization Requests", RFC 9396,
@@ -939,6 +1058,14 @@ Table of Contents
               draft-ietf-oauth-transaction-tokens-08, 2 March 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               transaction-tokens-08>.
+
+   [ID-CHAINING]
+              Schwenkschuster, A., Kasselman, P., Burgin, K., Jenkins,
+              M. J., Campbell, B., and A. Parecki, "OAuth Identity and
+              Authorization Chaining Across Domains", Work in Progress,
+              Internet-Draft, draft-ietf-oauth-identity-chaining-16, 26
+              June 2026, <https://datatracker.ietf.org/doc/html/draft-
+              ietf-oauth-identity-chaining-16>.
 
    [MCP]      Anthropic, "Model Context Protocol Specification", 2025,
               <https://modelcontextprotocol.io/specification/>.
@@ -1060,8 +1187,8 @@ Worked Example: Agent Calling an MCP Server
 Delegation and Instance Spawn
 
    Alice authorizes the assistant through a standard authorization_code
-   flow with PKCE; her consent covers the client as a whole, per
-   [CIA-CORE]'s authorization-time consistency rules.  To handle her
+   flow with PKCE ([RFC7636]); her consent covers the client as a whole,
+   per [CIA-CORE]'s authorization-time consistency rules.  To handle her
    request, the platform's control plane spawns agent instance sess-
    9f2c, provisions it a per-instance DPoP key, and, acting as the Agent
    Attester, mints a Client Instance Assertion carrying the claims of
@@ -1143,7 +1270,7 @@ Resource Server Processing
       limited to read-only tools.  (The attested model characterizes the
       instance's primary configuration at evidence issuance, not each
       individual operation, and is static for the token lifetime; see
-      Section 4 and Section 14.1 for the limits of such policy.)
+      Section 4 and Section 15.1 for the limits of such policy.)
 
    *  Rate limits and anomaly detection are keyed on (client_id,
       act.sub): one runaway session is throttled without affecting the
