@@ -98,8 +98,9 @@ Table of Contents
      13.2.  Instance Identifier Lifecycle
      13.3.  Provenance Assurance
      13.4.  Shared Trust Root on the Client Attestation Carrier
-     13.5.  Privacy
-     13.6.  Scope of Protection
+     13.5.  Carrier Trust Asymmetry
+     13.6.  Privacy
+     13.7.  Scope of Protection
    14. IANA Considerations
      14.1.  JSON Web Token Claims Registration
        14.1.1.  agent_instance_id
@@ -406,13 +407,16 @@ Table of Contents
    This profile additionally specifies:
 
    *  The surfaced sub_profile (top-level in self-acting cases,
-      act.sub_profile in delegation cases) MUST include the value
-      ai_agent (Section 14.2).  It MAY additionally include
-      client_instance or other applicable registered values, per the
-      list syntax of the underlying registry.
+      act.sub_profile in delegation cases) MUST include both the value
+      ai_agent (Section 14.2) and the value client_instance (registered
+      by [CIA-CORE]), per the list syntax of the underlying registry.
+      Every agent instance is a client instance; including both values
+      lets resource servers that implement [CIA-CORE] but not this
+      profile continue to classify the actor correctly.  Other
+      applicable registered values MAY additionally be included.
 
    *  The AS MAY surface agent_platform and agent_model subject to local
-      policy and the privacy considerations of Section 13.5.  Surfaced
+      policy and the privacy considerations of Section 13.6.  Surfaced
       provenance claims appear within the act object in delegation cases
       (they describe the actor) and at top level in self-acting cases
       (the instance is the subject).  An AS MUST NOT surface provenance
@@ -526,13 +530,13 @@ Table of Contents
    An AS conforms to this profile by supporting at least one evidence
    carrier (Section 5); validating the agent instance claims per
    Section 4; deriving the instance subject per Section 6; surfacing per
-   Section 7, including the ai_agent value in the surfaced sub_profile;
-   applying the refresh rules of Section 9; and applying carrier
-   precedence (Section 5.3) when both artifacts are presented.  An AS
-   supporting the Client Instance Assertion carrier conforms to
-   [CIA-CORE]; an AS supporting the Client Attestation carrier conforms
-   to [ATTEST-CLIENT-AUTH] and to the activation-policy requirement of
-   Section 5.2.
+   Section 7, including the ai_agent and client_instance values in the
+   surfaced sub_profile; applying the refresh rules of Section 9; and
+   applying carrier precedence (Section 5.3) when both artifacts are
+   presented.  An AS supporting the Client Instance Assertion carrier
+   conforms to [CIA-CORE]; an AS supporting the Client Attestation
+   carrier conforms to [ATTEST-CLIENT-AUTH] and to the activation-policy
+   requirement of Section 5.2.
 
    An Agent Attester conforms by meeting the minting requirements of
    Section 4 -- in particular the uniqueness, stability, non-
@@ -614,7 +618,28 @@ Table of Contents
    evaluate Attester key custody and rotation accordingly and ensure
    incident response covers access-token revocation for all three.
 
-13.5.  Privacy
+13.5.  Carrier Trust Asymmetry
+
+   The two carriers place control over the Attester set with different
+   parties.  On the Client Instance Assertion carrier, the _client_
+   controls which authorities may attest its instances, by listing them
+   in its instance_issuers metadata (Section 5.1); the AS accepts only
+   Attesters the client has endorsed.  On the Client Attestation
+   carrier, Attester trust is AS-configured (Section 5.2); the client
+   has no in-band mechanism to bound which Attesters the AS will accept
+   for it, and a mistakenly-trusted or compromised Attester at the AS
+   can mint agent identities under the client's client_id without any
+   client-published endorsement being violated.
+
+   The same claims therefore arrive under two different trust models
+   depending on carrier.  The registration-time agreement required by
+   Section 5.2 is the client's control point on the attestation carrier:
+   clients SHOULD establish the acceptable Attester set as part of that
+   agreement.  Deployments in which the client requires in-band,
+   auditable control over its attestation surface SHOULD use the Client
+   Instance Assertion carrier.
+
+13.6.  Privacy
 
    Agent provenance claims reveal implementation details --
    orchestrator, model identity and version, indirectly the platform's
@@ -632,7 +657,7 @@ Table of Contents
    pseudonym for the user across contexts the user would consider
    separate.
 
-13.6.  Scope of Protection
+13.7.  Scope of Protection
 
    Instance identity supports attribution, per-agent policy, and
    containment; it does not constrain what a compromised or prompt-
@@ -742,17 +767,18 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               attestation-based-client-auth-09>.
 
+   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              client-instance-assertion-01, 24 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-client-instance-assertion-01>.
+
    [ENTITY-PROFILES]
               Mora, S. C., Dingle, P., and K. McGuinness, "OAuth 2.0
               Entity Profiles", Work in Progress, Internet-Draft, draft-
               mora-oauth-entity-profiles-01, 15 April 2026,
               <https://datatracker.ietf.org/doc/html/draft-mora-oauth-
               entity-profiles-01>.
-
-   [CIA-CORE] McGuinness, K., "OAuth 2.0 Client Instance Assertion",
-              June 2026, <https://mcguinness.github.io/draft-mcguinness-
-              oauth-client-instance-assertion/draft-mcguinness-oauth-
-              client-instance-assertion.html>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -770,7 +796,10 @@ Table of Contents
               DOI 10.17487/RFC9396, May 2023,
               <https://www.rfc-editor.org/rfc/rfc9396>.
 
-   [RFC9711]  "*** BROKEN REFERENCE ***".
+   [RFC9711]  Lundblade, L., Mandyam, G., O'Donoghue, J., and C.
+              Wallace, "The Entity Attestation Token (EAT)", RFC 9711,
+              DOI 10.17487/RFC9711, April 2025,
+              <https://www.rfc-editor.org/rfc/rfc9711>.
 
    [MCP]      Anthropic, "Model Context Protocol Specification", 2025,
               <https://modelcontextprotocol.io/specification/>.
@@ -932,7 +961,7 @@ Token Issuance
      "act": {
        "iss":         "https://attester.agents.example.com",
        "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-       "sub_profile": "ai_agent",
+       "sub_profile": "ai_agent client_instance",
        "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
        "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
      }
@@ -986,13 +1015,13 @@ Sub-Agent Spawn (Attested Chain)
      "act": {
        "iss":         "https://attester.agents.example.com",
        "sub":         "https://attester.agents.example.com/instances/sess-a114",
-       "sub_profile": "ai_agent",
+       "sub_profile": "ai_agent client_instance",
        "agent_model": { "id": "urn:example:model:scout", "version": "2.0" },
        "cnf":         { "jkt": "QrS...XyZ" },
        "act": {
          "iss":         "https://attester.agents.example.com",
          "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-         "sub_profile": "ai_agent"
+         "sub_profile": "ai_agent client_instance"
        }
      }
    }

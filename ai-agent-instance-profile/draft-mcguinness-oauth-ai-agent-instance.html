@@ -1232,10 +1232,13 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
                 <p id="section-toc.1-1.13.2.4.1"><a href="#section-13.4" class="auto internal xref">13.4</a>.  <a href="#name-shared-trust-root-on-the-cl" class="internal xref">Shared Trust Root on the Client Attestation Carrier</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.5">
-                <p id="section-toc.1-1.13.2.5.1"><a href="#section-13.5" class="auto internal xref">13.5</a>.  <a href="#name-privacy" class="internal xref">Privacy</a></p>
+                <p id="section-toc.1-1.13.2.5.1"><a href="#section-13.5" class="auto internal xref">13.5</a>.  <a href="#name-carrier-trust-asymmetry" class="internal xref">Carrier Trust Asymmetry</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.6">
-                <p id="section-toc.1-1.13.2.6.1"><a href="#section-13.6" class="auto internal xref">13.6</a>.  <a href="#name-scope-of-protection" class="internal xref">Scope of Protection</a></p>
+                <p id="section-toc.1-1.13.2.6.1"><a href="#section-13.6" class="auto internal xref">13.6</a>.  <a href="#name-privacy" class="internal xref">Privacy</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.7">
+                <p id="section-toc.1-1.13.2.7.1"><a href="#section-13.7" class="auto internal xref">13.7</a>.  <a href="#name-scope-of-protection" class="internal xref">Scope of Protection</a></p>
 </li>
             </ul>
 </li>
@@ -1683,15 +1686,19 @@ sender-constrained per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>
 <ul class="normal">
 <li class="normal" id="section-7-3.1">
           <p id="section-7-3.1.1">The surfaced <code>sub_profile</code> (top-level in self-acting cases,
-<code>act.sub_profile</code> in delegation cases) <span class="bcp14">MUST</span> include the value
-<code>ai_agent</code> (<a href="#iana-entity-profile" class="auto internal xref">Section 14.2</a>). It <span class="bcp14">MAY</span> additionally
-include <code>client_instance</code> or other applicable registered
-values, per the list syntax of the underlying registry.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
+<code>act.sub_profile</code> in delegation cases) <span class="bcp14">MUST</span> include both the
+value <code>ai_agent</code> (<a href="#iana-entity-profile" class="auto internal xref">Section 14.2</a>) and the value
+<code>client_instance</code> (registered by <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>), per the list
+syntax of the underlying registry. Every agent instance is a
+client instance; including both values lets resource servers
+that implement <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> but not this profile continue to
+classify the actor correctly. Other applicable registered
+values <span class="bcp14">MAY</span> additionally be included.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-7-3.2">
           <p id="section-7-3.2.1">The AS <span class="bcp14">MAY</span> surface <code>agent_platform</code> and <code>agent_model</code> subject to
 local policy and the privacy considerations of
-<a href="#security-privacy" class="auto internal xref">Section 13.5</a>. Surfaced provenance claims appear within
+<a href="#security-privacy" class="auto internal xref">Section 13.6</a>. Surfaced provenance claims appear within
 the <code>act</code> object in delegation cases (they describe the actor)
 and at top level in self-acting cases (the instance is the
 subject). An AS <span class="bcp14">MUST NOT</span> surface provenance claims that were not
@@ -1845,8 +1852,9 @@ does not equal <code>agent_instance_id</code> (<a href="#carrier-cia" class="aut
 <p id="section-12-1">An AS conforms to this profile by supporting at least one evidence
 carrier (<a href="#carriers" class="auto internal xref">Section 5</a>); validating the agent instance claims per
 <a href="#agent-claims" class="auto internal xref">Section 4</a>; deriving the instance subject per <a href="#subject" class="auto internal xref">Section 6</a>;
-surfacing per <a href="#surfacing" class="auto internal xref">Section 7</a>, including the <code>ai_agent</code> value in the
-surfaced <code>sub_profile</code>; applying the refresh rules of <a href="#refresh" class="auto internal xref">Section 9</a>;
+surfacing per <a href="#surfacing" class="auto internal xref">Section 7</a>, including the <code>ai_agent</code> and
+<code>client_instance</code> values in the surfaced <code>sub_profile</code>; applying
+the refresh rules of <a href="#refresh" class="auto internal xref">Section 9</a>;
 and applying carrier precedence (<a href="#carrier-precedence" class="auto internal xref">Section 5.3</a>) when both
 artifacts are presented. An AS supporting the Client Instance
 Assertion carrier conforms to <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>; an AS supporting the
@@ -1949,40 +1957,65 @@ evaluate Attester key custody and rotation accordingly and ensure
 incident response covers access-token revocation for all three.<a href="#section-13.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="security-privacy">
+<div id="security-carrier-asymmetry">
 <section id="section-13.5">
-        <h3 id="name-privacy">
-<a href="#section-13.5" class="section-number selfRef">13.5. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
+        <h3 id="name-carrier-trust-asymmetry">
+<a href="#section-13.5" class="section-number selfRef">13.5. </a><a href="#name-carrier-trust-asymmetry" class="section-name selfRef">Carrier Trust Asymmetry</a>
         </h3>
-<p id="section-13.5-1">Agent provenance claims reveal implementation details --
+<p id="section-13.5-1">The two carriers place control over the Attester set with
+different parties. On the Client Instance Assertion carrier, the
+<em>client</em> controls which authorities may attest its instances, by
+listing them in its <code>instance_issuers</code> metadata (<a href="#carrier-cia" class="auto internal xref">Section 5.1</a>);
+the AS accepts only Attesters the client has endorsed. On the
+Client Attestation carrier, Attester trust is AS-configured
+(<a href="#carrier-attest" class="auto internal xref">Section 5.2</a>); the client has no in-band mechanism to bound
+which Attesters the AS will accept for it, and a
+mistakenly-trusted or compromised Attester at the AS can mint
+agent identities under the client's <code>client_id</code> without any
+client-published endorsement being violated.<a href="#section-13.5-1" class="pilcrow">¶</a></p>
+<p id="section-13.5-2">The same claims therefore arrive under two different trust models
+depending on carrier. The registration-time agreement required by
+<a href="#carrier-attest" class="auto internal xref">Section 5.2</a> is the client's control point on the
+attestation carrier: clients <span class="bcp14">SHOULD</span> establish the acceptable
+Attester set as part of that agreement. Deployments in which the
+client requires in-band, auditable control over its attestation
+surface <span class="bcp14">SHOULD</span> use the Client Instance Assertion carrier.<a href="#section-13.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-privacy">
+<section id="section-13.6">
+        <h3 id="name-privacy">
+<a href="#section-13.6" class="section-number selfRef">13.6. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
+        </h3>
+<p id="section-13.6-1">Agent provenance claims reveal implementation details --
 orchestrator, model identity and version, indirectly the
 platform's upgrade cadence -- to every resource server that
 receives them. Surfacing is therefore selective (<a href="#surfacing" class="auto internal xref">Section 7</a>):
 the AS surfaces only what local policy requires, and
-<code>agent_runtime</code> evidence is never surfaced verbatim.<a href="#section-13.5-1" class="pilcrow">¶</a></p>
-<p id="section-13.5-2"><code>agent_instance_id</code> is a per-instance identifier linkable across
+<code>agent_runtime</code> evidence is never surfaced verbatim.<a href="#section-13.6-1" class="pilcrow">¶</a></p>
+<p id="section-13.6-2"><code>agent_instance_id</code> is a per-instance identifier linkable across
 every request the instance makes for its lifetime. Platforms
 <span class="bcp14">SHOULD</span> scope instance lifetimes to the task or session they
 represent; long-lived instances accumulate long linkable
 histories at every resource server they touch. Where instances
 act on behalf of users, the identifier's granularity <span class="bcp14">SHOULD NOT</span> be
 chosen such that it becomes a stable pseudonym for the user across
-contexts the user would consider separate.<a href="#section-13.5-2" class="pilcrow">¶</a></p>
+contexts the user would consider separate.<a href="#section-13.6-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-scope">
-<section id="section-13.6">
+<section id="section-13.7">
         <h3 id="name-scope-of-protection">
-<a href="#section-13.6" class="section-number selfRef">13.6. </a><a href="#name-scope-of-protection" class="section-name selfRef">Scope of Protection</a>
+<a href="#section-13.7" class="section-number selfRef">13.7. </a><a href="#name-scope-of-protection" class="section-name selfRef">Scope of Protection</a>
         </h3>
-<p id="section-13.6-1">Instance identity supports attribution, per-agent policy, and
+<p id="section-13.7-1">Instance identity supports attribution, per-agent policy, and
 containment; it does not constrain what a compromised or
 prompt-injected agent does within the scope it was granted. An
 attested chain records which instance acted -- it does not make
 the action safe. Least-privilege composition (scope design,
 <span>[<a href="#RFC9396" class="cite xref">RFC9396</a>]</span> authorization details, per-exchange attenuation as in
 <a href="#chains" class="auto internal xref">Section 8</a>) remains the containment mechanism; this profile makes
-its enforcement and audit per-agent rather than per-platform.<a href="#section-13.6-1" class="pilcrow">¶</a></p>
+its enforcement and audit per-agent rather than per-platform.<a href="#section-13.7-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2191,13 +2224,13 @@ concrete runtime instance of an OAuth client.<a href="#section-14.2-2.4.1" class
         <dd>
 <span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-09</span>, <time datetime="2026-05-25" class="refDate">25 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="CIA-CORE">[CIA-CORE]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Instance Assertion"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-assertion-01</span>, <time datetime="2026-06-24" class="refDate">24 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="ENTITY-PROFILES">[ENTITY-PROFILES]</dt>
         <dd>
 <span class="refAuthor">Mora, S. C.</span>, <span class="refAuthor">Dingle, P.</span>, and <span class="refAuthor">K. McGuinness</span>, <span class="refTitle">"OAuth 2.0 Entity Profiles"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mora-oauth-entity-profiles-01</span>, <time datetime="2026-04-15" class="refDate">15 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mora-oauth-entity-profiles-01">https://datatracker.ietf.org/doc/html/draft-mora-oauth-entity-profiles-01</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="CIA-CORE">[CIA-CORE]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Instance Assertion"</span>, <time datetime="2026-06" class="refDate">June 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-assertion.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-assertion.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
         <dd>
@@ -2222,7 +2255,7 @@ concrete runtime instance of an OAuth client.<a href="#section-14.2-2.4.1" class
 <dd class="break"></dd>
 <dt id="RFC9711">[RFC9711]</dt>
         <dd>
-<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<span class="refAuthor">Lundblade, L.</span>, <span class="refAuthor">Mandyam, G.</span>, <span class="refAuthor">O'Donoghue, J.</span>, and <span class="refAuthor">C. Wallace</span>, <span class="refTitle">"The Entity Attestation Token (EAT)"</span>, <span class="seriesInfo">RFC 9711</span>, <span class="seriesInfo">DOI 10.17487/RFC9711</span>, <time datetime="2025-04" class="refDate">April 2025</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9711">https://www.rfc-editor.org/rfc/rfc9711</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="MCP">[MCP]</dt>
       <dd>
@@ -2435,7 +2468,7 @@ surfaces <code>agent_model</code> (but not <code>agent_platform</code>) per
   "act": {
     "iss":         "https://attester.agents.example.com",
     "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-    "sub_profile": "ai_agent",
+    "sub_profile": "ai_agent client_instance",
     "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
     "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
   }
@@ -2506,13 +2539,13 @@ token-exchange presentation, presenting its assertion as
   "act": {
     "iss":         "https://attester.agents.example.com",
     "sub":         "https://attester.agents.example.com/instances/sess-a114",
-    "sub_profile": "ai_agent",
+    "sub_profile": "ai_agent client_instance",
     "agent_model": { "id": "urn:example:model:scout", "version": "2.0" },
     "cnf":         { "jkt": "QrS...XyZ" },
     "act": {
       "iss":         "https://attester.agents.example.com",
       "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-      "sub_profile": "ai_agent"
+      "sub_profile": "ai_agent client_instance"
     }
   }
 }
