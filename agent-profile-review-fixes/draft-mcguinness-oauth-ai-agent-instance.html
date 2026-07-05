@@ -1356,9 +1356,9 @@ Attestation-Based Client Authentication.<a href="#section-abstract-1" class="pil
 <p id="section-1-1">AI agent platforms are OAuth clients. A platform registers a single
 <code>client_id</code> and then runs many concurrent agent instances under it:
 one per user session, task, or delegated workflow. Resource servers
-receiving access tokens from these platforms -- including Model
-Context Protocol servers (<span>[<a href="#MCP" class="cite xref">MCP</a>]</span>), which use OAuth for
-authorization -- see only the platform's <code>client_id</code>. Every agent
+receiving access tokens from these platforms see only the
+platform's <code>client_id</code>; this includes Model Context Protocol
+servers (<span>[<a href="#MCP" class="cite xref">MCP</a>]</span>), which use OAuth for authorization. Every agent
 session collapses into one identity, defeating per-agent
 authorization, audit attribution, incident response, and abuse
 containment.<a href="#section-1-1" class="pilcrow">¶</a></p>
@@ -1376,8 +1376,8 @@ instance identifier:<a href="#section-1-3" class="pilcrow">¶</a></p>
 <li class="normal" id="section-1-4.1">
           <p id="section-1-4.1.1"><strong>A stable, attester-minted agent instance identifier</strong>
 (<a href="#agent-claims" class="auto internal xref">Section 4</a>). The instance subject is an identifier the
-agent attester mints for the agent session -- not a key
-thumbprint -- so it survives key rotation and names something an
+agent attester mints for the agent session rather than a key
+thumbprint, so it survives key rotation and names something an
 audit record can act on.<a href="#section-1-4.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-4.2">
@@ -1457,9 +1457,9 @@ distinct party (see <a href="#trust" class="auto internal xref">Section 11</a>).
         <dd class="break"></dd>
 <dt id="section-2-3.9">Agent Instance Evidence:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.10">
-          <p id="section-2-3.10.1">The carrier artifact -- a Client Instance Assertion or a Client
-Attestation with its proof of possession -- conveying the agent
-instance claims of <a href="#agent-claims" class="auto internal xref">Section 4</a> to the AS.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
+          <p id="section-2-3.10.1">The carrier artifact conveying the agent instance claims of
+<a href="#agent-claims" class="auto internal xref">Section 4</a> to the AS: either a Client Instance Assertion,
+or a Client Attestation with its proof of possession.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1496,7 +1496,7 @@ attested agent instance identity and provenance to the OAuth token
 endpoint, and representing that identity in issued access tokens.
 It does not define agent-to-agent authentication protocols, agent
 discovery, capability or tool description, or model governance,
-and is designed to compose with -- rather than compete with --
+and is designed to compose with, rather than compete with,
 specifications that do. In particular, fine-grained permission
 description composes via Rich Authorization Requests
 (<span>[<a href="#RFC9396" class="cite xref">RFC9396</a>]</span>), and hardware-rooted runtime evidence composes via
@@ -1520,10 +1520,10 @@ profile of this document defines their processing.<a href="#section-4-1" class="
         <dd style="margin-left: 1.5em" id="section-4-2.2">
           <p id="section-4-2.2.1">A StringOrURI (<span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>) identifying this agent instance,
 minted by the Agent Attester. The value <span class="bcp14">MUST</span> be unique among all
-instances attested by this Attester -- across every OAuth client
+instances attested by this Attester (across every OAuth client
 the Attester serves, so that resource servers evaluating the
-identifier need not qualify it by <code>client_id</code> -- and
-<span class="bcp14">MUST</span> be stable for the lifetime of the agent instance. The value
+identifier need not qualify it by <code>client_id</code>) and <span class="bcp14">MUST</span> be
+stable for the lifetime of the agent instance. The value
 <span class="bcp14">MUST NOT</span> be derived from a proof-of-possession key: keys are
 binding material, not identity (<a href="#subject" class="auto internal xref">Section 7</a>). The Attester <span class="bcp14">MUST NOT</span> reassign an active or audit-relevant value to a different
 instance; see <a href="#security-lifecycle" class="auto internal xref">Section 14.2</a>. Attesters <span class="bcp14">SHOULD</span> mint
@@ -1570,8 +1570,8 @@ between the Attester and the resource servers that consume it.<a href="#section-
 the agent instance, such as confidential-computing or
 trusted-execution attestation results. This document defines one
 member: <code>eat</code> (<span class="bcp14">OPTIONAL</span>), containing an Entity Attestation Token
-(<span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>) -- as the JWT compact serialization when the EAT is
-in JWT form, or base64url-encoded when in CWT form. Additional
+(<span>[<a href="#RFC9711" class="cite xref">RFC9711</a>]</span>), carried as the JWT compact serialization when the
+EAT is in JWT form or base64url-encoded when in CWT form. Additional
 members <span class="bcp14">MAY</span> be defined by deployments or companion profiles;
 unknown members <span class="bcp14">MUST</span> be ignored. <code>agent_runtime</code> is consumed by
 the AS for policy and is not surfaced to resource servers by
@@ -1647,9 +1647,9 @@ substitutes for <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span
 token-exchange in particular, it applies even when no
 <code>actor_token</code> is present.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
 <p id="section-5.2-5">The <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> validation steps that depend on a presented
-assertion -- token-type matching, descriptor lookup, signature
+assertion (token-type matching, descriptor lookup, signature
 verification, claim validation, <code>client_id</code> binding, and replay
-checking -- are satisfied on this carrier by the completed
+checking) are satisfied on this carrier by the completed
 <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> validation together with the claim
 requirements of <a href="#agent-claims" class="auto internal xref">Section 4</a>. Replay protection is provided by
 <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> validation, including the DPoP proof
@@ -1663,7 +1663,7 @@ the issuer identifier of the validated Client Attestation JWT. For
 self-acting cases, the Attester issuer is not represented as a
 standard access-token claim; the AS <span class="bcp14">MUST</span> retain it with token
 state for revocation, introspection, audit, and issuer-aware
-resource-server policy -- in particular, per-instance revocation
+resource-server policy; in particular, per-instance revocation
 keyed on the issuer-and-subject pair per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> depends on
 it.<a href="#section-5.2-6" class="pilcrow">¶</a></p>
 </section>
@@ -1705,9 +1705,9 @@ per <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>, applicable 
 registered for this profile: the AS <span class="bcp14">MUST</span> require
 <code>agent_instance_id</code> in the client's Agent Instance Evidence
 (<a href="#agent-claims" class="auto internal xref">Section 4</a>), <span class="bcp14">MUST</span> apply the surfacing rules of
-<a href="#surfacing" class="auto internal xref">Section 8</a>, and -- when the Client Attestation carrier is
-used -- this registration constitutes the client's agreement
-required by <a href="#carrier-attest" class="auto internal xref">Section 5.2</a>. Deployments without access to
+<a href="#surfacing" class="auto internal xref">Section 8</a>, and, when the Client Attestation carrier is used,
+this registration constitutes the client's agreement required by
+<a href="#carrier-attest" class="auto internal xref">Section 5.2</a>. Deployments without access to
 this parameter <span class="bcp14">MAY</span> establish the same registration by
 out-of-band agreement.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
 </dd>
@@ -1744,7 +1744,7 @@ access token's <code>cnf</code> confirmation claim directly.<a href="#section-7-
 <ul class="normal">
 <li class="normal" id="section-7-3.1">
           <p id="section-7-3.1.1">the identity is stable across DPoP or binding-key rotation
-within an instance's lifetime -- access tokens obtained with a
+within an instance's lifetime: access tokens obtained with a
 rotated key carry the same instance subject, so resource-server
 policy state and audit trails keyed on the subject survive
 rotation (<a href="#refresh" class="auto internal xref">Section 10</a> covers the refresh-token interaction);<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
@@ -1862,8 +1862,8 @@ after migrating between nodes) therefore cannot use a
 previously issued refresh token with the new key; it obtains new
 tokens through a fresh grant or token exchange, presenting fresh
 evidence that carries its unchanged <code>agent_instance_id</code>. The
-instance's identity -- and everything resource servers key on it
--- is unaffected by the rotation (<a href="#subject" class="auto internal xref">Section 7</a>).<a href="#section-10-2" class="pilcrow">¶</a></p>
+instance's identity, and everything resource servers key on it,
+is unaffected by the rotation (<a href="#subject" class="auto internal xref">Section 7</a>).<a href="#section-10-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="trust">
@@ -1962,8 +1962,8 @@ supporting the Client Instance Assertion carrier conforms to
 conforms to <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> and to the activation-policy
 requirement of <a href="#carrier-attest" class="auto internal xref">Section 5.2</a>.<a href="#section-13-1" class="pilcrow">¶</a></p>
 <p id="section-13-2">An Agent Attester conforms by meeting the minting requirements of
-<a href="#agent-claims" class="auto internal xref">Section 4</a> -- in particular the uniqueness, stability,
-non-reassignment, and key-independence of <code>agent_instance_id</code> --
+<a href="#agent-claims" class="auto internal xref">Section 4</a> (in particular the uniqueness, stability,
+non-reassignment, and key-independence of <code>agent_instance_id</code>)
 and, per carrier, the obligations of a <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> instance
 issuer or an <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span> Attester.<a href="#section-13-2" class="pilcrow">¶</a></p>
 <p id="section-13-3">An Agent Platform (OAuth client) conforms by registering for this
@@ -2000,8 +2000,8 @@ are trusting the Attester's issuance discipline.<a href="#section-14.1-1" class=
 <p id="section-14.1-2">On the Client Instance Assertion carrier, <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s short
 assertion lifetimes bound the drift window. On the Client
 Attestation carrier, the window is bounded by the Client
-Attestation's lifetime -- which some Attester ecosystems set to
-hours or days -- plus DPoP proof freshness; the DPoP proof
+Attestation's lifetime, which some Attester ecosystems set to
+hours or days, plus DPoP proof freshness; the DPoP proof
 establishes recent possession of the bound key, not recent
 Attester endorsement. Deployments requiring current provenance
 <span class="bcp14">SHOULD</span> use short-lived evidence and <span class="bcp14">SHOULD</span> require fresh evidence
@@ -2098,9 +2098,9 @@ surface <span class="bcp14">SHOULD</span> use the Client Instance Assertion carr
         <h3 id="name-privacy">
 <a href="#section-14.6" class="section-number selfRef">14.6. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
         </h3>
-<p id="section-14.6-1">Agent provenance claims reveal implementation details --
-orchestrator, model identity and version, indirectly the
-platform's upgrade cadence -- to every resource server that
+<p id="section-14.6-1">Agent provenance claims reveal implementation details
+(orchestrator, model identity and version, and indirectly the
+platform's upgrade cadence) to every resource server that
 receives them. Surfacing is therefore selective (<a href="#surfacing" class="auto internal xref">Section 8</a>):
 the AS surfaces only what local policy requires, and
 <code>agent_runtime</code> evidence is never surfaced verbatim.<a href="#section-14.6-1" class="pilcrow">¶</a></p>
@@ -2122,7 +2122,7 @@ contexts the user would consider separate.<a href="#section-14.6-2" class="pilcr
 <p id="section-14.7-1">Instance identity supports attribution, per-agent policy, and
 containment; it does not constrain what a compromised or
 prompt-injected agent does within the scope it was granted. An
-attested chain records which instance acted -- it does not make
+attested chain records which instance acted; it does not make
 the action safe. Least-privilege composition (scope design,
 <span>[<a href="#RFC9396" class="cite xref">RFC9396</a>]</span> authorization details, per-exchange attenuation as in
 <a href="#chains" class="auto internal xref">Section 9</a>) remains the containment mechanism; this profile makes
@@ -2476,8 +2476,8 @@ text.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <a href="#name-why-attester-minted-identif" class="section-name selfRef">Why Attester-minted identifiers rather than key-derived subjects</a>
         </h3>
 <p id="appendix-A.1-1">Deriving the instance subject from a proof-of-possession key
-thumbprint is superficially attractive -- it requires no minting
-infrastructure -- but fails as identity. A key thumbprint carries
+thumbprint is superficially attractive, since it requires no
+minting infrastructure, but fails as identity. A key thumbprint carries
 no semantic content an audit record or policy can act on; key
 rotation silently mints a new actor, orphaning audit trails and
 resource-server policy state at exactly the moments (migration,
@@ -2495,7 +2495,7 @@ key-independent identifier and forbids key-derived subjects
 <a href="#name-why-carrier-pluggable" class="section-name selfRef">Why carrier-pluggable</a>
         </h3>
 <p id="appendix-A.2-1">The interoperable surface of this profile is the claims, the
-subject derivation, and the token surfacing -- not the transport
+subject derivation, and the token surfacing, not the transport
 that conveys the claims to the AS. Workload-style agent platforms
 already operate instance issuers and fit <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s assertion
 carrier; platforms in ecosystems deploying
@@ -2561,8 +2561,8 @@ Attester-minted identity makes "same instance, new key" provable.
 It was rejected for this version: it would relax a <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>
           <span class="bcp14">MUST</span> and enlarge the refresh-token replay surface to the Attester
 trust boundary. Identity continuity across rotation is preserved
-without it -- new grants and exchanges under the unchanged
-<code>agent_instance_id</code> carry the same subject (<a href="#refresh" class="auto internal xref">Section 10</a>) -- at
+without it, since new grants and exchanges under the unchanged
+<code>agent_instance_id</code> carry the same subject (<a href="#refresh" class="auto internal xref">Section 10</a>), at
 the cost of one extra grant round-trip after a rotation.<a href="#appendix-A.6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2627,8 +2627,8 @@ as a trusted instance issuer per <span>[<a href="#CIA-CORE" class="cite xref">CI
 authorization_code flow with PKCE; her consent covers the client as
 a whole, per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>'s authorization-time consistency rules.
 To handle her request, the platform's control plane spawns agent
-instance <code>sess-9f2c</code>, provisions it a per-instance DPoP key, and --
-acting as the Agent Attester -- mints a Client Instance Assertion
+instance <code>sess-9f2c</code>, provisions it a per-instance DPoP key, and,
+acting as the Agent Attester, mints a Client Instance Assertion
 carrying the claims of <a href="#agent-claims" class="auto internal xref">Section 4</a>:<a href="#appendix-B.1-1" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="appendix-B.1-2">
 <pre>
@@ -2730,7 +2730,7 @@ of such policy.)<a href="#appendix-B.3-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-B.3-2.3">
             <p id="appendix-B.3-2.3.1">Rate limits and anomaly detection are keyed on
-<code>(client_id, act.sub)</code> -- one runaway session is throttled
+<code>(client_id, act.sub)</code>: one runaway session is throttled
 without affecting the platform's other agents.<a href="#appendix-B.3-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="appendix-B.3-2.4">
@@ -2741,7 +2741,7 @@ without affecting the platform's other agents.<a href="#appendix-B.3-2.3.1" clas
         </ul>
 <p id="appendix-B.3-3">If <code>sess-9f2c</code> misbehaves, the MCP server reports <code>act.sub</code>; the
 platform terminates the session, and the AS applies per-instance
-revocation keyed on <code>(act.iss, act.sub)</code> per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span> --
+revocation keyed on <code>(act.iss, act.sub)</code> per <span>[<a href="#CIA-CORE" class="cite xref">CIA-CORE</a>]</span>,
 containing one agent without revoking the platform's client
 registration.<a href="#appendix-B.3-3" class="pilcrow">¶</a></p>
 </section>
@@ -2751,7 +2751,7 @@ registration.<a href="#appendix-B.3-3" class="pilcrow">¶</a></p>
         <h3 id="name-sub-agent-spawn-attested-ch">
 <a href="#name-sub-agent-spawn-attested-ch" class="section-name selfRef">Sub-Agent Spawn (Attested Chain)</a>
         </h3>
-<p id="appendix-B.4-1">The agent delegates a subtask -- summarizing a long issue thread --
+<p id="appendix-B.4-1">The agent delegates a subtask (summarizing a long issue thread)
 to a specialized sub-agent. The platform spawns instance
 <code>sess-a114</code> running a smaller model, with its own DPoP key and its
 own assertion (<code>agent_instance_id</code> <code>.../instances/sess-a114</code>,
