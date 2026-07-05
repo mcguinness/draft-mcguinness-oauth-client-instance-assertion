@@ -37,14 +37,8 @@ normative:
   RFC8693:
   RFC9449:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
+  CIA-CORE: I-D.mcguinness-oauth-client-instance-assertion
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
-  CIA-CORE:
-    title: "OAuth 2.0 Client Instance Assertion"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-assertion.html
-    author:
-      -
-        fullname: Karl McGuinness
-    date: 2026-06
 
 informative:
   RFC9396:
@@ -360,10 +354,14 @@ sender-constrained per {{CIA-CORE}}.
 This profile additionally specifies:
 
 * The surfaced `sub_profile` (top-level in self-acting cases,
-  `act.sub_profile` in delegation cases) MUST include the value
-  `ai_agent` ({{iana-entity-profile}}). It MAY additionally
-  include `client_instance` or other applicable registered
-  values, per the list syntax of the underlying registry.
+  `act.sub_profile` in delegation cases) MUST include both the
+  value `ai_agent` ({{iana-entity-profile}}) and the value
+  `client_instance` (registered by {{CIA-CORE}}), per the list
+  syntax of the underlying registry. Every agent instance is a
+  client instance; including both values lets resource servers
+  that implement {{CIA-CORE}} but not this profile continue to
+  classify the actor correctly. Other applicable registered
+  values MAY additionally be included.
 * The AS MAY surface `agent_platform` and `agent_model` subject to
   local policy and the privacy considerations of
   {{security-privacy}}. Surfaced provenance claims appear within
@@ -482,8 +480,9 @@ credential):
 An AS conforms to this profile by supporting at least one evidence
 carrier ({{carriers}}); validating the agent instance claims per
 {{agent-claims}}; deriving the instance subject per {{subject}};
-surfacing per {{surfacing}}, including the `ai_agent` value in the
-surfaced `sub_profile`; applying the refresh rules of {{refresh}};
+surfacing per {{surfacing}}, including the `ai_agent` and
+`client_instance` values in the surfaced `sub_profile`; applying
+the refresh rules of {{refresh}};
 and applying carrier precedence ({{carrier-precedence}}) when both
 artifacts are presented. An AS supporting the Client Instance
 Assertion carrier conforms to {{CIA-CORE}}; an AS supporting the
@@ -570,6 +569,28 @@ Attester's signing key therefore affects client authentication,
 instance identity, and provenance simultaneously. Operators SHOULD
 evaluate Attester key custody and rotation accordingly and ensure
 incident response covers access-token revocation for all three.
+
+## Carrier Trust Asymmetry {#security-carrier-asymmetry}
+
+The two carriers place control over the Attester set with
+different parties. On the Client Instance Assertion carrier, the
+*client* controls which authorities may attest its instances, by
+listing them in its `instance_issuers` metadata ({{carrier-cia}});
+the AS accepts only Attesters the client has endorsed. On the
+Client Attestation carrier, Attester trust is AS-configured
+({{carrier-attest}}); the client has no in-band mechanism to bound
+which Attesters the AS will accept for it, and a
+mistakenly-trusted or compromised Attester at the AS can mint
+agent identities under the client's `client_id` without any
+client-published endorsement being violated.
+
+The same claims therefore arrive under two different trust models
+depending on carrier. The registration-time agreement required by
+{{carrier-attest}} is the client's control point on the
+attestation carrier: clients SHOULD establish the acceptable
+Attester set as part of that agreement. Deployments in which the
+client requires in-band, auditable control over its attestation
+surface SHOULD use the Client Instance Assertion carrier.
 
 ## Privacy {#security-privacy}
 
@@ -861,7 +882,7 @@ surfaces `agent_model` (but not `agent_platform`) per
   "act": {
     "iss":         "https://attester.agents.example.com",
     "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-    "sub_profile": "ai_agent",
+    "sub_profile": "ai_agent client_instance",
     "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
     "cnf":         { "jkt": "0ZcOCORZNYy...iguA4I" }
   }
@@ -917,13 +938,13 @@ token-exchange presentation, presenting its assertion as
   "act": {
     "iss":         "https://attester.agents.example.com",
     "sub":         "https://attester.agents.example.com/instances/sess-a114",
-    "sub_profile": "ai_agent",
+    "sub_profile": "ai_agent client_instance",
     "agent_model": { "id": "urn:example:model:scout", "version": "2.0" },
     "cnf":         { "jkt": "QrS...XyZ" },
     "act": {
       "iss":         "https://attester.agents.example.com",
       "sub":         "https://attester.agents.example.com/instances/sess-9f2c",
-      "sub_profile": "ai_agent"
+      "sub_profile": "ai_agent client_instance"
     }
   }
 }
