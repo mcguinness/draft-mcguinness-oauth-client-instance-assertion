@@ -74,9 +74,9 @@ Attestation-Based Client Authentication.
 AI agent platforms are OAuth clients. A platform registers a single
 `client_id` and then runs many concurrent agent instances under it:
 one per user session, task, or delegated workflow. Resource servers
-receiving access tokens from these platforms -- including Model
-Context Protocol servers ({{MCP}}), which use OAuth for
-authorization -- see only the platform's `client_id`. Every agent
+receiving access tokens from these platforms see only the
+platform's `client_id`; this includes Model Context Protocol
+servers ({{MCP}}), which use OAuth for authorization. Every agent
 session collapses into one identity, defeating per-agent
 authorization, audit attribution, incident response, and abuse
 containment.
@@ -95,8 +95,8 @@ instance identifier:
 
 * **A stable, attester-minted agent instance identifier**
   ({{agent-claims}}). The instance subject is an identifier the
-  agent attester mints for the agent session -- not a key
-  thumbprint -- so it survives key rotation and names something an
+  agent attester mints for the agent session rather than a key
+  thumbprint, so it survives key rotation and names something an
   audit record can act on.
 * **Attested agent provenance** ({{agent-claims}}): optional claims
   conveying the agent platform, the model an agent instance runs,
@@ -155,9 +155,9 @@ Agent Attester:
   distinct party (see {{trust}}).
 
 Agent Instance Evidence:
-: The carrier artifact -- a Client Instance Assertion or a Client
-  Attestation with its proof of possession -- conveying the agent
-  instance claims of {{agent-claims}} to the AS.
+: The carrier artifact conveying the agent instance claims of
+  {{agent-claims}} to the AS: either a Client Instance Assertion,
+  or a Client Attestation with its proof of possession.
 
 # Relationship to Other Specifications {#relationships}
 
@@ -191,7 +191,7 @@ attested agent instance identity and provenance to the OAuth token
 endpoint, and representing that identity in issued access tokens.
 It does not define agent-to-agent authentication protocols, agent
 discovery, capability or tool description, or model governance,
-and is designed to compose with -- rather than compete with --
+and is designed to compose with, rather than compete with,
 specifications that do. In particular, fine-grained permission
 description composes via Rich Authorization Requests
 ({{RFC9396}}), and hardware-rooted runtime evidence composes via
@@ -209,10 +209,10 @@ profile of this document defines their processing.
 `agent_instance_id` (REQUIRED):
 : A StringOrURI ({{RFC7519}}) identifying this agent instance,
   minted by the Agent Attester. The value MUST be unique among all
-  instances attested by this Attester -- across every OAuth client
+  instances attested by this Attester (across every OAuth client
   the Attester serves, so that resource servers evaluating the
-  identifier need not qualify it by `client_id` -- and
-  MUST be stable for the lifetime of the agent instance. The value
+  identifier need not qualify it by `client_id`) and MUST be
+  stable for the lifetime of the agent instance. The value
   MUST NOT be derived from a proof-of-possession key: keys are
   binding material, not identity ({{subject}}). The Attester MUST
   NOT reassign an active or audit-relevant value to a different
@@ -251,8 +251,8 @@ profile of this document defines their processing.
   the agent instance, such as confidential-computing or
   trusted-execution attestation results. This document defines one
   member: `eat` (OPTIONAL), containing an Entity Attestation Token
-  ({{RFC9711}}) -- as the JWT compact serialization when the EAT is
-  in JWT form, or base64url-encoded when in CWT form. Additional
+  ({{RFC9711}}), carried as the JWT compact serialization when the
+  EAT is in JWT form or base64url-encoded when in CWT form. Additional
   members MAY be defined by deployments or companion profiles;
   unknown members MUST be ignored. `agent_runtime` is consumed by
   the AS for policy and is not surfaced to resource servers by
@@ -322,9 +322,9 @@ token-exchange in particular, it applies even when no
 `actor_token` is present.
 
 The {{CIA-CORE}} validation steps that depend on a presented
-assertion -- token-type matching, descriptor lookup, signature
+assertion (token-type matching, descriptor lookup, signature
 verification, claim validation, `client_id` binding, and replay
-checking -- are satisfied on this carrier by the completed
+checking) are satisfied on this carrier by the completed
 {{ATTEST-CLIENT-AUTH}} validation together with the claim
 requirements of {{agent-claims}}. Replay protection is provided by
 {{ATTEST-CLIENT-AUTH}} validation, including the DPoP proof
@@ -339,7 +339,7 @@ the issuer identifier of the validated Client Attestation JWT. For
 self-acting cases, the Attester issuer is not represented as a
 standard access-token claim; the AS MUST retain it with token
 state for revocation, introspection, audit, and issuer-aware
-resource-server policy -- in particular, per-instance revocation
+resource-server policy; in particular, per-instance revocation
 keyed on the issuer-and-subject pair per {{CIA-CORE}} depends on
 it.
 
@@ -369,9 +369,9 @@ per {{RFC7591}}, applicable to any registration model supported by
   registered for this profile: the AS MUST require
   `agent_instance_id` in the client's Agent Instance Evidence
   ({{agent-claims}}), MUST apply the surfacing rules of
-  {{surfacing}}, and -- when the Client Attestation carrier is
-  used -- this registration constitutes the client's agreement
-  required by {{carrier-attest}}. Deployments without access to
+  {{surfacing}}, and, when the Client Attestation carrier is used,
+  this registration constitutes the client's agreement required by
+  {{carrier-attest}}. Deployments without access to
   this parameter MAY establish the same registration by
   out-of-band agreement.
 
@@ -398,7 +398,7 @@ access token's `cnf` confirmation claim directly.
 Because the subject is Attester-minted and key-independent:
 
 * the identity is stable across DPoP or binding-key rotation
-  within an instance's lifetime -- access tokens obtained with a
+  within an instance's lifetime: access tokens obtained with a
   rotated key carry the same instance subject, so resource-server
   policy state and audit trails keyed on the subject survive
   rotation ({{refresh}} covers the refresh-token interaction);
@@ -500,8 +500,8 @@ after migrating between nodes) therefore cannot use a
 previously issued refresh token with the new key; it obtains new
 tokens through a fresh grant or token exchange, presenting fresh
 evidence that carries its unchanged `agent_instance_id`. The
-instance's identity -- and everything resource servers key on it
--- is unaffected by the rotation ({{subject}}).
+instance's identity, and everything resource servers key on it,
+is unaffected by the rotation ({{subject}}).
 
 # Trust Model and Assurance Tiers {#trust}
 
@@ -571,8 +571,8 @@ conforms to {{ATTEST-CLIENT-AUTH}} and to the activation-policy
 requirement of {{carrier-attest}}.
 
 An Agent Attester conforms by meeting the minting requirements of
-{{agent-claims}} -- in particular the uniqueness, stability,
-non-reassignment, and key-independence of `agent_instance_id` --
+{{agent-claims}} (in particular the uniqueness, stability,
+non-reassignment, and key-independence of `agent_instance_id`)
 and, per carrier, the obligations of a {{CIA-CORE}} instance
 issuer or an {{ATTEST-CLIENT-AUTH}} Attester.
 
@@ -606,8 +606,8 @@ are trusting the Attester's issuance discipline.
 On the Client Instance Assertion carrier, {{CIA-CORE}}'s short
 assertion lifetimes bound the drift window. On the Client
 Attestation carrier, the window is bounded by the Client
-Attestation's lifetime -- which some Attester ecosystems set to
-hours or days -- plus DPoP proof freshness; the DPoP proof
+Attestation's lifetime, which some Attester ecosystems set to
+hours or days, plus DPoP proof freshness; the DPoP proof
 establishes recent possession of the bound key, not recent
 Attester endorsement. Deployments requiring current provenance
 SHOULD use short-lived evidence and SHOULD require fresh evidence
@@ -686,9 +686,9 @@ surface SHOULD use the Client Instance Assertion carrier.
 
 ## Privacy {#security-privacy}
 
-Agent provenance claims reveal implementation details --
-orchestrator, model identity and version, indirectly the
-platform's upgrade cadence -- to every resource server that
+Agent provenance claims reveal implementation details
+(orchestrator, model identity and version, and indirectly the
+platform's upgrade cadence) to every resource server that
 receives them. Surfacing is therefore selective ({{surfacing}}):
 the AS surfaces only what local policy requires, and
 `agent_runtime` evidence is never surfaced verbatim.
@@ -707,7 +707,7 @@ contexts the user would consider separate.
 Instance identity supports attribution, per-agent policy, and
 containment; it does not constrain what a compromised or
 prompt-injected agent does within the scope it was granted. An
-attested chain records which instance acted -- it does not make
+attested chain records which instance acted; it does not make
 the action safe. Least-privilege composition (scope design,
 {{RFC9396}} authorization details, per-exchange attenuation as in
 {{chains}}) remains the containment mechanism; this profile makes
@@ -860,8 +860,8 @@ text.
 {:numbered="false"}
 
 Deriving the instance subject from a proof-of-possession key
-thumbprint is superficially attractive -- it requires no minting
-infrastructure -- but fails as identity. A key thumbprint carries
+thumbprint is superficially attractive, since it requires no
+minting infrastructure, but fails as identity. A key thumbprint carries
 no semantic content an audit record or policy can act on; key
 rotation silently mints a new actor, orphaning audit trails and
 resource-server policy state at exactly the moments (migration,
@@ -876,7 +876,7 @@ key-independent identifier and forbids key-derived subjects
 {:numbered="false"}
 
 The interoperable surface of this profile is the claims, the
-subject derivation, and the token surfacing -- not the transport
+subject derivation, and the token surfacing, not the transport
 that conveys the claims to the AS. Workload-style agent platforms
 already operate instance issuers and fit {{CIA-CORE}}'s assertion
 carrier; platforms in ecosystems deploying
@@ -930,8 +930,8 @@ Attester-minted identity makes "same instance, new key" provable.
 It was rejected for this version: it would relax a {{CIA-CORE}}
 MUST and enlarge the refresh-token replay surface to the Attester
 trust boundary. Identity continuity across rotation is preserved
-without it -- new grants and exchanges under the unchanged
-`agent_instance_id` carry the same subject ({{refresh}}) -- at
+without it, since new grants and exchanges under the unchanged
+`agent_instance_id` carry the same subject ({{refresh}}), at
 the cost of one extra grant round-trip after a rotation.
 
 # Worked Example: Agent Calling an MCP Server {#appendix-example-mcp}
@@ -980,8 +980,8 @@ Alice authorizes the assistant through a standard
 authorization_code flow with PKCE; her consent covers the client as
 a whole, per {{CIA-CORE}}'s authorization-time consistency rules.
 To handle her request, the platform's control plane spawns agent
-instance `sess-9f2c`, provisions it a per-instance DPoP key, and --
-acting as the Agent Attester -- mints a Client Instance Assertion
+instance `sess-9f2c`, provisions it a per-instance DPoP key, and,
+acting as the Agent Attester, mints a Client Instance Assertion
 carrying the claims of {{agent-claims}}:
 
 ~~~ json
@@ -1071,7 +1071,7 @@ only `client_id`:
   see {{agent-claims}} and {{security-freshness}} for the limits
   of such policy.)
 * Rate limits and anomaly detection are keyed on
-  `(client_id, act.sub)` -- one runaway session is throttled
+  `(client_id, act.sub)`: one runaway session is throttled
   without affecting the platform's other agents.
 * The audit record attributes the action end to end:
   "`alice@example.com` via agent instance `sess-9f2c` (model
@@ -1079,14 +1079,14 @@ only `client_id`:
 
 If `sess-9f2c` misbehaves, the MCP server reports `act.sub`; the
 platform terminates the session, and the AS applies per-instance
-revocation keyed on `(act.iss, act.sub)` per {{CIA-CORE}} --
+revocation keyed on `(act.iss, act.sub)` per {{CIA-CORE}},
 containing one agent without revoking the platform's client
 registration.
 
 ## Sub-Agent Spawn (Attested Chain)
 {:numbered="false"}
 
-The agent delegates a subtask -- summarizing a long issue thread --
+The agent delegates a subtask (summarizing a long issue thread)
 to a specialized sub-agent. The platform spawns instance
 `sess-a114` running a smaller model, with its own DPoP key and its
 own assertion (`agent_instance_id` `.../instances/sess-a114`,
