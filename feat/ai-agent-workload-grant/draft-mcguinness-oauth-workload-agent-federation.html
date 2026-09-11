@@ -1166,10 +1166,13 @@ acting for a user through the OAuth Actor Profile.<a href="#section-abstract-1" 
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
                 <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-relationship-to-client-atte" class="internal xref">Relationship to Client Attestation and Actor Profile</a></p>
 </li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-choosing-an-identity-model" class="internal xref">Choosing an Identity Model</a></p>
+</li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
-            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-scope" class="internal xref">Conventions and Scope</a></p>
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-scope" class="internal xref">Conventions and Scope</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
             <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-profile-selection-and-ident" class="internal xref">Profile Selection and Identity Binding</a></p>
@@ -1255,11 +1258,12 @@ acting for a user through the OAuth Actor Profile.<a href="#section-abstract-1" 
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">An OAuth client can host several independently governed agents.
-Authenticating the client does not identify which agent is acting.
-An identity provider (IdP) needs a validated binding between the
-platform's agent identifier, the executing instance, and a stable
-agent principal in its own namespace before issuing authority.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-1">An agent can have its own OAuth client identity, or a shared OAuth
+client can host several independently governed agents. In the first
+case, <code>client_id</code> identifies the agent; in the second, an additional
+<code>agent_id</code> distinguishes agents within the shared client. An identity
+provider (IdP) binds that authenticated identity and its executing
+instance to a stable agent principal in its own namespace.<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">This document standardizes that binding and two exchanges:<a href="#section-1-2" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-1-3">
 <li id="section-1-3.1">
@@ -1279,8 +1283,8 @@ and their downstream processing come from WAG, ID-JAG, and
 <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, with the binding requirements in <a href="#consumption" class="auto internal xref">Section 6</a>.
 This document does not define another downstream grant profile.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">Existing client-based delegation, including MCP Enterprise-Managed
-Authorization, does not require this flow. Compatibility and
-provisioning guidance are informative in <a href="#deployment" class="auto internal xref">Appendix "Deployment and Compatibility"</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
+Authorization, does not require this flow. Model selection is described in
+<a href="#models" class="auto internal xref">Section 1.2</a> and compatibility guidance in <a href="#deployment" class="auto internal xref">Appendix "Deployment and Compatibility"</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <div id="relationship-to-client-attestation-and-actor-profile">
 <section id="section-1.1">
         <h3 id="name-relationship-to-client-atte">
@@ -1289,9 +1293,10 @@ provisioning guidance are informative in <a href="#deployment" class="auto inter
 <p id="section-1.1-1"><span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> authenticates a client instance using an attester-issued
 Client Attestation and proof of possession of its key. <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>
 adds a stable instance identifier while retaining the base JWT type,
-<code>sub=client_id</code>, and <code>cnf.jwk</code>. This document adds <code>agent_id</code> and
-its authorized mapping at the IdP. It uses the existing ATTEST
-headers and DPoP combined mode, not a new authentication method.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<code>sub=client_id</code>, and <code>cnf.jwk</code>. This document defines the authorized
+agent mapping at the IdP, adding <code>agent_id</code> only for shared clients.
+It uses the existing ATTEST headers and DPoP combined mode, not a
+new authentication method.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
 <p id="section-1.1-2">The Client Attestation is authentication evidence. The IdP-issued
 access token identifies the resolved agent and authorizes exchange
 at the IdP. The resulting WAG or ID-JAG authorizes issuance at a
@@ -1302,6 +1307,64 @@ preservation rules. The registered agent is the actor; the instance
 is execution context. Self-acting access and instance identification
 alone do not require Actor Profile. Downstream servers trust the
 IdP's grant and need not validate the platform's attestation.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="models">
+<section id="section-1.2">
+        <h3 id="name-choosing-an-identity-model">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-choosing-an-identity-model" class="section-name selfRef">Choosing an Identity Model</a>
+        </h3>
+<p id="section-1.2-1">This section is informative.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">Choose the model according to the principal the IdP governs and
+the identity the platform can authenticate:<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Model</th>
+              <th class="text-left" rowspan="1" colspan="1">Use when</th>
+              <th class="text-left" rowspan="1" colspan="1">Identity and token path</th>
+              <th class="text-left" rowspan="1" colspan="1">Reason and cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Existing client-based delegation</td>
+              <td class="text-left" rowspan="1" colspan="1">The OAuth client is sufficient for policy and no separate registered agent identity is needed</td>
+              <td class="text-left" rowspan="1" colspan="1">Existing ID-JAG/EMA flow; client context is implicit, or Actor Profile represents the client explicitly</td>
+              <td class="text-left" rowspan="1" colspan="1">Preserves current deployments without an additional bootstrap; a shared client does not distinguish its agents</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agent with its own client identity</td>
+              <td class="text-left" rowspan="1" colspan="1">The IdP governs a Registered Agent and that agent can authenticate as its own OAuth client</td>
+              <td class="text-left" rowspan="1" colspan="1">ATTEST <code>sub=client_id</code>; map to Registered Agent, obtain an IdP access token, then request WAG or ID-JAG</td>
+              <td class="text-left" rowspan="1" colspan="1">Simplest federation binding; requires managing a client identity for each independently identified agent</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Agents behind a shared client</td>
+              <td class="text-left" rowspan="1" colspan="1">The IdP governs agents individually but the platform authenticates through a common OAuth client</td>
+              <td class="text-left" rowspan="1" colspan="1">ATTEST <code>sub=client_id</code> plus <code>agent_id</code>; map to Registered Agent, then use the same acquisition and exchange flow</td>
+              <td class="text-left" rowspan="1" colspan="1">Avoids separate client identities for hosted agents; requires trusting the attester to distinguish agents and authorize their runtimes</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-1.2-4">Use the existing client-based path when its identity and policy
+semantics are sufficient. When a Registered Agent identity is needed,
+prefer the agent's own client identity if available. Use <code>agent_id</code>
+to distinguish agents behind a shared client, rather than duplicating
+an identity already supplied by <code>client_id</code>. These choices do not
+depend on whether the implementation is an MCP client or uses CIMD.<a href="#section-1.2-4" class="pilcrow">¶</a></p>
+<p id="section-1.2-5">The acting relationship is a separate choice. In either federation
+model, self-acting access produces WAG with the Registered Agent as
+<code>sub</code>; user-delegated access produces ID-JAG with the user as <code>sub</code>
+and the Registered Agent as <code>act</code>. An agent can therefore be both
+an OAuth client and a delegated actor. Mapping its client identity
+to an IdP principal does not create another actor hop.<a href="#section-1.2-5" class="pilcrow">¶</a></p>
+<p id="section-1.2-6">Runtime identity is another dimension: one agent can run several
+instances. <code>client_instance_id</code> distinguishes executions for audit
+and risk; it does not choose the agent principal or acting relationship.
+The federation flow specified here requires instance identification;
+existing client-based flows can use it independently when needed.<a href="#section-1.2-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1328,7 +1391,8 @@ non-reassignable identifier, status, and authorized platform bindings.<a href="#
 <dt id="section-2-3.3">Federation Binding:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.4">
           <p id="section-2-3.4.1">An approved association between a Client Attester, logical OAuth
-client, platform agent identifier, tenant, and Registered Agent.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+client, tenant, and Registered Agent, including a platform agent
+identifier when the client is shared.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1353,22 +1417,55 @@ trust and key configuration follow <span>[<a href="#INSTANCE" class="cite xref">
 also identify approved RAS issuers, resources, target tenants, and
 applicable subject and client mappings. An unsigned request hint
 or discovered client metadata <span class="bcp14">MUST NOT</span> establish this authority.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">For each request, the IdP <span class="bcp14">MUST</span> resolve the exact tuple of attestation
-<code>iss</code>, <code>sub</code>, and <code>agent_id</code> through an approved Federation Binding.
-The attestation's <code>sub</code> is the logical client identifier, while
-<code>agent_id</code> names the agent in that attester's namespace. Missing or
-ambiguous bindings <span class="bcp14">MUST</span> cause rejection. Multiple approved bindings
-<span class="bcp14">MAY</span> identify the same Registered Agent; display names or unqualified
-subject strings <span class="bcp14">MUST NOT</span> establish equivalence.<a href="#section-3-2" class="pilcrow">¶</a></p>
-<p id="section-3-3">The Registered Agent identifier <span class="bcp14">MUST</span> be unique and non-reassignable
+<p id="section-3-2">The IdP <span class="bcp14">MUST</span> configure which identity model applies to each client:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Client represents</th>
+            <th class="text-left" rowspan="1" colspan="1">Required attestation identity</th>
+            <th class="text-left" rowspan="1" colspan="1">Federation Binding lookup</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">One agent</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>sub=client_id</code>; no <code>agent_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Exact <code>(iss, sub)</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Several agents</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>sub=client_id</code> and <code>agent_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Exact <code>(iss, sub, agent_id)</code>
+</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-3-4">For an agent with its own client identity, the IdP <span class="bcp14">MUST</span> resolve
+the attestation's <code>(iss, sub)</code> to its Registered Agent. No separate
+agent identifier is required from the platform. For a shared client,
+<code>agent_id</code> identifies the platform's agent principal and <span class="bcp14">MUST</span> be
+included in the lookup. The IdP <span class="bcp14">MUST</span> reject <code>agent_id</code> in the first
+model and require it in the second; claim presence or absence <span class="bcp14">MUST NOT</span> select or change the configured model.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">Missing or ambiguous bindings <span class="bcp14">MUST</span> cause rejection. Multiple approved
+bindings <span class="bcp14">MAY</span> identify the same Registered Agent; display names or
+unqualified subject strings <span class="bcp14">MUST NOT</span> establish equivalence. The IdP's
+Registered Agent identifier need not equal the source <code>client_id</code>
+or <code>agent_id</code>.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">The Registered Agent identifier <span class="bcp14">MUST</span> be unique and non-reassignable
 within the IdP issuer's namespace. Source and target tenant context
 <span class="bcp14">MUST</span> be unambiguous, including when an issuer serves several tenants.
-A new runtime or key does not by itself create a new Registered Agent.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4">A client required to use this profile <span class="bcp14">MUST NOT</span> obtain equivalent
-authority by omitting agent evidence or substituting credentials
-that identify only the shared client. Failed validation <span class="bcp14">MUST NOT</span>
+A new runtime or key does not by itself create a new Registered Agent.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">A client required to use this profile <span class="bcp14">MUST NOT</span> obtain equivalent
+authority by omitting required agent evidence or substituting
+credentials that identify only the shared client. Failed validation <span class="bcp14">MUST NOT</span>
 fall back to a less restrictive path. Other configured client flows
-remain governed by their own specifications.<a href="#section-3-4" class="pilcrow">¶</a></p>
+remain governed by their own specifications.<a href="#section-3-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="bootstrap">
@@ -1384,22 +1481,27 @@ it does not introduce a new token type or scope value.<a href="#section-4-1" cla
         <h3 id="name-agent-evidence">
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-agent-evidence" class="section-name selfRef">Agent Evidence</a>
         </h3>
-<p id="section-4.1-1">The Client Attestation <span class="bcp14">MUST</span> conform to <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> and include
-<code>agent_id</code>, a nonempty StringOrURI <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> identifying the
-platform's agent principal. The attester <span class="bcp14">MUST</span> verify that the
-instance is an authorized execution of that agent and possesses
-the key in <code>cnf.jwk</code>. A caller-supplied identifier alone is insufficient.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
-<p id="section-4.1-2">The attestation's <code>sub</code> remains <code>client_id</code>; <code>client_instance_id</code>
+<p id="section-4.1-1">The Client Attestation <span class="bcp14">MUST</span> conform to <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. When the client
+represents the agent, its <code>sub</code> supplies the agent identity and the
+attestation <span class="bcp14">MUST</span> omit <code>agent_id</code>. For a shared client, the attestation
+<span class="bcp14">MUST</span> include <code>agent_id</code>, a nonempty StringOrURI <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> identifying
+the platform's agent principal in the attester's namespace.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">In either model, the attester <span class="bcp14">MUST</span> verify that the instance is an
+authorized execution of the identified agent and possesses the key
+in <code>cnf.jwk</code>. A caller-supplied identifier alone is insufficient.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">The attestation's <code>sub</code> remains <code>client_id</code>; <code>client_instance_id</code>
 identifies the runtime. The attestation lifetime <span class="bcp14">MUST NOT</span> exceed
-300 seconds. Missing, empty, or incorrectly typed agent evidence
-<span class="bcp14">MUST</span> cause rejection. No model or runtime provenance claims are
-defined here.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
-<p id="section-4.1-3">Example decoded Client Attestation payload:<a href="#section-4.1-3" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-4.1-4">
+300 seconds. Missing required claims, empty identifiers, or incorrectly
+typed agent evidence <span class="bcp14">MUST</span> cause rejection. No model or runtime
+provenance claims are defined here.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">Example decoded Client Attestation payload for an agent with its
+own client identity. The IdP maps this client to <code>agent-42</code>; the
+subsequent requests and grants use that binding.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-4.1-5">
 <pre>
 {
   "iss": "https://attester.example/tenant/acme",
-  "sub": "https://platform.example/oauth-client",
+  "sub": "https://platform.example/agents/support-agent-7",
   "client_instance_id": "inst-7f3d9a2e",
   "iat": 1789128000,
   "exp": 1789128300,
@@ -1410,11 +1512,15 @@ defined here.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
       "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
       "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
     }
-  },
-  "agent_id": "support-agent-7"
+  }
 }
-</pre><a href="#section-4.1-4" class="pilcrow">¶</a>
+</pre><a href="#section-4.1-5" class="pilcrow">¶</a>
 </div>
+<p id="section-4.1-6">For a shared client, the attestation instead uses that client's
+identifier, such as <code>https://platform.example/oauth-client</code>, as
+<code>sub</code> and includes <code>"agent_id": "support-agent-7"</code>. The request's
+<code>client_id</code> matches that shared client identifier. The approved
+binding can resolve to the same <code>agent-42</code> in either model.<a href="#section-4.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="request">
@@ -1439,7 +1545,7 @@ OAuth-Client-Attestation: eyJ...attestation...
 DPoP: eyJ...instance-proof...
 
 grant_type=client_credentials
-&amp;client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+&amp;client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
 &amp;resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
 </pre><a href="#section-4.2-3" class="pilcrow">¶</a>
 </div>
@@ -1455,8 +1561,8 @@ resolve the Federation Binding, and verify that the Registered
 Agent is active and permitted to use this client and exchange
 service. Successful client authentication alone is insufficient.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 <p id="section-4.3-2">The issued access token <span class="bcp14">MUST</span> conform to <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> and contain:<a href="#section-4.3-2" class="pilcrow">¶</a></p>
-<table class="center" id="table-1">
-          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
 <thead>
             <tr>
               <th class="text-left" rowspan="1" colspan="1">Claim</th>
@@ -1581,7 +1687,7 @@ OAuth-Client-Attestation: eyJ...attestation...
 DPoP: eyJ...instance-proof...
 
 grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-&amp;client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+&amp;client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
 &amp;requested_token_type=urn:ietf:params:oauth:token-type:wag
 &amp;subject_token=eyJ...agent-access-token...
 &amp;subject_token_type=urn:ietf:params:oauth:token-type:access_token
@@ -1619,7 +1725,7 @@ OAuth-Client-Attestation: eyJ...attestation...
 DPoP: eyJ...instance-proof...
 
 grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-&amp;client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+&amp;client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
 &amp;requested_token_type=urn:ietf:params:oauth:token-type:id-jag
 &amp;subject_token=eyJ...user-id-token...
 &amp;subject_token_type=urn:ietf:params:oauth:token-type:id_token
@@ -1737,7 +1843,7 @@ principal. The IdP <span class="bcp14">SHOULD</span> scope this reference to the
     "sub": "agent-42",
     "sub_profile": "ai_agent"
   },
-  "client_id": "platform-at-app",
+  "client_id": "support-agent-at-app",
   "aud": "https://as.app.example",
   "resource": "https://api.app.example",
   "scope": "tickets.read",
@@ -1842,7 +1948,7 @@ an earlier access token remains unexpired. This does not promise
 immediate revocation of downstream access tokens.<a href="#section-8-2" class="pilcrow">¶</a></p>
 <p id="section-8-3">Configured requirements for agent identity, key binding, or explicit
 actors <span class="bcp14">MUST NOT</span> be bypassed by choosing an existing client-based
-flow. Supplying only a logical client identity does not authenticate
+flow. Supplying only a shared client identity does not authenticate
 an agent underneath it. Successful grant redemption does not justify
 adding an actor hop merely because a runtime or server participated.<a href="#section-8-3" class="pilcrow">¶</a></p>
 <p id="section-8-4">Stable agent and instance identifiers can permit correlation.
@@ -1860,7 +1966,8 @@ material and private keys <span class="bcp14">MUST NOT</span> appear in grants o
 JWT Claims registry established by <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>, with description
 "Attester-scoped agent principal identifier", reference
 <a href="#agent-evidence" class="auto internal xref">Section 4.1</a>, and Change Controller IETF. Its value is a
-nonempty StringOrURI.<a href="#section-9-1" class="pilcrow">¶</a></p>
+nonempty StringOrURI. This profile uses it only for agents represented
+by a shared client.<a href="#section-9-1" class="pilcrow">¶</a></p>
 <p id="section-9-2"><code>client_instance</code> is defined by <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>; <code>act</code> follows
 <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; <code>ai_agent</code> is defined by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>.
 No new actor format, access-token type, or grant-profile URI is
@@ -2005,34 +2112,35 @@ registered. WAG identifiers are addressed in <a href="#coordination" class="auto
       <h2 id="name-deployment-and-compatibilit">
 <a href="#name-deployment-and-compatibilit" class="section-name selfRef">Deployment and Compatibility</a>
       </h2>
-<p id="appendix-A-1">This appendix is informative. Existing ID-JAG flows, including MCP
+<p id="appendix-A-1">This appendix is informative.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">Existing ID-JAG flows, including MCP
 Enterprise-Managed Authorization <span>[<a href="#EMA" class="cite xref">EMA</a>]</span>, can authorize a client
 for a user without a separately represented agent. The user is the
 subject and the client is identified through normal OAuth context.
 Absence of <code>act</code> does not imply absence of authorization, a human
 presenter, or self-acting access. Those deployments retain their
 existing authentication and sender-constraint choices and need no
-bootstrap from this specification.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<p id="appendix-A-2">CIMD <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> can supply client metadata and a common client identifier
+bootstrap from this specification.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<p id="appendix-A-3">CIMD <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> can supply client metadata and a common client identifier
 across servers. When the client itself is the explicit actor, Actor
 Profile already defines JWT client assertion input, including reuse
 of one JWT as <code>client_assertion</code> and <code>actor_token</code>. That path does not
 require an additional IdP-issued access token or ATTEST. A shared
 client identity does not distinguish separately governed agents.
 Instance identification can add audit context to client-based flows
-without introducing an actor.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
-<p id="appendix-A-3">Agent admission and provisioning can use administrative configuration,
+without introducing an actor.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+<p id="appendix-A-4">Agent admission and provisioning can use administrative configuration,
 JIT, or SCIM Agent resources <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span> with <span>[<a href="#RFC7644" class="cite xref">RFC7644</a>]</span>. A SCIM
 <code>externalId</code> <span>[<a href="#RFC7643" class="cite xref">RFC7643</a>]</span> can correlate a record with the IdP agent
 identifier when issuer and tenant are retained. Groups, ownership,
 and assignments are policy inputs; group claims about an ID-JAG user
 do not describe the agent actor's memberships. Provisioning transport,
 synchronization, policy engines, access-token formats, and introspection
-<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> are deployment choices outside this profile.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
-<p id="appendix-A-4">Native workload mechanisms such as <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> can support
+<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> are deployment choices outside this profile.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+<p id="appendix-A-5">Native workload mechanisms such as <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> can support
 additional input profiles. Those profiles need their own credential
 validation, client and agent mapping, and proof rules. They are not
-interchangeable with the Client Attestation input specified here.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+interchangeable with the Client Attestation input specified here.<a href="#appendix-A-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="interoperability-cases">
@@ -2041,8 +2149,8 @@ interchangeable with the Client Attestation input specified here.<a href="#appen
 <a href="#name-interoperability-cases" class="section-name selfRef">Interoperability Cases</a>
       </h2>
 <p id="appendix-B-1">Independent platform, client, and IdP implementations can exercise:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-2">
-        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<table class="center" id="table-4">
+        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Case</th>
@@ -2051,8 +2159,23 @@ interchangeable with the Client Attestation input specified here.<a href="#appen
         </thead>
         <tbody>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Approved platform binding and instance proof</td>
+            <td class="text-left" rowspan="1" colspan="1">Agent has its own client identity; approved <code>(iss, sub)</code> binding, instance proof, and no <code>agent_id</code>
+</td>
             <td class="text-left" rowspan="1" colspan="1">IdP access token for the Registered Agent</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Shared client; approved <code>(iss, sub, agent_id)</code> binding and instance proof</td>
+            <td class="text-left" rowspan="1" colspan="1">IdP access token for the Registered Agent</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Shared client omits <code>agent_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject; no fallback to client-only binding</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Agent with its own client identity supplies <code>agent_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject; no switch to the shared-client model</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Missing, ambiguous, or disabled binding</td>
@@ -2138,8 +2261,12 @@ identity binding, access-token acquisition, and grant issuance.<a href="#appendi
           <p id="appendix-D-2.2.1">Reused ATTEST instance identification and Actor Profile delegation.<a href="#appendix-D-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-D-2.3">
-          <p id="appendix-D-2.3.1">Moved existing client flows and deployment choices to informative
-guidance and inherited downstream grant processing.<a href="#appendix-D-2.3.1" class="pilcrow">¶</a></p>
+          <p id="appendix-D-2.3.1">Used <code>client_id</code> as agent identity when the agent is the client;
+required <code>agent_id</code> only for agents represented by a shared client.<a href="#appendix-D-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-D-2.4">
+          <p id="appendix-D-2.4.1">Moved existing client flows and deployment choices to informative
+guidance and inherited downstream grant processing.<a href="#appendix-D-2.4.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>

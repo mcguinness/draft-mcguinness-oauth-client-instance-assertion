@@ -77,6 +77,7 @@ Table of Contents
 
    1.  Introduction
      1.1.  Relationship to Client Attestation and Actor Profile
+     1.2.  Choosing an Identity Model
    2.  Conventions and Scope
    3.  Profile Selection and Identity Binding
    4.  Obtaining an IdP Access Token
@@ -104,11 +105,12 @@ Table of Contents
 
 1.  Introduction
 
-   An OAuth client can host several independently governed agents.
-   Authenticating the client does not identify which agent is acting.
-   An identity provider (IdP) needs a validated binding between the
-   platform's agent identifier, the executing instance, and a stable
-   agent principal in its own namespace before issuing authority.
+   An agent can have its own OAuth client identity, or a shared OAuth
+   client can host several independently governed agents.  In the first
+   case, client_id identifies the agent; in the second, an additional
+   agent_id distinguishes agents within the shared client.  An identity
+   provider (IdP) binds that authenticated identity and its executing
+   instance to a stable agent principal in its own namespace.
 
    This document standardizes that binding and two exchanges:
 
@@ -127,18 +129,19 @@ Table of Contents
    document does not define another downstream grant profile.
 
    Existing client-based delegation, including MCP Enterprise-Managed
-   Authorization, does not require this flow.  Compatibility and
-   provisioning guidance are informative in Appendix "Deployment and
-   Compatibility".
+   Authorization, does not require this flow.  Model selection is
+   described in Section 1.2 and compatibility guidance in
+   Appendix "Deployment and Compatibility".
 
 1.1.  Relationship to Client Attestation and Actor Profile
 
    [ATTEST] authenticates a client instance using an attester-issued
    Client Attestation and proof of possession of its key.  [INSTANCE]
    adds a stable instance identifier while retaining the base JWT type,
-   sub=client_id, and cnf.jwk.  This document adds agent_id and its
-   authorized mapping at the IdP.  It uses the existing ATTEST headers
-   and DPoP combined mode, not a new authentication method.
+   sub=client_id, and cnf.jwk.  This document defines the authorized
+   agent mapping at the IdP, adding agent_id only for shared clients.
+   It uses the existing ATTEST headers and DPoP combined mode, not a new
+   authentication method.
 
    The Client Attestation is authentication evidence.  The IdP-issued
    access token identifies the resolved agent and authorizes exchange at
@@ -151,6 +154,75 @@ Table of Contents
    is execution context.  Self-acting access and instance identification
    alone do not require Actor Profile.  Downstream servers trust the
    IdP's grant and need not validate the platform's attestation.
+
+1.2.  Choosing an Identity Model
+
+   This section is informative.
+
+   Choose the model according to the principal the IdP governs and the
+   identity the platform can authenticate:
+
+   +==============+===============+================+===================+
+   | Model        | Use when      | Identity and   | Reason and cost   |
+   |              |               | token path     |                   |
+   +==============+===============+================+===================+
+   | Existing     | The OAuth     | Existing ID-   | Preserves         |
+   | client-based | client is     | JAG/EMA flow;  | current           |
+   | delegation   | sufficient    | client context | deployments       |
+   |              | for policy    | is implicit,   | without an        |
+   |              | and no        | or Actor       | additional        |
+   |              | separate      | Profile        | bootstrap; a      |
+   |              | registered    | represents the | shared client     |
+   |              | agent         | client         | does not          |
+   |              | identity is   | explicitly     | distinguish its   |
+   |              | needed        |                | agents            |
+   +--------------+---------------+----------------+-------------------+
+   | Agent with   | The IdP       | ATTEST         | Simplest          |
+   | its own      | governs a     | sub=client_id; | federation        |
+   | client       | Registered    | map to         | binding;          |
+   | identity     | Agent and     | Registered     | requires          |
+   |              | that agent    | Agent, obtain  | managing a        |
+   |              | can           | an IdP access  | client identity   |
+   |              | authenticate  | token, then    | for each          |
+   |              | as its own    | request WAG or | independently     |
+   |              | OAuth client  | ID-JAG         | identified        |
+   |              |               |                | agent             |
+   +--------------+---------------+----------------+-------------------+
+   | Agents       | The IdP       | ATTEST         | Avoids separate   |
+   | behind a     | governs       | sub=client_id  | client            |
+   | shared       | agents        | plus agent_id; | identities for    |
+   | client       | individually  | map to         | hosted agents;    |
+   |              | but the       | Registered     | requires          |
+   |              | platform      | Agent, then    | trusting the      |
+   |              | authenticates | use the same   | attester to       |
+   |              | through a     | acquisition    | distinguish       |
+   |              | common OAuth  | and exchange   | agents and        |
+   |              | client        | flow           | authorize their   |
+   |              |               |                | runtimes          |
+   +--------------+---------------+----------------+-------------------+
+
+                                  Table 1
+
+   Use the existing client-based path when its identity and policy
+   semantics are sufficient.  When a Registered Agent identity is
+   needed, prefer the agent's own client identity if available.  Use
+   agent_id to distinguish agents behind a shared client, rather than
+   duplicating an identity already supplied by client_id.  These choices
+   do not depend on whether the implementation is an MCP client or uses
+   CIMD.
+
+   The acting relationship is a separate choice.  In either federation
+   model, self-acting access produces WAG with the Registered Agent as
+   sub; user-delegated access produces ID-JAG with the user as sub and
+   the Registered Agent as act.  An agent can therefore be both an OAuth
+   client and a delegated actor.  Mapping its client identity to an IdP
+   principal does not create another actor hop.
+
+   Runtime identity is another dimension: one agent can run several
+   instances. client_instance_id distinguishes executions for audit and
+   risk; it does not choose the agent principal or acting relationship.
+   The federation flow specified here requires instance identification;
+   existing client-based flows can use it independently when needed.
 
 2.  Conventions and Scope
 
@@ -169,8 +241,8 @@ Table of Contents
       platform bindings.
 
    Federation Binding:  An approved association between a Client
-      Attester, logical OAuth client, platform agent identifier, tenant,
-      and Registered Agent.
+      Attester, logical OAuth client, tenant, and Registered Agent,
+      including a platform agent identifier when the client is shared.
 
    A client or IdP claiming this profile MUST implement the bootstrap in
    Section 4 and the exchange requirements for its role and each output
@@ -189,13 +261,34 @@ Table of Contents
    applicable subject and client mappings.  An unsigned request hint or
    discovered client metadata MUST NOT establish this authority.
 
-   For each request, the IdP MUST resolve the exact tuple of attestation
-   iss, sub, and agent_id through an approved Federation Binding.  The
-   attestation's sub is the logical client identifier, while agent_id
-   names the agent in that attester's namespace.  Missing or ambiguous
-   bindings MUST cause rejection.  Multiple approved bindings MAY
-   identify the same Registered Agent; display names or unqualified
-   subject strings MUST NOT establish equivalence.
+   The IdP MUST configure which identity model applies to each client:
+
+       +===================+======================+================+
+       | Client represents | Required attestation | Federation     |
+       |                   | identity             | Binding lookup |
+       +===================+======================+================+
+       | One agent         | sub=client_id; no    | Exact (iss,    |
+       |                   | agent_id             | sub)           |
+       +-------------------+----------------------+----------------+
+       | Several agents    | sub=client_id and    | Exact (iss,    |
+       |                   | agent_id             | sub, agent_id) |
+       +-------------------+----------------------+----------------+
+
+                                  Table 2
+
+   For an agent with its own client identity, the IdP MUST resolve the
+   attestation's (iss, sub) to its Registered Agent.  No separate agent
+   identifier is required from the platform.  For a shared client,
+   agent_id identifies the platform's agent principal and MUST be
+   included in the lookup.  The IdP MUST reject agent_id in the first
+   model and require it in the second; claim presence or absence MUST
+   NOT select or change the configured model.
+
+   Missing or ambiguous bindings MUST cause rejection.  Multiple
+   approved bindings MAY identify the same Registered Agent; display
+   names or unqualified subject strings MUST NOT establish equivalence.
+   The IdP's Registered Agent identifier need not equal the source
+   client_id or agent_id.
 
    The Registered Agent identifier MUST be unique and non-reassignable
    within the IdP issuer's namespace.  Source and target tenant context
@@ -204,10 +297,10 @@ Table of Contents
    Agent.
 
    A client required to use this profile MUST NOT obtain equivalent
-   authority by omitting agent evidence or substituting credentials that
-   identify only the shared client.  Failed validation MUST NOT fall
-   back to a less restrictive path.  Other configured client flows
-   remain governed by their own specifications.
+   authority by omitting required agent evidence or substituting
+   credentials that identify only the shared client.  Failed validation
+   MUST NOT fall back to a less restrictive path.  Other configured
+   client flows remain governed by their own specifications.
 
 4.  Obtaining an IdP Access Token
 
@@ -217,23 +310,29 @@ Table of Contents
 
 4.1.  Agent Evidence
 
-   The Client Attestation MUST conform to [INSTANCE] and include
-   agent_id, a nonempty StringOrURI [RFC7519] identifying the platform's
-   agent principal.  The attester MUST verify that the instance is an
-   authorized execution of that agent and possesses the key in cnf.jwk.
-   A caller-supplied identifier alone is insufficient.
+   The Client Attestation MUST conform to [INSTANCE].  When the client
+   represents the agent, its sub supplies the agent identity and the
+   attestation MUST omit agent_id.  For a shared client, the attestation
+   MUST include agent_id, a nonempty StringOrURI [RFC7519] identifying
+   the platform's agent principal in the attester's namespace.
+
+   In either model, the attester MUST verify that the instance is an
+   authorized execution of the identified agent and possesses the key in
+   cnf.jwk.  A caller-supplied identifier alone is insufficient.
 
    The attestation's sub remains client_id; client_instance_id
    identifies the runtime.  The attestation lifetime MUST NOT exceed 300
-   seconds.  Missing, empty, or incorrectly typed agent evidence MUST
-   cause rejection.  No model or runtime provenance claims are defined
-   here.
+   seconds.  Missing required claims, empty identifiers, or incorrectly
+   typed agent evidence MUST cause rejection.  No model or runtime
+   provenance claims are defined here.
 
-   Example decoded Client Attestation payload:
+   Example decoded Client Attestation payload for an agent with its own
+   client identity.  The IdP maps this client to agent-42; the
+   subsequent requests and grants use that binding.
 
    {
      "iss": "https://attester.example/tenant/acme",
-     "sub": "https://platform.example/oauth-client",
+     "sub": "https://platform.example/agents/support-agent-7",
      "client_instance_id": "inst-7f3d9a2e",
      "iat": 1789128000,
      "exp": 1789128300,
@@ -244,9 +343,14 @@ Table of Contents
          "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
          "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
        }
-     },
-     "agent_id": "support-agent-7"
+     }
    }
+
+   For a shared client, the attestation instead uses that client's
+   identifier, such as https://platform.example/oauth-client, as sub and
+   includes "agent_id": "support-agent-7".  The request's client_id
+   matches that shared client identifier.  The approved binding can
+   resolve to the same agent-42 in either model.
 
 4.2.  Request
 
@@ -267,7 +371,7 @@ Table of Contents
    DPoP: eyJ...instance-proof...
 
    grant_type=client_credentials
-   &client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+   &client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
    &resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
 
 4.3.  Processing and Response
@@ -300,7 +404,7 @@ Table of Contents
      |                 | instance key under [RFC7638]               |
      +-----------------+--------------------------------------------+
 
-                                 Table 1
+                                 Table 3
 
    The token MUST NOT contain act.  Its lifetime MUST NOT exceed 300
    seconds or the attestation's remaining lifetime.  The IdP MUST
@@ -355,7 +459,7 @@ Table of Contents
    DPoP: eyJ...instance-proof...
 
    grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-   &client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+   &client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
    &requested_token_type=urn:ietf:params:oauth:token-type:wag
    &subject_token=eyJ...agent-access-token...
    &subject_token_type=urn:ietf:params:oauth:token-type:access_token
@@ -386,7 +490,7 @@ Table of Contents
    DPoP: eyJ...instance-proof...
 
    grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-   &client_id=https%3A%2F%2Fplatform.example%2Foauth-client
+   &client_id=https%3A%2F%2Fplatform.example%2Fagents%2Fsupport-agent-7
    &requested_token_type=urn:ietf:params:oauth:token-type:id-jag
    &subject_token=eyJ...user-id-token...
    &subject_token_type=urn:ietf:params:oauth:token-type:id_token
@@ -491,7 +595,7 @@ Table of Contents
        "sub": "agent-42",
        "sub_profile": "ai_agent"
      },
-     "client_id": "platform-at-app",
+     "client_id": "support-agent-at-app",
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
@@ -582,7 +686,7 @@ Table of Contents
 
    Configured requirements for agent identity, key binding, or explicit
    actors MUST NOT be bypassed by choosing an existing client-based
-   flow.  Supplying only a logical client identity does not authenticate
+   flow.  Supplying only a shared client identity does not authenticate
    an agent underneath it.  Successful grant redemption does not justify
    adding an actor hop merely because a runtime or server participated.
 
@@ -596,7 +700,8 @@ Table of Contents
    This specification requests registration of agent_id in the JWT
    Claims registry established by [RFC7519], with description "Attester-
    scoped agent principal identifier", reference Section 4.1, and Change
-   Controller IETF.  Its value is a nonempty StringOrURI.
+   Controller IETF.  Its value is a nonempty StringOrURI.  This profile
+   uses it only for agents represented by a shared client.
 
    client_instance is defined by [INSTANCE]; act follows
    [ACTOR-PROFILE]; ai_agent is defined by [ENTITY-PROFILES].  No new
@@ -760,14 +865,16 @@ Table of Contents
 
 Deployment and Compatibility
 
-   This appendix is informative.  Existing ID-JAG flows, including MCP
-   Enterprise-Managed Authorization [EMA], can authorize a client for a
-   user without a separately represented agent.  The user is the subject
-   and the client is identified through normal OAuth context.  Absence
-   of act does not imply absence of authorization, a human presenter, or
-   self-acting access.  Those deployments retain their existing
-   authentication and sender-constraint choices and need no bootstrap
-   from this specification.
+   This appendix is informative.
+
+   Existing ID-JAG flows, including MCP Enterprise-Managed Authorization
+   [EMA], can authorize a client for a user without a separately
+   represented agent.  The user is the subject and the client is
+   identified through normal OAuth context.  Absence of act does not
+   imply absence of authorization, a human presenter, or self-acting
+   access.  Those deployments retain their existing authentication and
+   sender-constraint choices and need no bootstrap from this
+   specification.
 
    CIMD [CIMD] can supply client metadata and a common client identifier
    across servers.  When the client itself is the explicit actor, Actor
@@ -797,41 +904,55 @@ Interoperability Cases
 
    Independent platform, client, and IdP implementations can exercise:
 
-         +================================+======================+
-         | Case                           | Required result      |
-         +================================+======================+
-         | Approved platform binding and  | IdP access token for |
-         | instance proof                 | the Registered Agent |
-         +--------------------------------+----------------------+
-         | Missing, ambiguous, or         | Reject issuance      |
-         | disabled binding               |                      |
-         +--------------------------------+----------------------+
-         | Same agent in a second runtime | Same agent subject;  |
-         |                                | distinct instance    |
-         +--------------------------------+----------------------+
-         | Unrelated client, agent,       | Reject inconsistent  |
-         | instance, or key at exchange   | evidence             |
-         +--------------------------------+----------------------+
-         | Agent acting for itself        | WAG subject is the   |
-         |                                | agent; no act        |
-         +--------------------------------+----------------------+
-         | Agent acting for a user        | User subject;        |
-         |                                | Registered Agent act |
-         +--------------------------------+----------------------+
-         | Valid user and agent           | actor_unauthorized   |
-         | credentials without delegation |                      |
-         +--------------------------------+----------------------+
-         | Unsupported requested output   | invalid_request; no  |
-         |                                | fallback             |
-         +--------------------------------+----------------------+
-         | Optional downstream instance   | Same principal and   |
-         | context                        | binding semantics    |
-         +--------------------------------+----------------------+
-         | Grant redemption with missing  | Reject under the     |
-         | or mismatched proof            | bound-grant rules    |
-         +--------------------------------+----------------------+
+       +====================================+=====================+
+       | Case                               | Required result     |
+       +====================================+=====================+
+       | Agent has its own client identity; | IdP access token    |
+       | approved (iss, sub) binding,       | for the Registered  |
+       | instance proof, and no agent_id    | Agent               |
+       +------------------------------------+---------------------+
+       | Shared client; approved (iss, sub, | IdP access token    |
+       | agent_id) binding and instance     | for the Registered  |
+       | proof                              | Agent               |
+       +------------------------------------+---------------------+
+       | Shared client omits agent_id       | Reject; no fallback |
+       |                                    | to client-only      |
+       |                                    | binding             |
+       +------------------------------------+---------------------+
+       | Agent with its own client identity | Reject; no switch   |
+       | supplies agent_id                  | to the shared-      |
+       |                                    | client model        |
+       +------------------------------------+---------------------+
+       | Missing, ambiguous, or disabled    | Reject issuance     |
+       | binding                            |                     |
+       +------------------------------------+---------------------+
+       | Same agent in a second runtime     | Same agent subject; |
+       |                                    | distinct instance   |
+       +------------------------------------+---------------------+
+       | Unrelated client, agent, instance, | Reject inconsistent |
+       | or key at exchange                 | evidence            |
+       +------------------------------------+---------------------+
+       | Agent acting for itself            | WAG subject is the  |
+       |                                    | agent; no act       |
+       +------------------------------------+---------------------+
+       | Agent acting for a user            | User subject;       |
+       |                                    | Registered Agent    |
+       |                                    | act                 |
+       +------------------------------------+---------------------+
+       | Valid user and agent credentials   | actor_unauthorized  |
+       | without delegation                 |                     |
+       +------------------------------------+---------------------+
+       | Unsupported requested output       | invalid_request; no |
+       |                                    | fallback            |
+       +------------------------------------+---------------------+
+       | Optional downstream instance       | Same principal and  |
+       | context                            | binding semantics   |
+       +------------------------------------+---------------------+
+       | Grant redemption with missing or   | Reject under the    |
+       | mismatched proof                   | bound-grant rules   |
+       +------------------------------------+---------------------+
 
-                                  Table 2
+                                 Table 4
 
    Only cases for the implemented output are applicable.  Existing
    client-based deployments are compatibility context, not an additional
@@ -865,6 +986,9 @@ Document History
 
    *  Reused ATTEST instance identification and Actor Profile
       delegation.
+
+   *  Used client_id as agent identity when the agent is the client;
+      required agent_id only for agents represented by a shared client.
 
    *  Moved existing client flows and deployment choices to informative
       guidance and inherited downstream grant processing.
