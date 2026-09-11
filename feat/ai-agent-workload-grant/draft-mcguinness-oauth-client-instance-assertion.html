@@ -1951,7 +1951,11 @@ moving a CIA to <code>subject_token</code> in an ordinary access-token
 exchange, or choosing a different representation by matching
 subject strings. Authorization-grant contents are governed by the
 companion profile; <a href="#access-token" class="auto internal xref">Section 8.6</a> governs access tokens issued
-under this document.<a href="#section-4.2.1-2" class="pilcrow">¶</a></p>
+under this document.
+Use of this extension does not relax the requirement for CIA
+implementations to implement <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>. That dependency
+does not require a companion profile to introduce an <code>act</code> claim
+when its grant represents no delegated actor.<a href="#section-4.2.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3320,7 +3324,7 @@ configuration. It is not inferred from subject-string similarity.<a href="#secti
                 <td class="text-left" rowspan="1" colspan="1">delegation by default; subject-instance under an explicit grant profile</td>
               </tr>
               <tr>
-                <td class="text-left" rowspan="1" colspan="1">token-exchange (<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>)</td>
+                <td class="text-left" rowspan="1" colspan="1">token-exchange for access-token issuance (<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>)</td>
                 <td class="text-left" rowspan="1" colspan="1">the <code>subject_token</code>'s subject</td>
                 <td class="text-left" rowspan="1" colspan="1">delegation</td>
               </tr>
@@ -3344,12 +3348,15 @@ acts as itself and no duplicate actor is introduced. That profile
 normally uses WAG without a separate Client Instance Assertion;
 this document applies only when an instance assertion is also
 presented and its OAuth client binding is validated.<a href="#section-8.6.1-4" class="pilcrow">¶</a></p>
-<p id="section-8.6.1-5">Token exchange remains delegation under this profile, including
+<p id="section-8.6.1-5">Token exchange for access-token issuance remains delegation under
+this profile, including
 when the <code>subject_token</code> was a self-acting or subject-instance
 access token naming the same instance now presenting the
 assertion. Its actor chain <span class="bcp14">MUST NOT</span> be collapsed by matching
 identifiers. The subject-instance exception for JWT authorization
-grants does not alter token-exchange chain processing.<a href="#section-8.6.1-5" class="pilcrow">¶</a></p>
+grants does not alter token-exchange chain processing.
+Token exchange for authorization-grant issuance follows the
+explicitly selected companion profile under <a href="#subject-evidence-profiles" class="auto internal xref">Section 4.2.1</a>.<a href="#section-8.6.1-5" class="pilcrow">¶</a></p>
 <p id="section-8.6.1-6">When none of these classifications applies (for example, custom
 or experimental grants), the AS <span class="bcp14">MUST</span> refuse issuance with
 <code>invalid_grant</code> (<a href="#errors" class="auto internal xref">Section 8.9</a>) rather than guess.<a href="#section-8.6.1-6" class="pilcrow">¶</a></p>

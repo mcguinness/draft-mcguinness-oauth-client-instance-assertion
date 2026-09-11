@@ -138,6 +138,14 @@ Table of Contents
    defined by [RFC7523].  Both requests use Demonstrating Proof of
    Possession (DPoP) [RFC9449] with the instance's key.
 
+   The IdP MUST implement [CIA], including its requirement to implement
+   [ACTOR-PROFILE].  This document uses CIA's grant-issuance extension;
+   the resulting WAG follows Section 3.  Actor Profile support does not
+   require an act claim when no delegated actor is represented.  The RAS
+   and RS use Actor Profile's subject-classification rules as specified
+   in Section 4.5; accepting a WAG does not require them to implement
+   CIA assertion processing or its client-registration requirements.
+
    The IdP determines whether the agent is authorized to obtain a grant
    for the requested resource and scope.  The Resource Authorization
    Server independently determines whether to accept the grant and which
@@ -656,7 +664,10 @@ Table of Contents
    registered agent as client_instance solely because a CIA
    authenticated its instance.  Subject and instance identifiers are
    mapped as specified in Section 5.3.  Additional claims follow
-   [AGENT].
+   [AGENT].  The RAS and RS MUST apply the sub_profile syntax and
+   classification semantics in [ACTOR-PROFILE].  Here the claim is top-
+   level and classifies the registered agent named by sub; it does not
+   classify agent_instance_id or establish delegation.
 
    This profile does not prescribe a JWT access token format.  When
    issuing opaque access tokens, the RAS MUST support authenticated
@@ -954,6 +965,13 @@ Table of Contents
               client-instance-assertion-01, 24 June 2026,
               <https://datatracker.ietf.org/doc/html/draft-mcguinness-
               oauth-client-instance-assertion-01>.
+
+   [ACTOR-PROFILE]
+              McGuinness, K., "OAuth Actor Profile for Delegation", Work
+              in Progress, Internet-Draft, draft-mcguinness-oauth-actor-
+              profile-00, 30 April 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-actor-profile-00>.
 
    [AGENT]    McGuinness, K., "OAuth 2.0 AI Agent Instance Profile",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
