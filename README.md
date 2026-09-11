@@ -21,8 +21,8 @@ It does not determine authorization subjects or delegated actors.
 An IdP-mediated profile preserving existing ID-JAG/EMA client-based
 delegation and supporting explicit actor delegation and self-acting
 WAG. Explicit actors use OAuth Actor Profile with a client assertion
-or an Agent Token. Separate agent credentials and instance attestation
-are required only for the Registered Agent path. Provisioning and
+or an IdP-issued access token. Separate agent credentials and instance
+attestation are required only for the Registered Agent path. Provisioning and
 downstream token formats remain deployment choices.
 
 These two drafts replace the earlier Client Instance Assertion
