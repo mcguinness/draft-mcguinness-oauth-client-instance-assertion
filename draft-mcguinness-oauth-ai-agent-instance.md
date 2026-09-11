@@ -306,7 +306,9 @@ profile of this document defines their processing.
   minted by the Agent Attester. The value MUST be unique among all
   instances attested by this Attester (including across any OAuth
   clients the Attester serves) and MUST be
-  stable for the lifetime of the agent instance. The value
+  stable for the lifetime of the agent instance. An instance can
+  perform multiple tasks; this identifier does not inherently
+  identify a task or establish a delegation relationship. The value
   MUST NOT be derived from a proof-of-possession key: keys are
   binding material, not identity ({{subject}}). The Attester MUST
   NOT reassign an active or audit-relevant value to a different
