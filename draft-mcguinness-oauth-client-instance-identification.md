@@ -47,7 +47,7 @@ informative:
 --- abstract
 
 This specification profiles OAuth 2.0 Attestation-Based Client
-Authentication to identify a particular runtime instance of a
+Authentication to identify a particular deployed instance of a
 logical OAuth client. It defines an issuer-qualified instance
 identifier, attester configuration, and processing requirements
 for instance identity and key continuity. It also defines a claim
@@ -75,7 +75,7 @@ instance identifier and its processing rules; it does not define
 an alternative assertion format or grant type. Other ATTEST
 deployments do not require this instance identification profile.
 
-The identity of a runtime is distinct from the identity of the
+The identity of a client instance is distinct from the identity of the
 principal whose authority it exercises. Authorization profiles,
 such as {{AGENT-FEDERATION}}, determine whether that principal is
 the token subject or an actor. Implementing this document does
@@ -94,11 +94,12 @@ Logical Client:
 
 Instance Identifier:
 : An opaque identifier assigned by a Client Attester to one
-  Client Instance. Its identity is the ordered pair of the
+  Client Instance at the configured lifecycle granularity. Its
+  identity is the ordered pair of the
   attester's issuer identifier and the Instance Identifier.
 
 Instance Context:
-: A validated reference to the runtime presenting a request.
+: A validated reference to the client instance presenting a request.
   It is evidence about execution, not an authorization grant.
 
 # Profile Selection and Trust {#configuration}
@@ -112,6 +113,13 @@ MUST likewise establish that requirement through trusted
 configuration. Receiving an instance claim MUST NOT select this
 profile or alter the client's authentication method. This
 document defines no new discovery or client metadata parameters.
+
+The configuration MUST define the identified unit and its continuity
+rules: for example, one application installation or one process or
+container execution. Receivers MUST NOT assume that an installation
+identifier distinguishes its individual processes. A change of
+granularity MUST create a new identifier; it MUST NOT silently change
+the meaning of an existing identifier.
 
 For each approved attester, the server MUST configure its exact
 issuer identifier, verification keys or a trusted source for
@@ -228,12 +236,18 @@ instance evidence.
 
 # Instance Lifetime and Key Continuity {#lifetime}
 
-The attester MUST assign a new Instance Identifier when creating
-a new runtime, including a restarted or cloned runtime. It MUST
-NOT issue the same identifier to independently executing copies.
-A suspend/resume operation MAY retain the identifier only when
-the attester can establish continuity of the same instance and
-prevent concurrent restored copies from using that identity.
+The attester MUST assign a new Instance Identifier for each new unit
+at the granularity established in {{configuration}}. An execution
+identifier changes on process or container restart. An installation
+identifier MAY survive process restarts when the attester verifies
+continuity of that installation. A cloned installation or independently
+created execution MUST receive a distinct identifier. Multiple
+processes within one identified installation are not distinguished
+by its identifier.
+
+A suspend/resume operation MAY retain the identifier only when the
+attester establishes continuity and prevents independently restored
+copies of the identified unit from sharing that identity.
 
 Attestation renewal and key rotation within a continuing
 instance MUST preserve its identifier. A new key requires a
@@ -333,7 +347,7 @@ NOT contain raw credentials or private keys.
 This specification requests registration of `client_instance_id`
 and `client_instance` in the "JSON Web Token Claims" registry
 established by {{RFC7519}}. The descriptions are, respectively,
-"Issuer-scoped client runtime instance identifier" ({{claims}})
+"Issuer-scoped client instance identifier" ({{claims}})
 and "Validated client runtime instance context"
 ({{instance-context}}). The Change Controller is IETF.
 
@@ -353,3 +367,5 @@ This document replaces the instance-authentication portions of
 draft-mcguinness-oauth-client-instance-assertion. It uses ATTEST
 as its sole protocol foundation and separates instance evidence
 from agent federation and actor semantics.
+The identified unit is explicitly configured; installation continuity
+is distinguished from process or container execution lifetime.
