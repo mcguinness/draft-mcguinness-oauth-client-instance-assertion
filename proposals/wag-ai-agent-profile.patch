@@ -1,0 +1,104 @@
+--- a/draft-carleton-workload-authz-grant.md
++++ b/draft-carleton-workload-authz-grant.md
+@@ -49,6 +49,7 @@
+   RFC8707:
+   RFC9525:
+   WIMSE-ID: I-D.ietf-wimse-identifier
++  AI-AGENT: I-D.mcguinness-oauth-ai-agent-instance
+   OIDC-DISCOVERY:
+     title: OpenID Connect Discovery 1.0 incorporating errata set 2
+     target: https://openid.net/specs/openid-connect-discovery-1_0.html
+@@ -306,6 +307,44 @@
+ The shared-credential antipattern that {{AIMS}}, Section 7, describes is
+ the deployment this mechanism is designed to replace ({{introduction}}).
+ 
++## AI Agent Instance Profile {#ai-agent-profile}
++
++AI-agent deployments MAY apply the OAuth 2.0 AI Agent Instance
++Profile {{AI-AGENT}} to Workload Authorization Grants. That profile
++provides the shared identity and provenance vocabulary:
++`agent_instance_id`, `agent_platform`, `agent_model`, and
++`agent_runtime`. When applied, the grant issuer acts as the Agent
++Attester and the grant's `sub` MUST equal `agent_instance_id`.
++The identifier retains this document's opacity, issuer scoping,
++and permanent non-reassignment requirements.
++
++The AI Agent Instance Profile's Workload Authorization Grant
++carrier defines proof of possession and sender constraint: the
++grant SHOULD carry `cnf`, and every resulting access token MUST be
++bound to the authenticated instance key. A grant without `cnf`
++requires independently validated instance evidence binding the
++same principal to that key; an arbitrary requester-supplied DPoP
++key is insufficient. Profile activation is configured with issuer
++trust, without requiring OAuth client registration for the agent.
++
++A conforming WAG normally supplies both authorization and agent
++instance evidence; a separate Client Instance Assertion is NOT
++REQUIRED. If an authorization authority issues the WAG and a
++runtime authority supplies separate client-bound evidence, the AS
++MUST apply the profile's independent validation, issuer-qualified
++identity mapping, and key-consistency rules. The access token
++continues to identify the workload in `sub`; evidence about that
++same subject MUST NOT introduce a duplicate `act` entry. This
++does not define WAG presentation as an actor token for delegation.
++
++The provenance vocabulary describes what the agent is. The Agent
++Properties in {{properties}} retain their authorization meaning
++and issuer-scoped mappings; neither set substitutes for the other.
++In particular, provenance disclosure follows {{AI-AGENT}}, and raw
++`agent_runtime` evidence MUST NOT be forwarded to resource servers.
++The requirement to make Agent Properties available to authorization
++processing does not require forwarding raw runtime evidence.
++
+ ## Relationship to WIMSE and SPIFFE
+ 
+ TODO.  A reader arriving from WIMSE or SPIFFE will ask where the Workload
+@@ -428,10 +467,12 @@
+ audience-restricted {{RFC8707}}.  Assertion lifetimes SHOULD be as short as
+ system availability constraints allow.
+ 
+-TODO: proof-of-possession -- the assertion is a bearer grant; options are
+-sender-constrained access tokens, or attestation-based client authentication
+-{{ATTEST-CLIENT-AUTH}} (Platform as client attester, agent instance signs the
+-PoP JWT) if agent instances hold keys.
++AI-agent deployments applying {{AI-AGENT}} use its instance key
++binding and sender-constraint requirements ({{ai-agent-profile}}).
++The grant remains in the RFC 7523 authorization-grant slot; proof
++of possession is additional validation, not a new grant type.
++Proof-of-possession requirements for other WAG deployments remain
++an open issue ({{oi}}).
+ 
+ # Deployment
+ 
+@@ -487,6 +528,11 @@
+ BYO-IdP deployment model.
+ 
+ ## Agent Properties and Authorization {#properties}
++
++AI-agent identity and provenance use the claims in {{AI-AGENT}}
++when that profile is applied ({{ai-agent-profile}}). The properties
++below describe authorization attributes; they do not redefine
++instance identity, model configuration, or runtime attestation.
+ 
+ TODO.  Initial standard property claims: name, a human-readable display
+ name as in an OpenID Connect ID Token {{OIDC-CORE}} (mutable, and never a
+@@ -535,13 +581,16 @@
+   IAM federation trust policies) and cannot evaluate Property predicates;
+   URI-form Agent Identifiers ({{identity-model}}) carry the tenancy inside
+   the identifier for this case, but the residual gap is unassessed.
+-- Proof-of-possession: the authorization grant is bearer; see
+-  {{workload-authorization-grant}}.
++- Proof-of-possession for deployments not applying {{AI-AGENT}}:
++  the authorization grant is bearer; {{ai-agent-profile}} specifies
++  the AI-agent composition.
+ - Issuer placement: issuer operated by the Platform versus by the Enterprise
+   IdP, with the Platform obtaining assertions by token exchange {{RFC8693}}
+   with the IdP; client authentication is redundant in the former case and
+   load-bearing in the latter; what, if anything, client_id means in each
+-  case.
++  case. {{ai-agent-profile}} specifies optional composition with
++  a separate instance attester, without requiring a client identity
++  in WAG-only deployments.
+ - Staleness and retirement signaling in place of per-agent revocation
+   (issuer- or Property-scoped epoch versus event push versus lifetime
+   alone, {{lifecycle}}); a gap shared with neighboring workload identity

@@ -6,7 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-assertion-latest
 submissiontype: IETF
 number:
-date: 2026-06-23
+date: 2026-09-10
 v: 3
 ipr: trust200902
 area: "Security"
@@ -59,6 +59,8 @@ informative:
   RFC8037:
   ATTEST-CLIENT-AUTH: I-D.ietf-oauth-attestation-based-client-auth
   WIMSE-ARCH: I-D.ietf-wimse-arch
+  WAG: I-D.carleton-workload-authz-grant
+  AI-AGENT: I-D.mcguinness-oauth-ai-agent-instance
   WIMSE-CREDS: I-D.ietf-wimse-workload-creds
   SPIFFE:
     title: "SPIFFE: Secure Production Identity Framework For Everyone"
@@ -206,10 +208,17 @@ Delegation Case:
   per {{access-token-delegation}}.
 
 Self-Acting Case:
-: A token request whose grant produces no principal distinct from
-  the instance (notably `client_credentials`). The issued access
-  token's `sub` is the instance and `act` is omitted per
+: A token request whose grant supplies no separate grant principal
+  (notably `client_credentials`). The issued access token's `sub`
+  is the instance and `act` is omitted per
   {{access-token-self-acting}}.
+
+Subject-Instance Case:
+: A token request whose authorization-grant profile explicitly
+  identifies the presenting instance as the grant principal. The
+  instance assertion is evidence about that subject, rather than
+  a distinct delegated actor. The access token has the instance
+  as `sub` and no `act`, per {{access-token-subject-instance}}.
 
 # Relationship to Other Specifications {#relationships}
 
@@ -1465,54 +1474,62 @@ rules are:
   {{sender-constrained}} (i.e., `cnf` is bound to the instance's
   key, not bearer).
 * The validated instance identity surfaces in `act` (delegation
-  case) or top-level `sub` (self-acting case), per the
-  classification and per-case rules below; `sub_profile`
+  case) or top-level `sub` (self-acting or subject-instance case),
+  per the classification and per-case rules below; `sub_profile`
   ({{ACTOR-PROFILE}}) signals the kind of subject in either case.
 * Any upstream actor chain MUST be preserved by nesting per
   {{ACTOR-PROFILE}}; merge rules are in {{chain-merging}}.
 
-A client instance may be acting on behalf of another principal
-(*delegation case*; e.g., a user authorized the request through an
-authorization_code grant) or acting as itself with no other
-principal involved (*self-acting case*; e.g., a `client_credentials`
-grant). The AS MUST classify each request as delegation or
-self-acting before populating the issued access token's claims;
-the classification rules are in {{access-token-classification}}.
+A client instance may act for another principal (*delegation*),
+act as itself with no separate grant principal (*self-acting*), or
+be the principal explicitly identified by an authorization grant
+(*subject-instance*). The AS MUST classify each request before
+populating the access token's claims.
 
 ### Classification {#access-token-classification}
 
-The AS classifies the request based on whether the grant produces
-a principal distinct from the client instance presenting the
-Client Instance Assertion:
+Classification follows the grant type and the semantic profile
+governing the authorization grant, selected by trusted AS
+configuration. It is not inferred from subject-string similarity.
 
-| Grant | Principal | Classification |
+| Grant | Grant principal | Classification |
 | --- | --- | --- |
 | authorization_code ({{RFC6749}}) | the user who authorized the code | delegation |
 | `client_credentials` ({{RFC6749}}) | none | self-acting |
 | `refresh_token` ({{RFC6749}}) | inherited from the original grant | inherited |
-| jwt-bearer ({{RFC7523}}) | the assertion's `sub` | delegation |
+| jwt-bearer ({{RFC7523}}) | the grant assertion's `sub` | delegation by default; subject-instance under an explicit grant profile |
 | token-exchange ({{RFC8693}}) | the `subject_token`'s subject | delegation |
 
-The jwt-bearer and token-exchange rows always classify as delegation
-under this profile. {{RFC7523}} requires a JWT-bearer assertion that
-identifies a principal, and {{RFC8693}} Section 2.1 requires a
-`subject_token`; in both cases another party is present and named, so
-the issued access token's `sub` is that party and the actor appears
-in `act`. ASes MUST NOT classify these grants as self-acting based
-on heuristic matching of subject identifiers; see
-{{security-mode-switch}}. This rule applies even when the
-`subject_token` was itself a self-acting access token whose `sub`
-named the same instance now presenting the assertion (e.g., a
-client-credentials token from an upstream AS exchanged at a
-downstream AS): the resulting access token has `sub` and `act.sub`
-naming the same instance. This is benign chain self-reference and
-is not an error; the AS MUST NOT collapse the two into a self-
-acting representation.
+Unless the authorization-grant profile explicitly specifies that
+the grant subject represents the presenting client instance, the
+AS MUST classify an {{RFC7523}} authorization grant as delegation.
+For a profile specifying subject-instance semantics, the AS MUST
+validate that the grant principal and the instance established by
+the Client Instance Assertion are the same, using issuer-qualified
+identities and any subject mapping explicitly authorized by that
+profile and AS configuration. If this cannot be established, the
+AS MUST reject the request with `invalid_grant`; it MUST NOT fall
+back to a different classification. Equal subject strings or keys
+alone do not establish identity equivalence across issuers.
 
-When neither delegation nor self-acting cleanly applies (for example,
-custom or experimental grants), the AS MUST refuse to issue the
-access token rather than guess; reject with `invalid_grant`
-({{errors}}).
+A Workload Authorization Grant ({{WAG}}) profiled by {{AI-AGENT}},
+whose subject identifies the same instance represented by the
+Client Instance Assertion, is a subject-instance case: the agent
+acts as itself and no duplicate actor is introduced. That profile
+normally uses WAG without a separate Client Instance Assertion;
+this document applies only when an instance assertion is also
+presented and its OAuth client binding is validated.
+
+Token exchange remains delegation under this profile, including
+when the `subject_token` was a self-acting or subject-instance
+access token naming the same instance now presenting the
+assertion. Its actor chain MUST NOT be collapsed by matching
+identifiers. The subject-instance exception for JWT authorization
+grants does not alter token-exchange chain processing.
+
+When none of these classifications applies (for example, custom
+or experimental grants), the AS MUST refuse issuance with
+`invalid_grant` ({{errors}}) rather than guess.
 
 ### Delegation Case {#access-token-delegation}
 
@@ -1583,6 +1600,30 @@ issuer-native.
 
 For a worked example see {{appendix-examples-client-credentials}}.
 
+### Subject-Instance Case {#access-token-subject-instance}
+
+When the request is classified as subject-instance, the grant
+identifies the instance as the authorized principal. The AS MUST
+preserve that grant principal as the access token's `sub`, applying
+only the issuer-aware namespacing or explicitly configured subject
+mapping permitted by the governing grant profile. It MUST NOT
+replace the grant principal with a different instance subject.
+The AS MUST set `sub_profile` and `cnf` as in
+{{access-token-self-acting}} and MUST omit `act`.
+
+The issuer-context retention, collision handling, sender-constraint,
+resource-server processing, and revocation rules for self-acting
+tokens also apply to subject-instance tokens. The AS MUST retain
+both the grant issuer and the validated instance issuer, their
+subject identifiers, and any mapping used with token state. These
+are evidence about the same principal; neither issuer replaces
+the access token's AS-valued `iss`. If both artifacts carry key
+confirmation, the AS MUST verify that their binding members
+identify the same instance key and reject inconsistencies with
+`invalid_grant`. The grant profile determines whether refresh
+tokens may be issued; if permitted, {{refresh}} inherits the
+subject-instance classification and recorded grant subject.
+
 ### Actor Chain Merging {#chain-merging}
 
 The AS constructs the issued access token's `act` chain per
@@ -1592,8 +1633,9 @@ outermost actor, and any `subject_token` `act` chain (only
 applicable to token-exchange) is preserved verbatim under it.
 Depth limits and rejection on overflow follow {{ACTOR-PROFILE}}.
 
-In the self-acting case ({{access-token-self-acting}}) the `act`
-claim is omitted.
+In the self-acting and subject-instance cases
+({{access-token-self-acting}}, {{access-token-subject-instance}}),
+the `act` claim is omitted.
 
 ## Refresh Tokens {#refresh}
 
@@ -1892,7 +1934,8 @@ principal in `sub` (typically a user) does not present the
 token; the instance named in `act.sub` does, and
 sender-constraint validation authenticates that instance.
 
-**Self-acting access tokens** ({{access-token-self-acting}})
+**Self-acting and subject-instance access tokens**
+({{access-token-self-acting}}, {{access-token-subject-instance}})
 carry no `act`. `sub` names the client *instance* (typically a
 SPIFFE ID or other workload identifier), `sub_profile` =
 `client_instance` signals that the subject is a runtime instance,
@@ -2357,19 +2400,22 @@ This profile does not define a tenant identifier as a first-class
 claim. Future profiles MAY introduce one if cross-deployment
 interoperability of tenant scoping becomes necessary.
 
-## Mode-Switch Between Delegation and Self-Acting {#security-mode-switch}
+## Grant Classification Confusion {#security-mode-switch}
 
-Whether an issued access token represents delegation or self-acting
-({{access-token-classification}}) determines whether the instance is
+Whether an issued access token represents delegation, self-acting,
+or subject-instance ({{access-token-classification}}) determines
+whether the instance is
 exposed to resource servers as `act` or as `sub`. An adversary that can
 influence classification could escalate privileges, for example by
 inducing the AS to drop a `sub` belonging to a user and re-anchor the
 token on the instance's `sub`. The classification rule in
-{{access-token-classification}} is determined by the grant type, not
-by comparison of attacker-influenceable subject strings; ASes MUST
-NOT employ heuristic or fuzzy matching of assertion contents to
-override the table. In particular, ASes MUST NOT normalize either
-side of any comparison they perform on subject identifiers (no
+{{access-token-classification}} is determined by the grant type and
+an authorization-grant profile selected by trusted AS configuration.
+A requester MUST NOT be able to select subject-instance semantics
+merely by adding claims or choosing matching subject strings. ASes
+MUST NOT use heuristic or fuzzy matching to establish equivalence;
+any mapping MUST be explicitly configured and issuer-qualified.
+In particular, ASes MUST NOT normalize either side of any comparison they perform on subject identifiers (no
 Unicode normalization, no case folding, no percent-decoding beyond
 what {{RFC7519}} requires for JSON parsing). When classification is
 ambiguous (for example, custom grants not listed in the table), the
@@ -2691,7 +2737,8 @@ instance is the subject (top-level `sub`) rather than the actor
 `actor_token` for that case would require readers to mentally
 translate "actor token" to "validated instance identity assertion."
 The dedicated parameter removes that translation; the grant
-determines whether the result is delegation or self-acting.
+determines whether the result is delegation, self-acting, or
+subject-instance.
 
 Third, the dedicated parameter parallels the wire conventions of
 {{ATTEST-CLIENT-AUTH}}, which uses purpose-named headers
