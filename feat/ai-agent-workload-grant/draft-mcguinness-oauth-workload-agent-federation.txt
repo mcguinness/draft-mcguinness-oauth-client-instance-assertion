@@ -21,8 +21,8 @@ Abstract
    a Workload Authorization Grant; an agent acting for a user uses an
    Identity Assertion JWT Authorization Grant with an agent actor
    represented using the OAuth Actor Profile.  The profile defines
-   credential acquisition, token exchange, grant processing,
-   provisioning correlation, and sender constraints.
+   credential acquisition, token exchange, grant processing, agent
+   identity correlation, and sender constraints.
 
 About This Document
 
@@ -163,14 +163,15 @@ Table of Contents
    registry mapping, selects ID-JAG as the grant, and defines the
    required user-agent authorization checks.  It does not define a
    competing actor format.  JWT grant and access-token processing use
-   those Actor Profile rules; opaque access tokens use its introspection
-   compatibility path as specified in Section 8.
+   those Actor Profile rules.  Deployments using opaque access tokens
+   with introspection use its compatibility path as specified in
+   Section 8.
 
    This profile supports one current actor, the Registered Agent.  Its
-   runtime is separate client_instance context.  IdP grant issuance
-   introduces that actor from the validated Agent Token; RAS redemption
-   preserves it and does not introduce another actor merely because a
-   token endpoint or runtime was involved.
+   runtime can be conveyed as separate client_instance context.  IdP
+   grant issuance introduces that actor from the validated Agent Token;
+   RAS redemption preserves it and does not introduce another actor
+   merely because a token endpoint or runtime was involved.
 
    The grant-specific audience, token types, and subject inputs are
    those of [ID-JAG] as constrained here.  In particular, ID-JAG's RAS
@@ -223,15 +224,17 @@ Table of Contents
    rotating a key MUST NOT, by itself, change the agent principal or
    create a delegated actor.
 
-    +=============+==================+=============+==================+
-    | Mode        | Grant subject    | Grant actor | Instance context |
-    +=============+==================+=============+==================+
-    | Self-acting | Registered Agent | Absent      | Execution of the |
-    |             |                  |             | subject          |
-    +-------------+------------------+-------------+------------------+
-    | Delegated   | User             | Registered  | Execution of the |
-    |             |                  | Agent       | current actor    |
-    +-------------+------------------+-------------+------------------+
+    +=============+============+============+=========================+
+    | Mode        | Grant      | Grant      | Instance context        |
+    |             | subject    | actor      |                         |
+    +=============+============+============+=========================+
+    | Self-acting | Registered | Absent     | Optional execution      |
+    |             | Agent      |            | context for the subject |
+    +-------------+------------+------------+-------------------------+
+    | Delegated   | User       | Registered | Optional execution      |
+    |             |            | Agent      | context for the current |
+    |             |            |            | actor                   |
+    +-------------+------------+------------+-------------------------+
 
                                   Table 1
 
@@ -242,10 +245,12 @@ Table of Contents
 
    Before issuance, the IdP and RAS MUST establish a trust relationship
    binding an IdP issuer to a RAS tenant, permitted resources, modes,
-   subject mappings, signing keys, and policy.  This profile uses one
-   IdP issuer per enterprise tenancy in both modes.  Discovery alone
-   MUST NOT establish this trust; user SSO trust MUST NOT implicitly
-   permit self-acting access.
+   subject mappings, signing keys, and policy.  An issuer MAY serve one
+   or several enterprise tenants.  The trust relationship MUST
+   unambiguously identify the authorized source and target tenants for
+   each request and prevent access across tenant boundaries.  Discovery
+   alone MUST NOT establish this trust; user SSO trust MUST NOT
+   implicitly permit self-acting access.
 
    The trust configuration MUST identify the request contexts requiring
    this profile, including issuer, tenant, resource, and client where
@@ -299,23 +304,11 @@ Table of Contents
    tenancy resolution MUST cause rejection; an unsigned tenant hint MUST
    NOT override that resolution.
 
-   The attestation MAY include these provenance claims:
-
-   agent_platform:  A nonempty StringOrURI identifying the platform
-      product or implementation, not the enterprise agent.
-
-   agent_model:  An object containing a REQUIRED nonempty string id
-      naming the model and an OPTIONAL nonempty string version.
-
-   agent_runtime:  An object containing a REQUIRED nonempty string id
-      naming the runtime implementation and an OPTIONAL nonempty string
-      version.  It does not identify the instance.
-
-   Unknown provenance members are ignored.  Incorrect types or empty
-   values for defined claims or members MUST cause rejection.  These are
-   attester statements, not proof of model behavior.  Platform-supplied
-   groups, owners, and assignments MUST NOT become enterprise authority
-   unless a separate source policy explicitly authorizes them.
+   This profile defines no model or runtime provenance vocabulary.  An
+   absent, empty, or incorrectly typed agent_id MUST cause rejection.
+   Platform-supplied groups, owners, and assignments MUST NOT become
+   enterprise authority unless a separate source policy explicitly
+   authorizes them.
 
 4.2.  Request
 
@@ -348,7 +341,7 @@ Table of Contents
    authentication alone MUST NOT authorize an arbitrary agent identity.
 
    The Agent Token MUST conform to [RFC9068] and use typ=at+jwt.  Its
-   iss is the IdP tenancy issuer, sub is the Registered Agent
+   iss is the approved IdP issuer, sub is the Registered Agent
    identifier, and client_id is the actual IdP client.  Its aud MUST
    equal the IdP issuer identifier and scope MUST be agent-federation.
    This audience and scope identify the IdP's exchange service; no
@@ -358,11 +351,11 @@ Table of Contents
    cnf.jkt derived from the proven key under [RFC7638].  It MUST NOT
    contain act.
 
-   The IdP MUST associate the token with its approved Federation
-   Binding.  The token MUST expire within 300 seconds and no later than
-   the attestation.  The response MUST have token_type=DPoP, expires_in,
-   and scope; it MUST NOT include a refresh token.  Clients need not
-   parse the token to use it.
+   The IdP MUST associate the token with its approved Federation Binding
+   and source tenant.  The token MUST expire within 300 seconds and no
+   later than the attestation.  The response MUST have token_type=DPoP,
+   expires_in, and scope; it MUST NOT include a refresh token.  Clients
+   need not parse the token to use it.
 
    {
      "access_token": "eyJ...agent-access-token...",
@@ -472,8 +465,8 @@ Table of Contents
 
    2.  Validate the Agent Token as an unexpired token issued by this IdP
        for this exchange service and purpose.  Match its client, agent,
-       instance, and key to the current request.  Another valid IdP
-       access token MUST NOT be substituted.
+       instance, source tenant, and key to the current request.  Another
+       valid IdP access token MUST NOT be substituted.
 
    3.  Check current agent status, attester trust, external binding,
        application assignment, and permitted mode.  Reject stale
@@ -550,10 +543,10 @@ Table of Contents
 6.  Authorization Grants
 
    Grants MUST be signed JWTs in JWS Compact Serialization [RFC7515]
-   under the approved IdP tenancy issuer.  The protected header MUST
-   contain an approved asymmetric alg and a kid resolvable through
-   trusted issuer key configuration.  Implementations MUST support ES256
-   [RFC7518] and reject none and symmetric MAC algorithms.
+   under the approved IdP issuer.  The protected header MUST contain an
+   approved asymmetric alg and a kid resolvable through trusted issuer
+   key configuration.  Implementations MUST support ES256 [RFC7518] and
+   reject none and symmetric MAC algorithms.
 
    Self-acting grants follow [WAG] with typ=oauth-wag+jwt; delegated
    grants follow [ID-JAG] with typ=oauth-id-jag+jwt.  See
@@ -562,7 +555,7 @@ Table of Contents
 
    The following claims are REQUIRED in both modes:
 
-   iss:  The approved IdP tenancy issuer.
+   iss:  The approved IdP issuer.
 
    aud:  A string containing the exact RAS issuer identifier.
 
@@ -578,12 +571,6 @@ Table of Contents
    resource, scope:  The single approved resource and nonempty, space-
       delimited approved scopes.
 
-   client_instance:  The object defined by [INSTANCE].  In grants, its
-      iss MUST equal the grant issuer and its id MUST be an IdP-assigned
-      reference mapping to the authenticated upstream instance.  The IdP
-      MUST retain that mapping and SHOULD scope the reference to the
-      downstream trust relationship.
-
    cnf:  An object containing jkt, the JWK SHA-256 thumbprint of the
       proven instance public key.  The IdP MUST derive it from the
       validated key, not an unsigned request value.
@@ -597,17 +584,23 @@ Table of Contents
 
    Delegated grants MUST include the downstream client_id and other
    claims required by [ID-JAG].  Any user sub_profile classification is
-   supplied only when authoritative under [ACTOR-PROFILE].  The single-
-   tenancy issuer does not replace ID-JAG's target-tenant processing.
-   User and agent identities MUST resolve to distinct, correctly typed
-   local principals.
+   supplied only when authoritative under [ACTOR-PROFILE].  ID-JAG's
+   target-tenant processing applies.  User and agent identities MUST
+   resolve to distinct, correctly typed local principals.
 
-   client_instance describes execution of the subject in self-acting
-   mode and of the current actor in delegated mode.  It MUST NOT add an
-   actor or change the subject.  Optional provenance MAY be released
-   after IdP policy evaluation. agent_id is not required in a grant: sub
-   or act already identifies the agent.  Optional groups describe only
-   the subject and follow Section 9.2.
+   The IdP MAY include client_instance as defined by [INSTANCE] for
+   downstream audit or risk evaluation.  If included, its iss MUST equal
+   the grant issuer and its id MUST be an IdP-assigned reference to the
+   authenticated upstream instance.  The IdP MUST retain that mapping
+   and SHOULD scope it to the downstream trust relationship.  It
+   describes execution of the subject in self-acting mode and of the
+   current actor in delegated mode; it MUST NOT add an actor or change
+   the subject.  Omitting this context does not relax agent
+   authentication or key binding.
+
+   agent_id is not required in a grant: sub or act already identifies
+   the agent.  Optional groups describe only the subject and follow
+   Section 9.2.
 
    Example self-acting grant payload:
 
@@ -618,10 +611,6 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "client_instance": {
-       "iss": "https://idp.example/tenant/acme",
-       "id": "runtime-93ab"
-     },
      "cnf": { "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU" },
      "iat": 1789128000,
      "exp": 1789128240,
@@ -642,10 +631,6 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "client_instance": {
-       "iss": "https://idp.example/tenant/acme",
-       "id": "runtime-93ab"
-     },
      "cnf": { "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU" },
      "iat": 1789128000,
      "exp": 1789128240,
@@ -711,45 +696,46 @@ Table of Contents
 
 8.  Access Tokens and Resource Processing
 
-   The RAS MUST issue a DPoP-bound access token for the approved
-   resource with token_type=DPoP, expires_in, and scope.  It MUST expire
-   no later than the grant and MUST NOT be accompanied by a refresh
-   token.  The client MUST reject another token type or scopes broader
-   than those in the grant.
+   The RAS MUST issue an access token for the approved resource, bound
+   to the grant's confirmation key, with token_type=DPoP, expires_in,
+   and scope.  It MUST NOT be accompanied by a refresh token.  The RAS
+   MUST set its lifetime according to resource authorization and
+   revocation policy, including any explicit delegation expiration.
+   Grant expiration limits redemption; it does not by itself limit the
+   resulting access token's lifetime.  The client MUST reject another
+   token type or scopes broader than those in the grant.
 
-   The RAS MUST retain the mode, mapped subject, canonical agent
-   identity, validated client_instance, scopes, resource, key, and
-   originating grant identifiers in token state.  Subject mapping MUST
-   preserve the underlying principal.  In delegated mode the RAS MUST
-   preserve the validated act object unchanged under [ACTOR-PROFILE];
-   local agent-record resolution is not permission to rewrite its
-   namespace or add a runtime actor.
+   The RAS and RS select the access-token format and validation
+   mechanism for their deployment.  The RS MUST obtain the validated
+   subject, resource, expiration, scopes, and confirmation key, and the
+   agent actor in delegated mode.  Subject mapping MUST preserve the
+   underlying principal.  In delegated mode the RAS MUST preserve the
+   validated act unchanged under [ACTOR-PROFILE]; resolving a local
+   agent record does not permit rewriting its namespace or adding a
+   runtime actor.  Self-acting tokens MUST NOT introduce act.
 
-   Implementations MUST support opaque access tokens with [RFC7662]
-   introspection.  This uses the Actor Profile introspection
-   compatibility path in delegated mode; an opaque token itself is not
-   an Actor Profile JWT.  Active results MUST include sub, aud, exp,
-   scope, cnf.jkt, and the grant's unchanged client_instance.  Delegated
-   results MUST also include the unchanged act and applicable subject
-   classification under [ACTOR-PROFILE].  An established logical client,
-   including the delegated client, MUST be reported as client_id.
-   Inactive responses MUST NOT disclose this context.
+   When [RFC7662] introspection is used, active results MUST include
+   sub, aud, exp, scope, and cnf.jkt.  Delegated results MUST also
+   include the unchanged act and applicable subject classification under
+   Actor Profile's introspection compatibility path.  An established
+   logical client MUST be reported as client_id.  Inactive results MUST
+   NOT disclose this context.  Delegated JWT access tokens MUST follow
+   Actor Profile's access-token output rules.  A token claiming
+   [RFC9068] conformance MUST include its required client_id; a
+   clientless self-acting deployment MUST use another token format.
 
-   JWT access tokens MAY carry equivalent information directly;
-   delegated JWTs MUST follow Actor Profile's access-token output rules.
-   A token claiming [RFC9068] conformance MUST include its required
-   client_id.  A clientless self-acting deployment MUST use another
-   token format.
+   The RAS MAY propagate a grant's validated client_instance unchanged
+   in the access token or introspection response when needed by the RS.
+   A resource requiring instance context MUST have that requirement
+   configured throughout the issuance path; missing required context
+   MUST cause rejection.  Other deployments need not propagate it.
 
-   The RS MUST validate the token or obtain an active introspection
-   result, enforce audience, expiry, scope, and local policy, and verify
-   DPoP against the enclosing token's cnf.jkt, including the access-
-   token hash required by [RFC9449].  It MUST NOT accept grants or Agent
-   Tokens as API access tokens.  Delegated processing MUST follow
-   [ACTOR-PROFILE], including actor policy and errors, without reducing
-   access to user-only authorization.  Required actor or instance
-   context MUST NOT be filtered from introspection for a resource
-   relying on it.
+   The RS MUST enforce audience, expiry, scope, and local policy, and
+   verify DPoP against the token's validated confirmation key, including
+   the access-token hash required by [RFC9449].  It MUST NOT accept
+   grants or Agent Tokens as API access tokens.  Delegated processing
+   MUST follow [ACTOR-PROFILE], including actor policy and errors,
+   without reducing access to user-only authorization.
 
    The RS needs no upstream platform attestation support.  Instance
    context supports audit and risk restrictions; an instance identifier
@@ -766,56 +752,48 @@ Table of Contents
 
 9.1.  Downstream Correlation
 
-   The IdP and RAS MUST support provisioning Agent resources using
-   [SCIM-AGENT] and [RFC7644].  A deployment MAY instead enable JIT
-   admission under the trust relationship.  Both paths MUST use the same
-   principal mapping.
+   The RAS MUST resolve the issuer-qualified agent identity to the same
+   local principal in self-acting and delegated modes, within the
+   authorized target tenant.  Provisioning and grant processing MUST use
+   a consistent mapping.  User mapping follows [ID-JAG].  A valid grant
+   MUST NOT implicitly reactivate a disabled agent.
 
-   Each authenticated SCIM provisioning client MUST be bound to one IdP
-   issuer and target tenant.  For an Agent resource, externalId
-   [RFC7643] MUST equal the agent identifier used in that IdP's WAG sub
-   and ID-JAG act.sub.  The RAS MUST retain source issuer and tenant
-   with the record and resolve (issuer, externalId) within that tenant.
-   It MUST NOT treat externalId or provider-local SCIM id as globally
-   unique.  User mapping continues to follow [ID-JAG].
-
-   JIT MUST resolve that qualified mapping before creating a record.
-   Concurrent SCIM and JIT creation MUST converge on one record.  A
-   grant or create operation MUST NOT reactivate a disabled identity
-   without explicit reactivation authority.  Deletion tombstones or
-   equivalent state MUST prevent stale credentials or delayed
-   provisioning from recreating retired identities.  Identifiers MUST
-   NOT be reassigned.  Per-instance SCIM records are not required; an
-   instance's end does not retire its Registered Agent.
+   Provisioning is a deployment choice.  SCIM Agent resources
+   [SCIM-AGENT] with [RFC7644], JIT admission, and administrative
+   configuration are possible mechanisms.  A SCIM deployment can use
+   externalId [RFC7643] for the IdP's agent identifier, with the issuer
+   and tenant established by its authenticated provisioning
+   relationship.  An unqualified identifier is insufficient for
+   correlation.  Synchronization and conflict resolution procedures are
+   outside this profile.  Per-instance directory records are not
+   required.
 
 9.2.  Groups and Ownership
 
-   SCIM membership and Agent ownership use [SCIM-AGENT].  The RAS MUST
-   correlate membership references to local Agent or User resources,
-   retaining their distinct types.  Ownership MUST NOT implicitly confer
-   the owner's data privileges.
+   The RAS MUST correlate membership references to local Agent or User
+   resources, retaining their distinct types.  Ownership MUST NOT
+   implicitly confer the owner's data privileges.
 
    In grants under this profile, optional groups MUST be an array of
    nonempty strings identifying groups in the grant issuer's namespace.
    These are exact identifiers, not display names.  The RAS MUST map
    them through tenant trust before use in policy.  They describe the
    subject: the agent in WAG and the user in ID-JAG.  Agent actor
-   memberships in delegated mode MUST come from the provisioned agent
-   record; this profile does not define group authorization claims
+   memberships in delegated mode MUST come from trusted agent state at
+   the RAS; this profile does not define group authorization claims
    inside act.
 
    Grant groups are audience-filtered assertions, not a complete
    directory snapshot.  Absence MUST NOT imply an empty membership set,
    nor may a truncated array be treated as complete.  Missing required
    membership evidence MUST cause the affected authorization to fail.
-   The trust relationship MUST designate provisioned state or grant
-   claims as authoritative for each membership policy and bound its age.
+   The trust relationship MUST designate local state or grant claims as
+   authoritative for each membership policy and bound its age.
    Conflicting sources MUST NOT be unioned to broaden authority.
 
    Assignments, user resource permissions, and delegation bounds MUST be
-   evaluated separately.  Provenance, groups, and ownership are policy
-   inputs, not self-executing permissions.  Optional governance metadata
-   can use [SCIM-GOVERNANCE].
+   evaluated separately.  Groups and ownership are policy inputs, not
+   self-executing permissions.
 
 10.  Authorization Server Metadata
 
@@ -828,10 +806,12 @@ Table of Contents
 
    The IdP MUST advertise client_credentials and token exchange in
    grant_types_supported, attest_jwt_client_auth_dpop in
-   token_endpoint_auth_methods_supported, and [INSTANCE] support.  The
-   RAS MUST advertise JWT bearer grant support and its introspection
-   endpoint.  Both MUST advertise DPoP with ES256.  All grant-type names
-   use their full registered values.
+   token_endpoint_auth_methods_supported.  Use of [INSTANCE] is
+   established through administrative configuration.  The RAS MUST
+   advertise JWT bearer grant support.  Both MUST advertise DPoP with
+   ES256.  All grant-type names use their full registered values.
+   Deployments using introspection advertise its endpoint through
+   existing metadata.
 
    The RAS MUST advertise urn:ietf:params:oauth:grant-profile:agent-
    federation in authorization_grant_profiles_supported as defined by
@@ -849,7 +829,6 @@ Table of Contents
    {
      "issuer": "https://as.app.example",
      "token_endpoint": "https://as.app.example/token",
-     "introspection_endpoint": "https://as.app.example/introspect",
      "grant_types_supported": [
        "urn:ietf:params:oauth:grant-type:jwt-bearer"
      ],
@@ -890,32 +869,23 @@ Table of Contents
 
 11.2.  Lifecycle and Freshness
 
-   IdP and RAS MUST configure maximum ages for status, assignment,
-   delegation, and membership data used in issuance.  Data stale beyond
-   those bounds MUST cause affected issuance to fail.  Disabling an
-   agent, revoking a binding or attester, removing an assignment, or
-   revoking delegation MUST prevent subsequent issuance once applied at
-   the relevant server.  An Agent Token MUST NOT override current
-   policy.
+   IdP and RAS MUST enforce current agent status, bindings, assignments,
+   and delegation when issuing authority.  Disabling an agent or
+   revoking a relevant authorization MUST prevent subsequent issuance
+   once applied at the relevant server.  A valid credential MUST NOT
+   override that decision.
 
-   Disabling the local agent at the RAS MUST invalidate its active self-
-   acting and delegated token state; introspection MUST report those
-   tokens inactive.  Membership or scope changes MUST invalidate
-   affected authority or trigger reevaluation before an active result is
-   returned.  RS introspection caches MUST be bounded by configured
-   revocation delay and token expiry.
+   Deployments MUST define authorization-data freshness limits, access-
+   token lifetimes, and revocation behavior for issued tokens in both
+   modes.  Data older than the configured limits MUST NOT authorize
+   issuance.  The policy MUST account for synchronization delays and any
+   resource-server validation cache.
 
-   Locally validated JWT access tokens require revocation/status
-   propagation or remain usable until expiry.  SCIM events [RFC9967] can
-   propagate changes, but receivers still need the mapping to affected
-   tokens and sessions.  Deployments MUST document synchronization and
-   enforcement delay bounds and behavior during event-stream failure.
-
-   Access tokens cannot outlive their grants, so residual access after
-   the last permitted grant issuance is bounded by that grant's
-   remaining lifetime plus accepted clock skew.  Delayed policy
-   propagation adds its configured delay.  This does not promise
-   immediate revocation at disconnected resource servers.
+   Grant expiration prevents later redemption; it does not revoke an
+   access token already issued from that grant.  Residual access
+   therefore depends on access-token lifetime and the deployment's
+   revocation mechanism.  This profile specifies no synchronization
+   protocol and does not promise immediate revocation.
 
 12.  Privacy Considerations
 
@@ -926,35 +896,19 @@ Table of Contents
    SHOULD use separate key/evidence contexts for unrelated trust
    relationships while retaining agent identity.
 
-   Only needed provenance SHOULD be released.  Raw platform evidence and
-   owner personal data SHOULD NOT appear in grants.  Audit records
-   SHOULD identify qualified principals, instance, mode, target, and
-   decision; they MUST NOT contain raw credentials or private keys.
+   Only needed identity context SHOULD be released.  Raw platform
+   evidence and owner personal data SHOULD NOT appear in grants.  Audit
+   records SHOULD identify qualified principals, instance, mode, target,
+   and decision; they MUST NOT contain raw credentials or private keys.
 
 13.  IANA Considerations
 
 13.1.  JWT Claims
 
-   The following registrations are requested in the registry established
-   by [RFC7519]; the Change Controller is IETF.
-
-        +================+===========================+===========+
-        | Claim Name     | Description               | Reference |
-        +================+===========================+===========+
-        | agent_id       | Attester-scoped agent     | Section   |
-        |                | principal identifier      | 4.1       |
-        +----------------+---------------------------+-----------+
-        | agent_platform | Agent platform            | Section   |
-        |                | implementation identifier | 4.1       |
-        +----------------+---------------------------+-----------+
-        | agent_model    | Agent model identifier    | Section   |
-        |                | and version               | 4.1       |
-        +----------------+---------------------------+-----------+
-        | agent_runtime  | Runtime implementation    | Section   |
-        |                | identifier and version    | 4.1       |
-        +----------------+---------------------------+-----------+
-
-                                 Table 2
+   This specification requests registration of agent_id in the registry
+   established by [RFC7519], with description "Attester-scoped agent
+   principal identifier", reference Section 4.1, and Change Controller
+   IETF.
 
    client_instance is defined by [INSTANCE]; act uses [ACTOR-PROFILE];
    ai_agent is defined by [ENTITY-PROFILES].  No new actor format or
@@ -1014,14 +968,6 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-carleton-
               workload-authz-grant-00>.
 
-   [SCIM-AGENT]
-              Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI
-              Agent Resource Extension for the System for Cross-domain
-              Identity Management (SCIM)", Work in Progress, Internet-
-              Draft, draft-wzdk-scim-agent-resource-00, 5 June 2026,
-              <https://datatracker.ietf.org/doc/html/draft-wzdk-scim-
-              agent-resource-00>.
-
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6749>.
@@ -1046,16 +992,6 @@ Table of Contents
    [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
               Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
               2015, <https://www.rfc-editor.org/rfc/rfc7638>.
-
-   [RFC7643]  Hunt, P., Ed., Grizzle, K., Wahlstroem, E., and C.
-              Mortimore, "System for Cross-domain Identity Management:
-              Core Schema", RFC 7643, DOI 10.17487/RFC7643, September
-              2015, <https://www.rfc-editor.org/rfc/rfc7643>.
-
-   [RFC7644]  Hunt, P., Ed., Grizzle, K., Ansari, M., Wahlstroem, E.,
-              and C. Mortimore, "System for Cross-domain Identity
-              Management: Protocol", RFC 7644, DOI 10.17487/RFC7644,
-              September 2015, <https://www.rfc-editor.org/rfc/rfc7644>.
 
    [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
               RFC 7662, DOI 10.17487/RFC7662, October 2015,
@@ -1104,11 +1040,23 @@ Table of Contents
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6755>.
 
-   [RFC9967]  Hunt, P., Ed., Cam-Winget, N., Kiser, M., and J.
-              Schreiber, "System for Cross-Domain Identity Management
-              (SCIM) Profile for Security Event Tokens (SETs)",
-              RFC 9967, DOI 10.17487/RFC9967, May 2026,
-              <https://www.rfc-editor.org/rfc/rfc9967>.
+   [SCIM-AGENT]
+              Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI
+              Agent Resource Extension for the System for Cross-domain
+              Identity Management (SCIM)", Work in Progress, Internet-
+              Draft, draft-wzdk-scim-agent-resource-00, 5 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-wzdk-scim-
+              agent-resource-00>.
+
+   [RFC7643]  Hunt, P., Ed., Grizzle, K., Wahlstroem, E., and C.
+              Mortimore, "System for Cross-domain Identity Management:
+              Core Schema", RFC 7643, DOI 10.17487/RFC7643, September
+              2015, <https://www.rfc-editor.org/rfc/rfc7643>.
+
+   [RFC7644]  Hunt, P., Ed., Grizzle, K., Ansari, M., Wahlstroem, E.,
+              and C. Mortimore, "System for Cross-domain Identity
+              Management: Protocol", RFC 7644, DOI 10.17487/RFC7644,
+              September 2015, <https://www.rfc-editor.org/rfc/rfc7644>.
 
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
@@ -1129,13 +1077,6 @@ Table of Contents
               oauth-jwt-dpop-grant-01, 30 January 2026,
               <https://datatracker.ietf.org/doc/html/draft-parecki-
               oauth-jwt-dpop-grant-01>.
-
-   [SCIM-GOVERNANCE]
-              Kushwaha, S., "SCIM Agent Governance Extension", Work in
-              Progress, Internet-Draft, draft-kushwaha-scim-agent-
-              governance-00, 27 July 2026,
-              <https://datatracker.ietf.org/doc/html/draft-kushwaha-
-              scim-agent-governance-00>.
 
 Interoperability Cases
 
@@ -1166,8 +1107,11 @@ Interoperability Cases
      | Grant replay or incorrect       | Reject                     |
      | redemption key                  |                            |
      +---------------------------------+----------------------------+
-     | Concurrent JIT and SCIM         | One qualified agent record |
-     | creation                        |                            |
+     | Same agent in either mode       | Same issuer-qualified      |
+     |                                 | local agent mapping        |
+     +---------------------------------+----------------------------+
+     | Grant without optional instance | Accept if resource policy  |
+     | context                         | permits                    |
      +---------------------------------+----------------------------+
      | Disabled agent with a still-    | No new issuance or JIT     |
      | valid credential                | reactivation               |
@@ -1176,7 +1120,7 @@ Interoperability Cases
      |                                 | additional runtime hop     |
      +---------------------------------+----------------------------+
 
-                                 Table 3
+                                 Table 2
 
    Single-mode implementations need not implement cases specific to the
    other mode.
@@ -1200,11 +1144,10 @@ Coordination with Related Work
    with that work.  This does not change actor identity or preservation
    semantics.
 
-   The SCIM correlation and lifecycle requirements are proposed bindings
-   to [SCIM-AGENT].  Agent group membership is a dependency on that
-   proposal, not an assumed capability of all existing SCIM
-   implementations.  Sender-bound grant processing also needs
-   coordination with the JWT authorization-grant work.
+   Sender-bound grant processing also needs coordination with the JWT
+   authorization-grant work.  SCIM Agent resources remain an optional
+   provisioning mechanism and are not required for federation
+   conformance.
 
 Document History
 
@@ -1216,8 +1159,12 @@ Document History
    *  Replaced CIA with ATTEST instance identification and folded in
       vocabulary from draft-mcguinness-oauth-ai-agent-instance.
 
-   *  Applied Actor Profile to delegation and added provisioning,
-      resource processing, and lifecycle requirements.
+   *  Applied Actor Profile to delegation and defined downstream
+      identity correlation, resource processing, and lifecycle rules.
+
+   *  Limited the core to federation semantics; provisioning and access-
+      token formats are deployment choices, downstream instance context
+      is optional, and provenance vocabulary is deferred.
 
 Author's Address
 
