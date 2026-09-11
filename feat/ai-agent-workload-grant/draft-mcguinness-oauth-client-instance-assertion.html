@@ -41,18 +41,18 @@ sender-constrained to a key the instance possesses.
 <meta content="draft-mcguinness-oauth-client-instance-assertion-latest" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.34.0
-    Python 3.14.5
+    Python 3.14.7
     ConfigArgParse 1.7.5
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.10.0
+    platformdirs 4.11.7
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.2
+    wcwidth 0.8.3
 -->
 <link href="draft-mcguinness-oauth-client-instance-assertion.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -88,7 +88,6 @@ sender-constrained to a key the instance possesses.
   src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
-
 @font-face {
   font-family: 'Lora';
   font-style: italic;
@@ -137,7 +136,6 @@ sender-constrained to a key the instance possesses.
   src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-
 @font-face {
   font-family: 'Lora';
   font-style: normal;
@@ -202,7 +200,6 @@ sender-constrained to a key the instance possesses.
   font-display: swap;
   src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 }
 
 @font-face {
@@ -1071,11 +1068,11 @@ svg {
 <thead><tr>
 <td class="left">Internet-Draft</td>
 <td class="center">oauth-client-instance-assertion</td>
-<td class="right">June 2026</td>
+<td class="right">September 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 25 December 2026</td>
+<td class="center">Expires 14 March 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1088,12 +1085,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-client-instance-assertion-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-06-23" class="published">23 June 2026</time>
+<time datetime="2026-09-10" class="published">10 September 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2026-12-25">25 December 2026</time></dd>
+<dd class="expires"><time datetime="2027-03-14">14 March 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1166,7 +1163,7 @@ sender-constrained to a key the instance possesses.<a href="#section-abstract-3"
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 25 December 2026.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 14 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1315,7 +1312,10 @@ sender-constrained to a key the instance possesses.<a href="#section-abstract-3"
                     <p id="section-toc.1-1.8.2.6.2.3.1"><a href="#section-8.6.3" class="auto internal xref">8.6.3</a>.  <a href="#name-self-acting-case" class="internal xref">Self-Acting Case</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.6.2.4">
-                    <p id="section-toc.1-1.8.2.6.2.4.1"><a href="#section-8.6.4" class="auto internal xref">8.6.4</a>.  <a href="#name-actor-chain-merging" class="internal xref">Actor Chain Merging</a></p>
+                    <p id="section-toc.1-1.8.2.6.2.4.1"><a href="#section-8.6.4" class="auto internal xref">8.6.4</a>.  <a href="#name-subject-instance-case" class="internal xref">Subject-Instance Case</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.6.2.5">
+                    <p id="section-toc.1-1.8.2.6.2.5.1"><a href="#section-8.6.5" class="auto internal xref">8.6.5</a>.  <a href="#name-actor-chain-merging" class="internal xref">Actor Chain Merging</a></p>
 </li>
                 </ul>
 </li>
@@ -1397,7 +1397,7 @@ sender-constrained to a key the instance possesses.<a href="#section-abstract-3"
                 <p id="section-toc.1-1.12.2.8.1"><a href="#section-12.8" class="auto internal xref">12.8</a>.  <a href="#name-multi-tenancy-under-a-singl" class="internal xref">Multi-Tenancy Under a Single Client</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.9">
-                <p id="section-toc.1-1.12.2.9.1"><a href="#section-12.9" class="auto internal xref">12.9</a>.  <a href="#name-mode-switch-between-delegat" class="internal xref">Mode-Switch Between Delegation and Self-Acting</a></p>
+                <p id="section-toc.1-1.12.2.9.1"><a href="#section-12.9" class="auto internal xref">12.9</a>.  <a href="#name-grant-classification-confus" class="internal xref">Grant Classification Confusion</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.10">
                 <p id="section-toc.1-1.12.2.10.1"><a href="#section-12.10" class="auto internal xref">12.10</a>. <a href="#name-sender-constraint-requireme" class="internal xref">Sender-Constraint Requirement</a></p>
@@ -1668,10 +1668,19 @@ per <a href="#access-token-delegation" class="auto internal xref">Section 8.6.2<
         <dd class="break"></dd>
 <dt id="section-2-3.11">Self-Acting Case:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.12">
-          <p id="section-2-3.12.1">A token request whose grant produces no principal distinct from
-the instance (notably <code>client_credentials</code>). The issued access
-token's <code>sub</code> is the instance and <code>act</code> is omitted per
+          <p id="section-2-3.12.1">A token request whose grant supplies no separate grant principal
+(notably <code>client_credentials</code>). The issued access token's <code>sub</code>
+is the instance and <code>act</code> is omitted per
 <a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.13">Subject-Instance Case:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.14">
+          <p id="section-2-3.14.1">A token request whose authorization-grant profile explicitly
+identifies the presenting instance as the grant principal. The
+instance assertion is evidence about that subject, rather than
+a distinct delegated actor. The access token has the instance
+as <code>sub</code> and no <code>act</code>, per <a href="#access-token-subject-instance" class="auto internal xref">Section 8.6.4</a>.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1930,7 +1939,7 @@ This profile makes that class-and-instance relationship explicit so
 each runtime can be named, attested, and bound to access tokens
 individually. For agent platforms, a sub-agent spawned by an agent
 is represented as a nested actor via token-exchange
-(<a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>).<a href="#section-5-1" class="pilcrow">¶</a></p>
+(<a href="#chain-merging" class="auto internal xref">Section 8.6.5</a>).<a href="#section-5-1" class="pilcrow">¶</a></p>
 <p id="section-5-2">The remainder of this section covers the architecture
 (<a href="#architecture" class="auto internal xref">Section 5.1</a>), registration models (<a href="#registration-models" class="auto internal xref">Section 5.2</a>),
 and trust delegation model (<a href="#trust-model" class="auto internal xref">Section 5.3</a>).<a href="#section-5-2" class="pilcrow">¶</a></p>
@@ -2589,7 +2598,7 @@ assertion is a direct identity assertion of a single party (the
 instance); per <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, an assertion that carries an
 <code>act</code> claim represents a delegation chain rather than a direct
 identity, and the AS <span class="bcp14">MUST</span> reject such a token with <code>invalid_grant</code>
-(<a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>, <a href="#errors" class="auto internal xref">Section 8.9</a>).<a href="#section-7.2-4" class="pilcrow">¶</a></p>
+(<a href="#chain-merging" class="auto internal xref">Section 8.6.5</a>, <a href="#errors" class="auto internal xref">Section 8.9</a>).<a href="#section-7.2-4" class="pilcrow">¶</a></p>
 <p id="section-7.2-5">Additional claims <span class="bcp14">MAY</span> be present and <span class="bcp14">MUST</span> be ignored if not
 understood, except where this document or <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> specifies
 processing rules. Future profiles requiring AS understanding of a
@@ -2893,7 +2902,7 @@ succeeds, represent the instance in the access token per
 <a href="#sender-constrained" class="auto internal xref">Section 8.5</a>, using the key whose possession was
 verified in step 8. Reflect any prior actor chain present in
 input tokens by nesting per <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; chain merging
-rules are given in <a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>.<a href="#section-8.2-5.12.1" class="pilcrow">¶</a></p>
+rules are given in <a href="#chain-merging" class="auto internal xref">Section 8.6.5</a>.<a href="#section-8.2-5.12.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-8.2-6">If validation succeeds, the AS issues an access token (and optionally
@@ -3218,36 +3227,34 @@ key, not bearer).<a href="#section-8.6-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.6-2.2">
             <p id="section-8.6-2.2.1">The validated instance identity surfaces in <code>act</code> (delegation
-case) or top-level <code>sub</code> (self-acting case), per the
-classification and per-case rules below; <code>sub_profile</code>
+case) or top-level <code>sub</code> (self-acting or subject-instance case),
+per the classification and per-case rules below; <code>sub_profile</code>
 (<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>) signals the kind of subject in either case.<a href="#section-8.6-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-8.6-2.3">
             <p id="section-8.6-2.3.1">Any upstream actor chain <span class="bcp14">MUST</span> be preserved by nesting per
-<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; merge rules are in <a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>.<a href="#section-8.6-2.3.1" class="pilcrow">¶</a></p>
+<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; merge rules are in <a href="#chain-merging" class="auto internal xref">Section 8.6.5</a>.<a href="#section-8.6-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-8.6-3">A client instance may be acting on behalf of another principal
-(<em>delegation case</em>; e.g., a user authorized the request through an
-authorization_code grant) or acting as itself with no other
-principal involved (<em>self-acting case</em>; e.g., a <code>client_credentials</code>
-grant). The AS <span class="bcp14">MUST</span> classify each request as delegation or
-self-acting before populating the issued access token's claims;
-the classification rules are in <a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>.<a href="#section-8.6-3" class="pilcrow">¶</a></p>
+<p id="section-8.6-3">A client instance may act for another principal (<em>delegation</em>),
+act as itself with no separate grant principal (<em>self-acting</em>), or
+be the principal explicitly identified by an authorization grant
+(<em>subject-instance</em>). The AS <span class="bcp14">MUST</span> classify each request before
+populating the access token's claims.<a href="#section-8.6-3" class="pilcrow">¶</a></p>
 <div id="access-token-classification">
 <section id="section-8.6.1">
           <h4 id="name-classification">
 <a href="#section-8.6.1" class="section-number selfRef">8.6.1. </a><a href="#name-classification" class="section-name selfRef">Classification</a>
           </h4>
-<p id="section-8.6.1-1">The AS classifies the request based on whether the grant produces
-a principal distinct from the client instance presenting the
-Client Instance Assertion:<a href="#section-8.6.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.6.1-1">Classification follows the grant type and the semantic profile
+governing the authorization grant, selected by trusted AS
+configuration. It is not inferred from subject-string similarity.<a href="#section-8.6.1-1" class="pilcrow">¶</a></p>
 <table class="center" id="table-4">
             <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
 <thead>
               <tr>
                 <th class="text-left" rowspan="1" colspan="1">Grant</th>
-                <th class="text-left" rowspan="1" colspan="1">Principal</th>
+                <th class="text-left" rowspan="1" colspan="1">Grant principal</th>
                 <th class="text-left" rowspan="1" colspan="1">Classification</th>
               </tr>
             </thead>
@@ -3271,9 +3278,9 @@ Client Instance Assertion:<a href="#section-8.6.1-1" class="pilcrow">¶</a></p>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">jwt-bearer (<span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>)</td>
-                <td class="text-left" rowspan="1" colspan="1">the assertion's <code>sub</code>
+                <td class="text-left" rowspan="1" colspan="1">the grant assertion's <code>sub</code>
 </td>
-                <td class="text-left" rowspan="1" colspan="1">delegation</td>
+                <td class="text-left" rowspan="1" colspan="1">delegation by default; subject-instance under an explicit grant profile</td>
               </tr>
               <tr>
                 <td class="text-left" rowspan="1" colspan="1">token-exchange (<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>)</td>
@@ -3282,25 +3289,33 @@ Client Instance Assertion:<a href="#section-8.6.1-1" class="pilcrow">¶</a></p>
               </tr>
             </tbody>
           </table>
-<p id="section-8.6.1-3">The jwt-bearer and token-exchange rows always classify as delegation
-under this profile. <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span> requires a JWT-bearer assertion that
-identifies a principal, and <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> Section 2.1 requires a
-<code>subject_token</code>; in both cases another party is present and named, so
-the issued access token's <code>sub</code> is that party and the actor appears
-in <code>act</code>. ASes <span class="bcp14">MUST NOT</span> classify these grants as self-acting based
-on heuristic matching of subject identifiers; see
-<a href="#security-mode-switch" class="auto internal xref">Section 12.9</a>. This rule applies even when the
-<code>subject_token</code> was itself a self-acting access token whose <code>sub</code>
-named the same instance now presenting the assertion (e.g., a
-client-credentials token from an upstream AS exchanged at a
-downstream AS): the resulting access token has <code>sub</code> and <code>act.sub</code>
-naming the same instance. This is benign chain self-reference and
-is not an error; the AS <span class="bcp14">MUST NOT</span> collapse the two into a self-
-acting representation.<a href="#section-8.6.1-3" class="pilcrow">¶</a></p>
-<p id="section-8.6.1-4">When neither delegation nor self-acting cleanly applies (for example,
-custom or experimental grants), the AS <span class="bcp14">MUST</span> refuse to issue the
-access token rather than guess; reject with <code>invalid_grant</code>
-(<a href="#errors" class="auto internal xref">Section 8.9</a>).<a href="#section-8.6.1-4" class="pilcrow">¶</a></p>
+<p id="section-8.6.1-3">Unless the authorization-grant profile explicitly specifies that
+the grant subject represents the presenting client instance, the
+AS <span class="bcp14">MUST</span> classify an <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span> authorization grant as delegation.
+For a profile specifying subject-instance semantics, the AS <span class="bcp14">MUST</span>
+validate that the grant principal and the instance established by
+the Client Instance Assertion are the same, using issuer-qualified
+identities and any subject mapping explicitly authorized by that
+profile and AS configuration. If this cannot be established, the
+AS <span class="bcp14">MUST</span> reject the request with <code>invalid_grant</code>; it <span class="bcp14">MUST NOT</span> fall
+back to a different classification. Equal subject strings or keys
+alone do not establish identity equivalence across issuers.<a href="#section-8.6.1-3" class="pilcrow">¶</a></p>
+<p id="section-8.6.1-4">A Workload Authorization Grant (<span>[<a href="#WAG" class="cite xref">WAG</a>]</span>) profiled by <span>[<a href="#AI-AGENT" class="cite xref">AI-AGENT</a>]</span>,
+whose subject identifies the same instance represented by the
+Client Instance Assertion, is a subject-instance case: the agent
+acts as itself and no duplicate actor is introduced. That profile
+normally uses WAG without a separate Client Instance Assertion;
+this document applies only when an instance assertion is also
+presented and its OAuth client binding is validated.<a href="#section-8.6.1-4" class="pilcrow">¶</a></p>
+<p id="section-8.6.1-5">Token exchange remains delegation under this profile, including
+when the <code>subject_token</code> was a self-acting or subject-instance
+access token naming the same instance now presenting the
+assertion. Its actor chain <span class="bcp14">MUST NOT</span> be collapsed by matching
+identifiers. The subject-instance exception for JWT authorization
+grants does not alter token-exchange chain processing.<a href="#section-8.6.1-5" class="pilcrow">¶</a></p>
+<p id="section-8.6.1-6">When none of these classifications applies (for example, custom
+or experimental grants), the AS <span class="bcp14">MUST</span> refuse issuance with
+<code>invalid_grant</code> (<a href="#errors" class="auto internal xref">Section 8.9</a>) rather than guess.<a href="#section-8.6.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="access-token-delegation">
@@ -3393,19 +3408,47 @@ issuer-native.<a href="#section-8.6.3-4" class="pilcrow">¶</a></p>
 <p id="section-8.6.3-5">For a worked example see <a href="#appendix-examples-client-credentials" class="auto internal xref">Appendix "Client Credentials (Self-Acting)"</a>.<a href="#section-8.6.3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="chain-merging">
+<div id="access-token-subject-instance">
 <section id="section-8.6.4">
-          <h4 id="name-actor-chain-merging">
-<a href="#section-8.6.4" class="section-number selfRef">8.6.4. </a><a href="#name-actor-chain-merging" class="section-name selfRef">Actor Chain Merging</a>
+          <h4 id="name-subject-instance-case">
+<a href="#section-8.6.4" class="section-number selfRef">8.6.4. </a><a href="#name-subject-instance-case" class="section-name selfRef">Subject-Instance Case</a>
           </h4>
-<p id="section-8.6.4-1">The AS constructs the issued access token's <code>act</code> chain per
+<p id="section-8.6.4-1">When the request is classified as subject-instance, the grant
+identifies the instance as the authorized principal. The AS <span class="bcp14">MUST</span>
+preserve that grant principal as the access token's <code>sub</code>, applying
+only the issuer-aware namespacing or explicitly configured subject
+mapping permitted by the governing grant profile. It <span class="bcp14">MUST NOT</span>
+replace the grant principal with a different instance subject.
+The AS <span class="bcp14">MUST</span> set <code>sub_profile</code> and <code>cnf</code> as in
+<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a> and <span class="bcp14">MUST</span> omit <code>act</code>.<a href="#section-8.6.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.6.4-2">The issuer-context retention, collision handling, sender-constraint,
+resource-server processing, and revocation rules for self-acting
+tokens also apply to subject-instance tokens. The AS <span class="bcp14">MUST</span> retain
+both the grant issuer and the validated instance issuer, their
+subject identifiers, and any mapping used with token state. These
+are evidence about the same principal; neither issuer replaces
+the access token's AS-valued <code>iss</code>. If both artifacts carry key
+confirmation, the AS <span class="bcp14">MUST</span> verify that their binding members
+identify the same instance key and reject inconsistencies with
+<code>invalid_grant</code>. The grant profile determines whether refresh
+tokens may be issued; if permitted, <a href="#refresh" class="auto internal xref">Section 8.7</a> inherits the
+subject-instance classification and recorded grant subject.<a href="#section-8.6.4-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="chain-merging">
+<section id="section-8.6.5">
+          <h4 id="name-actor-chain-merging">
+<a href="#section-8.6.5" class="section-number selfRef">8.6.5. </a><a href="#name-actor-chain-merging" class="section-name selfRef">Actor Chain Merging</a>
+          </h4>
+<p id="section-8.6.5-1">The AS constructs the issued access token's <code>act</code> chain per
 <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>'s Delegation Chain Validation and Construction
 algorithm: the validated client instance assertion is the new
 outermost actor, and any <code>subject_token</code> <code>act</code> chain (only
 applicable to token-exchange) is preserved verbatim under it.
-Depth limits and rejection on overflow follow <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>.<a href="#section-8.6.4-1" class="pilcrow">¶</a></p>
-<p id="section-8.6.4-2">In the self-acting case (<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>) the <code>act</code>
-claim is omitted.<a href="#section-8.6.4-2" class="pilcrow">¶</a></p>
+Depth limits and rejection on overflow follow <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>.<a href="#section-8.6.5-1" class="pilcrow">¶</a></p>
+<p id="section-8.6.5-2">In the self-acting and subject-instance cases
+(<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>, <a href="#access-token-subject-instance" class="auto internal xref">Section 8.6.4</a>),
+the <code>act</code> claim is omitted.<a href="#section-8.6.5-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3818,7 +3861,8 @@ instance that presents the token. In the delegation case the
 principal in <code>sub</code> (typically a user) does not present the
 token; the instance named in <code>act.sub</code> does, and
 sender-constraint validation authenticates that instance.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3"><strong>Self-acting access tokens</strong> (<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>)
+<p id="section-9-3"><strong>Self-acting and subject-instance access tokens</strong>
+(<a href="#access-token-self-acting" class="auto internal xref">Section 8.6.3</a>, <a href="#access-token-subject-instance" class="auto internal xref">Section 8.6.4</a>)
 carry no <code>act</code>. <code>sub</code> names the client <em>instance</em> (typically a
 SPIFFE ID or other workload identifier), <code>sub_profile</code> =
 <code>client_instance</code> signals that the subject is a runtime instance,
@@ -4348,19 +4392,23 @@ interoperability of tenant scoping becomes necessary.<a href="#section-12.8-4" c
 </div>
 <div id="security-mode-switch">
 <section id="section-12.9">
-        <h3 id="name-mode-switch-between-delegat">
-<a href="#section-12.9" class="section-number selfRef">12.9. </a><a href="#name-mode-switch-between-delegat" class="section-name selfRef">Mode-Switch Between Delegation and Self-Acting</a>
+        <h3 id="name-grant-classification-confus">
+<a href="#section-12.9" class="section-number selfRef">12.9. </a><a href="#name-grant-classification-confus" class="section-name selfRef">Grant Classification Confusion</a>
         </h3>
-<p id="section-12.9-1">Whether an issued access token represents delegation or self-acting
-(<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>) determines whether the instance is
+<p id="section-12.9-1">Whether an issued access token represents delegation, self-acting,
+or subject-instance (<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a>) determines
+whether the instance is
 exposed to resource servers as <code>act</code> or as <code>sub</code>. An adversary that can
 influence classification could escalate privileges, for example by
 inducing the AS to drop a <code>sub</code> belonging to a user and re-anchor the
 token on the instance's <code>sub</code>. The classification rule in
-<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a> is determined by the grant type, not
-by comparison of attacker-influenceable subject strings; ASes <span class="bcp14">MUST NOT</span> employ heuristic or fuzzy matching of assertion contents to
-override the table. In particular, ASes <span class="bcp14">MUST NOT</span> normalize either
-side of any comparison they perform on subject identifiers (no
+<a href="#access-token-classification" class="auto internal xref">Section 8.6.1</a> is determined by the grant type and
+an authorization-grant profile selected by trusted AS configuration.
+A requester <span class="bcp14">MUST NOT</span> be able to select subject-instance semantics
+merely by adding claims or choosing matching subject strings. ASes
+<span class="bcp14">MUST NOT</span> use heuristic or fuzzy matching to establish equivalence;
+any mapping <span class="bcp14">MUST</span> be explicitly configured and issuer-qualified.
+In particular, ASes <span class="bcp14">MUST NOT</span> normalize either side of any comparison they perform on subject identifiers (no
 Unicode normalization, no case folding, no percent-decoding beyond
 what <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> requires for JSON parsing). When classification is
 ambiguous (for example, custom grants not listed in the table), the
@@ -4850,7 +4898,7 @@ registration is contingent on the establishment of that registry.<a href="#secti
 <dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
-<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-01</span>, <time datetime="2026-03-01" class="refDate">1 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-01">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-01</a>&gt;</span>. </dd>
+<span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ENTITY-PROFILES">[ENTITY-PROFILES]</dt>
         <dd>
@@ -4941,9 +4989,13 @@ registration is contingent on the establishment of that registry.<a href="#secti
 <a href="#section-14.2" class="section-number selfRef">14.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="AI-AGENT">[AI-AGENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 AI Agent Instance Profile"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-ai-agent-instance-00</span>, <time datetime="2026-07-04" class="refDate">4 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="ATTEST-CLIENT-AUTH">[ATTEST-CLIENT-AUTH]</dt>
         <dd>
-<span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-09</span>, <time datetime="2026-05-25" class="refDate">25 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09</a>&gt;</span>. </dd>
+<span class="refAuthor">Looker, T.</span>, <span class="refAuthor">Bastian, P.</span>, and <span class="refAuthor">C. Bormann</span>, <span class="refTitle">"OAuth 2.0 Attestation-Based Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-attestation-based-client-auth-11</span>, <time datetime="2026-09-03" class="refDate">3 September 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC6755">[RFC6755]</dt>
         <dd>
@@ -4961,9 +5013,13 @@ registration is contingent on the establishment of that registry.<a href="#secti
         <dd>
 <span class="refAuthor">SPIFFE</span>, <span class="refTitle">"SPIFFE: Secure Production Identity Framework For Everyone"</span>, <time datetime="2024" class="refDate">2024</time>, <span>&lt;<a href="https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/">https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="WAG">[WAG]</dt>
+        <dd>
+<span class="refAuthor">Carleton, P.</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-00</span>, <time datetime="2026-08-03" class="refDate">3 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-00">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="WIMSE-ARCH">[WIMSE-ARCH]</dt>
         <dd>
-<span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Rosomakho, Y.</span>, and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"Workload Identity in a Multi System Environment (WIMSE) Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-arch-07</span>, <time datetime="2026-03-02" class="refDate">2 March 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-07">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-07</a>&gt;</span>. </dd>
+<span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Rosomakho, Y.</span>, and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"Workload Identity in a Multi System Environment (WIMSE) Architecture"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-arch-08</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-08">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-arch-08</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="WIMSE-CREDS">[WIMSE-CREDS]</dt>
       <dd>
@@ -5024,7 +5080,8 @@ instance is the subject (top-level <code>sub</code>) rather than the actor
 <code>actor_token</code> for that case would require readers to mentally
 translate "actor token" to "validated instance identity assertion."
 The dedicated parameter removes that translation; the grant
-determines whether the result is delegation or self-acting.<a href="#appendix-A.2-4" class="pilcrow">¶</a></p>
+determines whether the result is delegation, self-acting, or
+subject-instance.<a href="#appendix-A.2-4" class="pilcrow">¶</a></p>
 <p id="appendix-A.2-5">Third, the dedicated parameter parallels the wire conventions of
 <span>[<a href="#ATTEST-CLIENT-AUTH" class="cite xref">ATTEST-CLIENT-AUTH</a>]</span>, which uses purpose-named headers
 (<code>OAuth-Client-Attestation</code> and <code>-PoP</code>) rather than a typed
@@ -5392,7 +5449,7 @@ sub-agent runtime inst-03, with no <code>act</code> of its own (per
 }
 </pre><a href="#appendix-B.3-7" class="pilcrow">¶</a>
 </div>
-<p id="appendix-B.3-8">Chain construction per <a href="#chain-merging" class="auto internal xref">Section 8.6.4</a>:<a href="#appendix-B.3-8" class="pilcrow">¶</a></p>
+<p id="appendix-B.3-8">Chain construction per <a href="#chain-merging" class="auto internal xref">Section 8.6.5</a>:<a href="#appendix-B.3-8" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="appendix-B.3-9.1">
             <p id="appendix-B.3-9.1.1">Outermost: the validated Client Instance Assertion (sub-agent inst-03).<a href="#appendix-B.3-9.1.1" class="pilcrow">¶</a></p>
