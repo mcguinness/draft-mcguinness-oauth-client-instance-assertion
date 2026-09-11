@@ -209,6 +209,13 @@ This profile uses one IdP issuer per enterprise tenancy in
 both modes. Discovery alone MUST NOT establish this trust;
 user SSO trust MUST NOT implicitly permit self-acting access.
 
+The trust configuration MUST identify the request contexts
+requiring this profile, including issuer, tenant, resource, and
+client where applicable. A matching request MUST satisfy this
+profile even when required claims are missing. Ambiguous profile
+selection MUST cause rejection; missing claims MUST NOT select
+a less restrictive profile.
+
 The IdP client registration represents the logical application
 and MUST require {{INSTANCE}} with
 `attest_jwt_client_auth_dpop`. Approved Federation Bindings
@@ -321,7 +328,7 @@ MUST be `agent-federation`. This audience and scope identify
 the IdP's exchange service; no separate resource identifier
 or endpoint is defined. The token MUST contain
 `sub_profile=ai_agent` as defined by {{ENTITY-PROFILES}},
-`agent_federation=1` as a string, `client_instance` identifying
+`client_instance` identifying
 the authenticated upstream instance, and `cnf.jkt` derived
 from the proven key under {{RFC7638}}. It MUST NOT contain `act`.
 
@@ -497,7 +504,7 @@ No refresh token is issued.
 
 The client MUST check that the response's issued type matches
 the requested type and that the grant has the expected protected
-type, `agent_federation` version, audience, resource, scope subset,
+type, audience, resource, scope subset,
 and `cnf.jkt` for its proven key. Missing or inconsistent binding
 MUST cause failure. These checks do not replace the RAS's
 cryptographic grant validation.
@@ -561,10 +568,6 @@ The following claims are REQUIRED in both modes:
 : The single approved resource and nonempty, space-delimited
   approved scopes.
 
-`agent_federation`:
-: The string `1`, identifying this profile's processing rules.
-  Other values are not defined here.
-
 `client_instance`:
 : The object defined by {{INSTANCE}}. In grants, its `iss`
   MUST equal the grant issuer and its `id` MUST be an
@@ -609,7 +612,6 @@ Example self-acting grant payload:
   "aud": "https://as.app.example",
   "resource": "https://api.app.example",
   "scope": "tickets.read",
-  "agent_federation": "1",
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
     "id": "runtime-93ab"
@@ -636,7 +638,6 @@ Example delegated grant payload:
   "aud": "https://as.app.example",
   "resource": "https://api.app.example",
   "scope": "tickets.read",
-  "agent_federation": "1",
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
     "id": "runtime-93ab"
@@ -672,10 +673,10 @@ grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
 
 The RAS MUST:
 
-1. Select the approved issuer/tenant relationship and validate
-   signature, protected type, required claims, audience,
-   lifetime, and `agent_federation=1`. Reject unsupported
-   versions and mode/type mismatches.
+1. Select this profile through the approved trust configuration
+   in {{identity}} and validate signature, protected type,
+   required claims, audience, and lifetime. Reject mode/type
+   mismatches.
 2. Validate the DPoP proof for its token endpoint under
    {{RFC9449}}. Compute its public-key thumbprint and compare
    it to `cnf.jkt`. Missing or mismatched proof MUST fail.
@@ -724,8 +725,8 @@ Implementations MUST support opaque access tokens with
 {{RFC7662}} introspection. This uses the Actor Profile
 introspection compatibility path in delegated mode; an opaque
 token itself is not an Actor Profile JWT. Active results MUST
-include `sub`, `aud`, `exp`, `scope`, `cnf.jkt`,
-`agent_federation=1`, and the grant's unchanged `client_instance`.
+include `sub`, `aud`, `exp`, `scope`, `cnf.jkt`, and the grant's
+unchanged `client_instance`.
 Delegated results MUST also include the unchanged `act` and
 applicable subject classification under {{ACTOR-PROFILE}}.
 An established logical client, including the delegated client,
@@ -885,9 +886,12 @@ checks. The separate grant type in {{JWT-DPOP}} is not
 implicitly selected.
 
 The IdP MUST issue grants only to a RAS configured to enforce
-this profile. A RAS receiving an unsupported `agent_federation`
-value MUST reject the grant, not retry as an ordinary ID-JAG
-or WAG. A gateway becoming the key holder requires explicitly
+this profile. A RAS MUST reject a request that fails the
+configured profile's checks, not retry as an ordinary ID-JAG
+or WAG. The RAS and RS MUST establish the access-token processing
+requirements for their protected resources through trusted
+configuration, not an optional token marker. A gateway becoming
+the key holder requires explicitly
 authorized credential and identity mapping; forwarding another
 runtime's identifier does not prove it sent the request.
 
@@ -949,23 +953,10 @@ established by {{RFC7519}}; the Change Controller is IETF.
 | `agent_platform` | Agent platform implementation identifier | {{agent-evidence}} |
 | `agent_model` | Agent model identifier and version | {{agent-evidence}} |
 | `agent_runtime` | Runtime implementation identifier and version | {{agent-evidence}} |
-| `agent_federation` | Agent federation processing profile version | {{grant}} |
-
-The `agent_federation` marker also appears in the Agent Token
-defined in {{agent-token}}, where its processing is restricted
-to the IdP exchange service. It does not turn an access token
-into a WAG or ID-JAG.
 
 `client_instance` is defined by {{INSTANCE}}; `act` uses
 {{ACTOR-PROFILE}}; `ai_agent` is defined by {{ENTITY-PROFILES}}.
 No new actor format or Agent Token type is registered.
-
-## Token Introspection Response
-
-Register `agent_federation` in the registry established by
-{{RFC7662}}, with description "Agent federation processing
-profile version", reference {{access-tokens}}, and Change
-Controller IETF.
 
 ## OAuth URI
 
