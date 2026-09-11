@@ -18,12 +18,12 @@ It does not determine authorization subjects or delegated actors.
 * [Draft source](draft-mcguinness-oauth-workload-agent-federation.md)
 * [Local HTML preview](draft-mcguinness-oauth-workload-agent-federation.html) (build with `make`)
 
-An IdP-mediated profile preserving existing ID-JAG/EMA client-based
-delegation and supporting explicit actor delegation and self-acting
-WAG. Explicit actors use OAuth Actor Profile with a client assertion
-or an IdP-issued access token. Separate agent credentials and instance
-attestation are required only for the Registered Agent path. Provisioning and
-downstream token formats remain deployment choices.
+A standards-track profile for binding platform-authenticated agents
+to IdP identities, obtaining IdP-issued access tokens, and exchanging
+them for self-acting WAG or user-delegated ID-JAG. It reuses ATTEST
+instance identification and OAuth Actor Profile. Existing CIMD/EMA
+flows and provisioning choices are informative deployment guidance;
+downstream processing follows the underlying grant specifications.
 
 These two drafts replace the earlier Client Instance Assertion
 and standalone AI Agent Instance architecture. The earlier sources
