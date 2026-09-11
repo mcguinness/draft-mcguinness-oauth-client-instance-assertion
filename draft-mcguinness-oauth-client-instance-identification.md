@@ -27,19 +27,14 @@ author:
 normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   RFC6749:
-  RFC7517:
   RFC7518:
   RFC7519:
-  RFC7591:
   RFC7638:
   RFC7662:
   RFC7800:
-  RFC8414:
   RFC8725:
   RFC9449:
 informative:
-  RFC8693:
-  CIMD: I-D.ietf-oauth-client-id-metadata-document
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
     title: "OAuth 2.0 Profile for Agent Federation"
@@ -105,65 +100,29 @@ Instance Context:
 
 # Profile Selection and Trust {#configuration}
 
-An authorization server implementing this profile MUST publish
-`client_instance_identification_supported` with the JSON boolean
-value `true` in its {{RFC8414}} metadata. Absence means that
-support is not advertised.
+The authorization server and client MUST establish use of this
+profile through administrative configuration before processing
+requests. That configuration MUST identify the Logical Client,
+its authentication method, and the attesters authorized to
+identify its instances. A resource relying on instance context
+MUST likewise establish that requirement through trusted
+configuration. Receiving an instance claim MUST NOT select this
+profile or alter the client's authentication method. This
+document defines no new discovery or client metadata parameters.
 
-This profile applies when the client's effective configuration
-has `client_instance_identification_required` set to `true`.
-The server MUST establish that configuration before processing
-a request. A deployment using this profile for an additional
-security signal at a resource server MUST establish the
-equivalent requirement through trusted configuration. Merely
-receiving a JWT containing an instance claim MUST NOT select
-this profile or alter a client's authentication method.
+For each approved attester, the server MUST configure its exact
+issuer identifier, verification keys or a trusted source for
+those keys, permitted asymmetric signature algorithms, and
+attestation age and lifetime limits. Client-published information
+or possession of a signing key alone MUST NOT establish an
+attester's authority for a client.
 
-The following client metadata is defined for use with {{RFC7591}},
-{{CIMD}}, or administrative configuration:
-
-`client_instance_identification_required`:
-: OPTIONAL. Boolean indicating that this profile is required.
-  The default is `false`.
-
-`client_instance_attesters`:
-: REQUIRED when this profile is required. A nonempty array of
-  objects. Each object contains an `issuer` string and a
-  `jwks_uri` string, both HTTPS URLs without fragment components.
-  `issuer` identifies an authorized Client Attester; `jwks_uri`
-  locates its verification keys as a JWK Set {{RFC7517}}.
-  Issuer values MUST be distinct within the array.
-
-The authorization server MUST approve each attester's authority
-to attest instances of the configured client. Client-published
-metadata is a proposal for this association; publication, HTTPS
-retrieval, or possession of a signing key MUST NOT establish
-that authority without the server's trust policy. An effective
-attester configuration MUST identify permitted asymmetric
-signature algorithms and limits on attestation age and lifetime.
-
-The receiver MUST resolve keys using the approved descriptor and
-the JWT's `kid`. It MUST NOT obtain authority or replacement keys
+The receiver MUST resolve keys using that configuration and the
+JWT's `kid`. It MUST NOT obtain authority or replacement keys
 from an unapproved JWT-supplied URL or embedded public key.
 Changes to issuer authority and key configuration MUST be
 authenticated and audited. Issuer and client identifiers are
 compared as exact strings, without URI normalization.
-
-Example effective client configuration:
-
-~~~ json
-{
-  "client_id": "https://platform.example/oauth-client",
-  "token_endpoint_auth_method": "attest_jwt_client_auth_dpop",
-  "client_instance_identification_required": true,
-  "client_instance_attesters": [
-    {
-      "issuer": "https://attester.example/tenant/acme",
-      "jwks_uri": "https://attester.example/tenant/acme/jwks"
-    }
-  ]
-}
-~~~
 
 # Client Attestation Claims {#claims}
 
@@ -379,21 +338,6 @@ It also requests registration of `client_instance`, with the
 same description and reference, in the "OAuth Token Introspection
 Response" registry established by {{RFC7662}}. The Change
 Controller is IETF.
-
-## OAuth Metadata
-
-This specification requests the following registrations. The
-Change Controller is IETF and the specification reference for
-each entry is {{configuration}}.
-
-| Registry | Metadata Name | Description |
-|---|---|---|
-| OAuth Authorization Server Metadata | `client_instance_identification_supported` | Support for this instance identification profile |
-| OAuth Dynamic Client Registration Metadata | `client_instance_identification_required` | Requirement to use this instance identification profile |
-| OAuth Dynamic Client Registration Metadata | `client_instance_attesters` | Approved instance attester issuer and verification-key descriptors |
-
-The registries are established by {{RFC8414}} and {{RFC7591}},
-respectively.
 
 --- back
 
