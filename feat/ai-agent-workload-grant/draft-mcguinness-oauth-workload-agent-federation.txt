@@ -13,14 +13,14 @@ Expires: 15 March 2027
 
 Abstract
 
-   This specification profiles OAuth 2.0 for agent access through an
-   identity provider.  It preserves client-based user delegation using
-   Identity Assertion JWT Authorization Grants, specifies explicit actor
-   delegation using the OAuth Actor Profile, and profiles Workload
-   Authorization Grants for agents acting for themselves.  Separate
-   agent credentials and instance evidence are required only for
-   deployments that identify agents independently of their OAuth
-   clients.
+   This specification defines how an identity provider binds a platform-
+   authenticated agent to a registered agent principal and issues
+   authorization grants for that principal.  It profiles Attestation-
+   Based Client Authentication, the client credentials grant, and OAuth
+   2.0 Token Exchange.  The resulting Workload Authorization Grant
+   identifies a self-acting agent as subject; an Identity Assertion JWT
+   Authorization Grant identifies an agent acting for a user through the
+   OAuth Actor Profile.
 
 About This Document
 
@@ -76,40 +76,27 @@ Copyright Notice
 Table of Contents
 
    1.  Introduction
-     1.1.  Relationship to Attestation-Based Client Authentication
-     1.2.  Relationship to the OAuth Actor Profile
-   2.  Conventions and Definitions
-   3.  Identity and Deployment
-   4.  Client-Based Delegation
-   5.  Obtaining an IdP Access Token
-     5.1.  Agent Evidence
-     5.2.  Request
-     5.3.  Processing and Response
-     5.4.  Workload Federation Inputs
-   6.  Requesting an Authorization Grant
-     6.1.  Self-Acting Mode
-     6.2.  Explicit Actor Delegation
-       6.2.1.  Registered Agent Input
-       6.2.2.  Client Actor Input
-     6.3.  IdP Processing
-     6.4.  Response and Errors
-   7.  Authorization Grants
-   8.  Redeeming a Grant
-   9.  Access Tokens and Resource Processing
-   10. Provisioning and Attributes
-     10.1.  Downstream Correlation
-     10.2.  Groups and Ownership
-   11. Authorization Server Metadata
-   12. Security Considerations
-     12.1.  Binding and Substitution
-     12.2.  Lifecycle and Freshness
-   13. Privacy Considerations
-   14. IANA Considerations
-     14.1.  JWT Claims
-     14.2.  OAuth URI
-   15. References
-     15.1.  Normative References
-     15.2.  Informative References
+     1.1.  Relationship to Client Attestation and Actor Profile
+   2.  Conventions and Scope
+   3.  Profile Selection and Identity Binding
+   4.  Obtaining an IdP Access Token
+     4.1.  Agent Evidence
+     4.2.  Request
+     4.3.  Processing and Response
+   5.  Requesting an Authorization Grant
+     5.1.  Self-Acting Agent
+     5.2.  Agent Acting for a User
+     5.3.  IdP Processing
+     5.4.  Grant Construction
+     5.5.  Response and Errors
+   6.  Grant Consumption
+   7.  Metadata and Configuration
+   8.  Security and Privacy Considerations
+   9.  IANA Considerations
+   10. References
+     10.1.  Normative References
+     10.2.  Informative References
+   Deployment and Compatibility
    Interoperability Cases
    Coordination with Related Work
    Document History
@@ -117,93 +104,55 @@ Table of Contents
 
 1.  Introduction
 
-   An identity provider (IdP) can authorize an agent application to
-   access resources for a user, or govern agent principals independently
-   of the platforms hosting them.  A Resource Authorization Server (RAS)
-   trusts the IdP's authorization grant; the Resource Server (RS)
-   accepts the RAS's access token.
+   An OAuth client can host several independently governed agents.
+   Authenticating the client does not identify which agent is acting.
+   An identity provider (IdP) needs a validated binding between the
+   platform's agent identifier, the executing instance, and a stable
+   agent principal in its own namespace before issuing authority.
 
-   This document supports three cases:
+   This document standardizes that binding and two exchanges:
 
-      +================+========+============+======================+
-      | Case           | Grant  | Subject    | Actor representation |
-      +================+========+============+======================+
-      | Client-based   | ID-JAG | User       | Client identity; no  |
-      | delegation     |        |            | act required         |
-      +----------------+--------+------------+----------------------+
-      | Explicit actor | ID-JAG | User       | Client or Registered |
-      | delegation     |        |            | Agent in act         |
-      +----------------+--------+------------+----------------------+
-      | Self-acting    | WAG    | Registered | No act               |
-      | agent          |        | Agent      |                      |
-      +----------------+--------+------------+----------------------+
+   1.  A Client Attestation and instance key proof authenticate a
+       request for an IdP-issued access token identifying the agent.
 
-                                  Table 1
+   2.  That access token is exchanged for a Workload Authorization Grant
+       [WAG] when the agent acts for itself, or is supplied as actor
+       evidence alongside a user credential to obtain an Identity
+       Assertion JWT Authorization Grant [ID-JAG].
 
-   Client-based delegation reuses [ID-JAG], including deployments such
-   as MCP Enterprise-Managed Authorization [EMA].  Here, "implicit
-   delegation" describes actor representation: access is still
-   authorized by user or administrator policy.  Absence of act does not
-   imply self-acting access or a human presenter.
+   The normative scope is agent evidence, identity resolution,
+   credential acquisition, and grant issuance.  The grant formats and
+   their downstream processing come from WAG, ID-JAG, and
+   [ACTOR-PROFILE], with the binding requirements in Section 6.  This
+   document does not define another downstream grant profile.
 
-   Implementations MUST support at least one case and its applicable
-   requirements.  Section 4 defines the existing ID-JAG path.  The
-   protocol requirements in Section 5, Section 6, Section 7, Section 8,
-   and Section 9 apply to the self-acting and explicit actor cases; they
-   do not add bootstrap, actor, or sender-constraint requirements to
-   client-based delegation.  Task-specific authority and multi-agent
-   chains are outside this profile.  These cases are alternatives, not
-   migration stages.
+   Existing client-based delegation, including MCP Enterprise-Managed
+   Authorization, does not require this flow.  Compatibility and
+   provisioning guidance are informative in Appendix "Deployment and
+   Compatibility".
 
-1.1.  Relationship to Attestation-Based Client Authentication
+1.1.  Relationship to Client Attestation and Actor Profile
 
-   [ATTEST] authenticates a client instance using a Client Attestation
-   issued by a trusted Client Attester and proof of possession of the
-   instance key.  [INSTANCE] profiles that mechanism to add a stable
-   client_instance_id, retaining typ=oauth-client-attestation+jwt,
-   sub=client_id, and cnf.jwk.  This document adds the agent_id evidence
-   and IdP registry mapping in Section 5.1 for Registered Agents.
-   Client authentication alone does not authorize agent or user access.
+   [ATTEST] authenticates a client instance using an attester-issued
+   Client Attestation and proof of possession of its key.  [INSTANCE]
+   adds a stable instance identifier while retaining the base JWT type,
+   sub=client_id, and cnf.jwk.  This document adds agent_id and its
+   authorized mapping at the IdP.  It uses the existing ATTEST headers
+   and DPoP combined mode, not a new authentication method.
 
-   The Registered Agent path uses ATTEST at the IdP for bootstrap and
-   subsequent exchange.  It selects DPoP combined mode, which proves
-   possession of the attested key and binds the issued access token and
-   grant to that key.  Client-based delegation can use ATTEST without
-   introducing an actor.  The explicit client actor input in
-   Section 6.2.2 uses private_key_jwt and does not require ATTEST.  No
-   new client authentication method is defined.
+   The Client Attestation is authentication evidence.  The IdP-issued
+   access token identifies the resolved agent and authorizes exchange at
+   the IdP.  The resulting WAG or ID-JAG authorizes issuance at a
+   Resource Authorization Server (RAS).  Those artifacts have different
+   purposes and are not interchangeable.
 
-   A Client Attestation is authentication evidence, not an IdP-issued
-   access token or a WAG or ID-JAG.  It is presented in the OAuth-
-   Client-Attestation header, not as subject_token or actor_token.  It
-   is also distinct from the client-signed JWT assertion used in
-   Section 6.2.2.  The IdP-issued access token's sub identifies the
-   Registered Agent after authorized mapping; the Client Attestation's
-   sub continues to identify the client.
+   For delegation, Actor Profile supplies actor construction and
+   preservation rules.  The registered agent is the actor; the instance
+   is execution context.  Self-acting access and instance identification
+   alone do not require Actor Profile.  Downstream servers trust the
+   IdP's grant and need not validate the platform's attestation.
 
-   The RAS validates the IdP-issued grant and required presenter proof.
-   It need not validate the upstream Client Attestation or trust the
-   platform's attester.  Its own client authentication requirements
-   remain those of the selected grant path.
-
-1.2.  Relationship to the OAuth Actor Profile
-
-   Explicit actor delegation MUST implement [ACTOR-PROFILE] for actor
-   construction, authorization, preservation, and resource processing.
-   The actor is established from a JWT client assertion when the client
-   itself acts, or from an IdP-issued access token when a Registered
-   Agent acts.  An instance identifier never supplies the actor
-   identity.  RAS redemption preserves the actor without adding another
-   hop.  Opaque-token introspection uses Actor Profile's compatibility
-   path as specified in Section 9.
-
-   ID-JAG's RAS issuer audience applies; see Appendix "Coordination with
-   Related Work".  Client-based delegation, self-acting access, and
-   instance identification alone do not require Actor Profile.  Client
-   Instance Identification [INSTANCE] can provide audit or risk context
-   in any case without requiring explicit actor representation.
-
-2.  Conventions and Definitions
+2.  Conventions and Scope
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
@@ -211,170 +160,102 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-   OAuth terms are used as defined in [RFC6749] and [RFC8693].  Client
-   Attester and Client Instance are defined by [ATTEST]; Instance
-   Identifier and Instance Context are defined by [INSTANCE].
+   OAuth terms follow [RFC6749] and [RFC8693].  Client Attestation,
+   Client Attester, and Client Instance follow [ATTEST].  Instance
+   Identifier and Instance Context follow [INSTANCE].
 
-   Agent Principal:  A non-human principal whose identity can persist
-      across runtime restarts, key changes, and platform migration.
+   Registered Agent:  A non-human principal represented at the IdP with
+      a stable, non-reassignable identifier, status, and authorized
+      platform bindings.
 
-   Registered Agent:  An Agent Principal represented in the IdP
-      registry, with current status and authorized external identity
-      bindings.
+   Federation Binding:  An approved association between a Client
+      Attester, logical OAuth client, platform agent identifier, tenant,
+      and Registered Agent.
 
-   Agent Platform:  A system that creates or operates agent instances.
-      It can serve as, or authorize, a Client Attester.  The platform
-      can act as an OAuth client itself or host separately identified
-      agents.
+   A client or IdP claiming this profile MUST implement the bootstrap in
+   Section 4 and the exchange requirements for its role and each output
+   it supports.  The IdP and client MUST establish supported outputs
+   before exchange through trusted configuration and existing metadata.
+   The delegated output additionally requires [ACTOR-PROFILE].  This
+   profile supports one agent actor; task authority, delegation chains,
+   and direct native workload inputs are outside its scope.
 
-   Federation Binding:  An administratively authorized mapping from a
-      trusted attester, logical client, and platform agent identifier to
-      a Registered Agent.
+3.  Profile Selection and Identity Binding
 
-3.  Identity and Deployment
+   The IdP MUST configure use of this profile for the logical client,
+   its approved attesters, and permitted output grants.  The attester
+   trust and key configuration follow [INSTANCE].  Configuration MUST
+   also identify approved RAS issuers, resources, target tenants, and
+   applicable subject and client mappings.  An unsigned request hint or
+   discovered client metadata MUST NOT establish this authority.
 
-   The IdP and RAS MUST establish trust binding issuer, target tenant,
-   resources, permitted cases, subject mappings, signing keys, and
-   policy.  An issuer MAY serve several tenants, but source and target
-   tenants MUST be unambiguous.  Discovery and client metadata do not
-   establish authorization.  User SSO trust does not by itself permit
-   self-acting access.
+   For each request, the IdP MUST resolve the exact tuple of attestation
+   iss, sub, and agent_id through an approved Federation Binding.  The
+   attestation's sub is the logical client identifier, while agent_id
+   names the agent in that attester's namespace.  Missing or ambiguous
+   bindings MUST cause rejection.  Multiple approved bindings MAY
+   identify the same Registered Agent; display names or unqualified
+   subject strings MUST NOT establish equivalence.
 
-   The trust configuration MUST identify contexts requiring explicit
-   actors, separate agent identity, instance evidence, or sender
-   constraints.  Missing required evidence MUST cause rejection.
-   Absence of act or actor_token MUST NOT select client-based processing
-   when the configured resource or client requires an explicit actor.
-   Invalid or unsupported actor input MUST NOT be ignored or retried as
-   client-based delegation.  No new case-selection parameter is defined.
+   The Registered Agent identifier MUST be unique and non-reassignable
+   within the IdP issuer's namespace.  Source and target tenant context
+   MUST be unambiguous, including when an issuer serves several tenants.
+   A new runtime or key does not by itself create a new Registered
+   Agent.
 
-   Clients MAY use [CIMD] with the authentication method established by
-   its validated metadata and server policy.  A common CIMD identifier
-   accepted by both servers removes the need to translate client IDs.
-   Otherwise, the IdP MUST resolve an approved downstream client mapping
-   under [ID-JAG].  Metadata retrieval alone does not approve client
-   access or authorize delegation.
+   A client required to use this profile MUST NOT obtain equivalent
+   authority by omitting agent evidence or substituting credentials that
+   identify only the shared client.  Failed validation MUST NOT fall
+   back to a less restrictive path.  Other configured client flows
+   remain governed by their own specifications.
 
-   When a client is itself the authorized actor, its identity can also
-   identify that actor under Section 6.2.2.  No separate agent record is
-   required.  When several independently governed agents share a client,
-   client authentication alone cannot distinguish them; Section 5
-   establishes the Registered Agent instead.  That path uses [INSTANCE]
-   with attest_jwt_client_auth_dpop.  Individual agents and instances
-   need no separate client registration.
+4.  Obtaining an IdP Access Token
 
-   For Registered Agents, the IdP MUST maintain stable, non-
-   reassignable, issuer-qualified identifiers and approved Federation
-   Bindings.  Display names or unqualified subjects MUST NOT merge
-   agents.  Several approved bindings MAY identify one agent.  A runtime
-   restart or key rotation does not change its principal or create an
-   actor.
+   The client obtains a JWT access token for exchange at the IdP.  This
+   section fixes the request, evidence, identity, and key binding; it
+   does not introduce a new token type or scope value.
 
-   Self-acting access does not require a client registration at the RAS.
-   A deployment MAY require client authentication by agreement; it MUST
-   NOT manufacture a client identifier from the agent subject to satisfy
-   a token-format requirement.  Both delegation cases use client
-   identification and authentication under [ID-JAG].
+4.1.  Agent Evidence
 
-4.  Client-Based Delegation
+   The Client Attestation MUST conform to [INSTANCE] and include
+   agent_id, a nonempty StringOrURI [RFC7519] identifying the platform's
+   agent principal.  The attester MUST verify that the instance is an
+   authorized execution of that agent and possesses the key in cnf.jwk.
+   A caller-supplied identifier alone is insufficient.
 
-   This case uses [ID-JAG] without requiring separate actor identity.
-   The client presents a user credential accepted by ID-JAG, requests an
-   ID-JAG for the target RAS, and redeems it under [RFC7523].  Subject
-   validation, client authentication and binding, resource and scope
-   processing, authorization details, response parameters, errors,
-   lifetimes, and replay handling follow ID-JAG.  MCP clients using
-   [EMA] additionally follow that extension.
+   The attestation's sub remains client_id; client_instance_id
+   identifies the runtime.  The attestation lifetime MUST NOT exceed 300
+   seconds.  Missing, empty, or incorrectly typed agent evidence MUST
+   cause rejection.  No model or runtime provenance claims are defined
+   here.
 
-   The IdP evaluates authorization for the user, client, target, and
-   requested access.  Administrator policy can establish this authority
-   without a per-resource user consent prompt.  This case requires no
-   separate IdP-issued access token, actor_token, act, agent_id, or
-   agent directory record.  The ID-JAG identifies the user in sub and
-   the downstream client in client_id.
+   Example decoded Client Attestation payload:
 
-   Example request using an existing confidential client:
+   {
+     "iss": "https://attester.example/tenant/acme",
+     "sub": "https://platform.example/oauth-client",
+     "client_instance_id": "inst-7f3d9a2e",
+     "iat": 1789128000,
+     "exp": 1789128300,
+     "cnf": {
+       "jwk": {
+         "kty": "EC",
+         "crv": "P-256",
+         "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
+         "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
+       }
+     },
+     "agent_id": "support-agent-7"
+   }
 
-   POST /token HTTP/1.1
-   Host: idp.example
-   Content-Type: application/x-www-form-urlencoded
+4.2.  Request
 
-   grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-   &client_id=mcp-client-at-idp
-   &client_secret=EXAMPLE-CLIENT-SECRET
-   &requested_token_type=urn:ietf:params:oauth:token-type:id-jag
-   &subject_token=eyJ...user-id-token...
-   &subject_token_type=urn:ietf:params:oauth:token-type:id_token
-   &audience=https%3A%2F%2Fas.app.example
-   &resource=https%3A%2F%2Fapi.app.example
-   &scope=tickets.read
-
-   A CIMD client uses its established authentication method instead;
-   CIMD does not establish shared client secrets.  Neither ATTEST nor
-   private_key_jwt is a universal requirement for existing clients.
-
-   Sender constraints follow [ID-JAG] and deployment policy.  Bearer
-   access tokens remain supported where permitted.  A grant containing
-   cnf MUST receive the binding checks required by ID-JAG; missing or
-   invalid proof MUST NOT result in bearer issuance.
-
-   The RAS and RS can authorize using user permissions, groups, client
-   context, and enterprise assignments.  They MUST NOT infer a distinct
-   agent or runtime identity from a shared client_id.  A resource
-   requiring a separately governed agent identity uses explicit actor
-   delegation.  Tokens carrying act MUST receive the applicable actor
-   processing or be rejected; this case MUST NOT erase or ignore
-   supplied actors.
-
-   A deployment MAY add [INSTANCE] through configured ATTEST client
-   authentication.  Validated client_instance context then identifies
-   the presenting client instance for audit or risk; it does not change
-   the user subject or require an act claim.  Resources relying on that
-   context MUST reject its absence.
-
-5.  Obtaining an IdP Access Token
-
-   This section defines how to obtain a short-lived, sender-constrained
-   JWT access token identifying a Registered Agent and its authenticated
-   instance.  This IdP-issued access token authorizes exchange at the
-   IdP; the downstream resource access token authorizes API access.
-   Self-acting agents and explicit delegation using a Registered Agent
-   use this bootstrap.  Client-based delegation and explicit client
-   actors do not require it.
-
-5.1.  Agent Evidence
-
-   The Client Attestation MUST conform to [INSTANCE] and contain
-   agent_id, a nonempty StringOrURI identifying the agent in the
-   attester's namespace.  Before issuance, the attester MUST verify that
-   the instance is an authorized execution of that agent and possesses
-   the key in cnf.jwk.  A caller-supplied identifier alone does not
-   establish that relationship.
-
-   The attestation's sub remains the logical client_id;
-   client_instance_id identifies the runtime.  The IdP MUST map the
-   exact tuple (iss, sub, agent_id) through an approved Federation
-   Binding.  An unsigned request field MUST NOT replace that mapping.
-
-   The IdP MUST determine the enterprise tenancy from the effective
-   client configuration and authenticated Federation Binding.  Ambiguous
-   tenancy resolution MUST cause rejection; an unsigned tenant hint MUST
-   NOT override that resolution.
-
-   This profile defines no model or runtime provenance vocabulary.  An
-   absent, empty, or incorrectly typed agent_id MUST cause rejection.
-   Platform-supplied groups, owners, and assignments MUST NOT become
-   enterprise authority unless a separate source policy explicitly
-   authorizes them.
-
-5.2.  Request
-
-   The client uses the client credentials grant, with resource equal to
-   the IdP issuer identifier.  This profile defines no scope value for
-   this request.  The request MUST carry the attestation in OAuth-
-   Client-Attestation and a DPoP combined-mode proof using the instance
-   key.  The attestation MUST NOT be placed in subject_token,
-   actor_token, or client_assertion.
+   The client MUST use the client credentials grant with resource equal
+   to the IdP issuer identifier.  Authentication MUST use
+   attest_jwt_client_auth_dpop, with the Client Attestation in OAuth-
+   Client-Attestation and a DPoP combined-mode proof under [ATTEST].
+   The attestation MUST NOT be supplied as subject_token, actor_token,
+   or client_assertion.
 
    Examples abbreviate cryptographic values and omit HTTP framing
    headers.  Line breaks in form bodies are for display only.
@@ -389,31 +270,50 @@ Table of Contents
    &client_id=https%3A%2F%2Fplatform.example%2Foauth-client
    &resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
 
-5.3.  Processing and Response
+4.3.  Processing and Response
 
-   The IdP MUST validate [INSTANCE] and Section 5.1, resolve an active
-   Registered Agent, and check current client-to-agent permission.  The
-   attestation lifetime MUST NOT exceed 300 seconds.  Client
-   authentication alone MUST NOT authorize an arbitrary agent identity.
+   The IdP MUST validate the attestation and proof under [INSTANCE],
+   resolve the Federation Binding, and verify that the Registered Agent
+   is active and permitted to use this client and exchange service.
+   Successful client authentication alone is insufficient.
 
-   The IdP-issued access token MUST conform to [RFC9068] and use
-   typ=at+jwt.  Its iss is the approved IdP issuer, sub is the
-   Registered Agent identifier, and client_id is the actual IdP client.
-   Its aud MUST equal the IdP issuer identifier, identifying the IdP's
-   exchange service; no separate resource identifier or endpoint is
-   defined.  The token MUST contain sub_profile=ai_agent as defined by
-   [ENTITY-PROFILES], client_instance identifying the authenticated
-   upstream instance, and cnf.jkt derived from the proven key under
-   [RFC7638].  It MUST NOT contain act.
+   The issued access token MUST conform to [RFC9068] and contain:
 
-   The IdP MUST associate the token with its approved Federation
-   Binding, source tenant, and authorization to use the exchange service
-   through trusted issuance policy or token state.  Audience matching
-   alone MUST NOT authorize another IdP access token for this purpose.
-   The token MUST expire within 300 seconds and no later than the
-   attestation.  The response MUST have token_type=DPoP and expires_in;
-   it MUST NOT include a refresh token.  Clients need not parse the
-   token to use it.
+     +=================+============================================+
+     | Claim           | Required value                             |
+     +=================+============================================+
+     | iss             | IdP issuer identifier                      |
+     +-----------------+--------------------------------------------+
+     | sub             | Resolved Registered Agent identifier       |
+     +-----------------+--------------------------------------------+
+     | client_id       | Authenticated logical client identifier    |
+     +-----------------+--------------------------------------------+
+     | aud             | IdP issuer identifier, identifying the     |
+     |                 | exchange service                           |
+     +-----------------+--------------------------------------------+
+     | sub_profile     | ai_agent under [ENTITY-PROFILES]           |
+     +-----------------+--------------------------------------------+
+     | client_instance | Validated (iss, client_instance_id) as the |
+     |                 | iss and id members defined by [INSTANCE]   |
+     +-----------------+--------------------------------------------+
+     | cnf.jkt         | SHA-256 JWK thumbprint of the proven       |
+     |                 | instance key under [RFC7638]               |
+     +-----------------+--------------------------------------------+
+
+                                 Table 1
+
+   The token MUST NOT contain act.  Its lifetime MUST NOT exceed 300
+   seconds or the attestation's remaining lifetime.  The IdP MUST
+   associate it with the Federation Binding, source tenant, and exchange
+   authorization through trusted issuance policy or token state.
+   Audience matching alone MUST NOT make another IdP access token
+   eligible for this flow.
+
+   The response follows [RFC6749] with token_type=DPoP and expires_in.
+   No refresh token is issued.  Clients need not parse the access token.
+   It MAY be reused with fresh proofs until expiry; renewal or key
+   rotation requires new issuance.  An instance identifier MUST NOT
+   authorize rebinding an existing token to a different key.
 
    {
      "access_token": "eyJ...agent-access-token...",
@@ -421,54 +321,32 @@ Table of Contents
      "expires_in": 300
    }
 
-   This subject selection profiles a prearranged authorization
-   relationship in the client credentials grant.  The token permits
-   exchange requests under current IdP policy, not API access at a RAS
-   or authority to act for any user.  It MAY be reused before expiry
-   with fresh proofs.  Renewal requires a new bootstrap; key rotation
-   requires a new token.  Presenting the same instance ID MUST NOT
-   rebind an existing token.
+5.  Requesting an Authorization Grant
 
-5.4.  Workload Federation Inputs
+   The client MUST use [RFC8693] at the IdP token endpoint with the same
+   logical client and ATTEST DPoP combined-mode authentication.  The
+   fresh proof key MUST match the IdP-issued access token's cnf.jkt.  In
+   both outputs:
 
-   An IdP MAY support native workload authentication, including
-   [SPIFFE-OAUTH], through another input profile.  That profile MUST
-   specify issuer trust, credential validation, logical-client mapping,
-   agent and instance resolution, and proof binding.  It MUST produce
-   the IdP-issued access token defined above and advertise its
-   authentication capabilities separately.
+   *  grant_type is urn:ietf:params:oauth:grant-type:token-exchange.
 
-   This document defines no direct token-exchange binding for arbitrary
-   workload JWTs, SVIDs, or Client Attestations.  Such extensions MUST
-   NOT weaken the required ATTEST bootstrap for implementations
-   supporting the Registered Agent input path.  A workload identity
-   shared by replicas MUST NOT identify one replica without additional
-   authenticated evidence.
+   *  audience MUST be exactly one target RAS issuer identifier.
 
-6.  Requesting an Authorization Grant
+   *  resource MUST be exactly one resource [RFC8707] at that RAS.
 
-   This section applies to self-acting and explicit actor cases.  The
-   client uses [RFC8693] at the IdP token endpoint.  A request using an
-   IdP-issued access token MUST use the same client and [ATTEST] DPoP
-   combined-mode authentication as its bootstrap, with a fresh proof
-   whose key matches the IdP-issued access token.  An explicit client
-   actor uses Section 6.2.2 instead.
+   *  scope MUST contain a nonempty set of requested resource scopes.
 
-   In both cases, grant_type MUST be urn:ietf:params:oauth:grant-
-   type:token-exchange, audience MUST contain exactly one target RAS
-   issuer identifier, resource MUST contain exactly one resource
-   [RFC8707] governed by that RAS, and scope MUST contain a nonempty set
-   of requested resource scopes.  The IdP MUST NOT infer downstream
-   resource authority merely from eligibility to use the exchange
-   service. authorization_details is not supported by this profile and
-   MUST cause invalid_request rather than silent omission.
+   This profile does not support authorization_details; its presence
+   MUST cause invalid_request.  Exchange eligibility does not itself
+   grant downstream resource authority.
 
-6.1.  Self-Acting Mode
+5.1.  Self-Acting Agent
 
    requested_token_type MUST be urn:ietf:params:oauth:token-type:wag.
    subject_token MUST be the IdP-issued access token, with
-   subject_token_type equal to urn:ietf:params:oauth:token-
-   type:access_token.  Neither actor parameter is permitted.
+   subject_token_type=urn:ietf:params:oauth:token-type:access_token.
+   Neither actor parameter is permitted.  WAG identifiers remain subject
+   to coordination in Appendix "Coordination with Related Work".
 
    POST /token HTTP/1.1
    Host: idp.example
@@ -485,27 +363,21 @@ Table of Contents
    &resource=https%3A%2F%2Fapi.app.example
    &scope=tickets.read
 
-6.2.  Explicit Actor Delegation
+5.2.  Agent Acting for a User
 
    requested_token_type MUST be urn:ietf:params:oauth:token-type:id-jag.
+   actor_token MUST be the IdP-issued access token, with
+   actor_token_type=urn:ietf:params:oauth:token-type:access_token.  The
+   IdP MUST apply Actor Profile's JWT access-token actor-input
+   processing.  The token's sub identifies the Registered Agent; its
+   instance context does not supply act.sub.
+
    subject_token MUST be a user credential accepted under [ID-JAG].
    Implementations MUST support an OpenID Connect ID Token with
    subject_token_type=urn:ietf:params:oauth:token-type:id_token.  Other
-   subject inputs permitted by [ID-JAG] MAY be supported with its
-   validation rules and applicable [ACTOR-PROFILE] subject processing.
-
-   Implementations MUST support at least one of the two actor inputs
-   below and MUST advertise the input types they accept.  Requests MUST
-   contain one actor_token and its matching actor_token_type.  A
-   configured requirement for a Registered Agent MUST NOT be satisfied
-   by a client assertion naming only the shared client.
-
-6.2.1.  Registered Agent Input
-
-   actor_token is the IdP-issued access token and actor_token_type is
-   urn:ietf:params:oauth:token-type:access_token.  The IdP MUST apply
-   Actor Profile's JWT access token input processing.  Its (iss, sub)
-   identifies the agent; its runtime claim does not supply act.sub.
+   inputs permitted by ID-JAG MAY be supported with their validation and
+   authorization limits.  Inputs carrying an existing act chain MUST be
+   rejected, not erased or extended.
 
    POST /token HTTP/1.1
    Host: idp.example
@@ -524,202 +396,75 @@ Table of Contents
    &resource=https%3A%2F%2Fapi.app.example
    &scope=tickets.read
 
-6.2.2.  Client Actor Input
+5.3.  IdP Processing
 
-   This input identifies the OAuth client itself as the actor.  The
-   client MUST authenticate using private_key_jwt and present the same
-   signed JWT as both client_assertion and actor_token, with
-   actor_token_type=urn:ietf:params:oauth:token-type:jwt.  The JWT MUST
-   satisfy [RFC7523] and Actor Profile's JWT client assertion input
-   rules, including iss = sub = client_id.  It MUST NOT name an agent
-   subordinate to that client.
+   Before issuance, the IdP MUST:
 
-   The IdP MUST validate the established client keys, audience,
-   lifetime, and replay controls.  Shared validation is performed once
-   for this request's two uses of the JWT.  The IdP MUST also verify
-   policy permitting that client to act for the user and requested
-   target.  CIMD discovery establishes client metadata, not delegation
-   approval.  No separate IdP-issued access token or ATTEST is required.
+   1.  Validate the current client attestation and proof and resolve the
+       Federation Binding under Section 3.
 
-   A fresh DPoP proof MUST accompany the request.  The IdP MUST bind the
-   resulting grant to that proven key.  The DPoP key MAY differ from the
-   client assertion signing key; it is bound by the authenticated,
-   authorized exchange and need not identify an attested runtime.
+   2.  Validate the IdP-issued access token's signature, issuer,
+       audience, lifetime, and eligibility under Section 4.3.  Match its
+       client, agent, instance, source tenant, and key to the current
+       authenticated evidence.  Reject inconsistent inputs.
 
-   POST /token HTTP/1.1
-   Host: idp.example
-   Content-Type: application/x-www-form-urlencoded
-   DPoP: eyJ...client-proof...
+   3.  Check current agent status, attester trust, external binding,
+       application assignment, and permitted output.  Validate the RAS/
+       resource association and determine an authorized nonempty subset
+       of the requested scopes.
 
-   grant_type=urn:ietf:params:oauth:grant-type:token-exchange
-   &client_id=https%3A%2F%2Fclient.example%2Fclient.json
-   &client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
-   &client_assertion=eyJ...client-assertion...
-   &requested_token_type=urn:ietf:params:oauth:token-type:id-jag
-   &subject_token=eyJ...user-id-token...
-   &subject_token_type=urn:ietf:params:oauth:token-type:id_token
-   &actor_token=eyJ...client-assertion...
-   &actor_token_type=urn:ietf:params:oauth:token-type:jwt
-   &audience=https%3A%2F%2Fas.app.example
-   &resource=https%3A%2F%2Fapi.app.example
-   &scope=tickets.read
-
-6.3.  IdP Processing
-
-   Before issuing a self-acting or explicit actor grant, the IdP MUST:
-
-   1.  Validate the selected credential path.  For an IdP-issued access
-       token, match the client, agent, instance, tenant, and key to
-       current authenticated evidence and verify the token's issuer,
-       audience, purpose, and expiration.  For a client actor, apply
-       Section 6.2.2.  An IdP-issued access token that does not meet
-       Section 5.3 MUST NOT be accepted for this purpose.
-
-   2.  Check current client or agent status, applicable trust and
-       bindings, application assignment, and permitted case under
-       Section 12.2.  Resolve tenant context through validated evidence
-       and trusted configuration, never an unsigned override.
-
-   3.  Validate the RAS/resource association and requested scopes.
-       Determine a permitted, nonempty subset without broadening access.
-
-   4.  For explicit delegation, validate the user credential under
-       [ID-JAG], including audience/client checks and scope ceilings.
+   4.  For delegation, validate the user credential under [ID-JAG],
+       including audience/client checks and applicable scope ceilings.
        Resolve the user and downstream client.  Verify user-approved or
-       administrator-authorized delegation for the established actor,
-       user, client context, resource, and scope.  Valid credentials
+       administrator-authorized delegation for this Registered Agent,
+       user, client context, resource, and scope.  Two valid credentials
        alone MUST NOT establish that authorization.
 
-   5.  Construct the grant under Section 7.  Explicit delegation uses
-       Actor Profile to introduce the validated actor and binds the
-       output to the proven key.  Redemption preserves that actor.
+   5.  Construct the grant under Section 5.4 using the resolved
+       principal and proven key, with no broader authority than
+       authorized above.
 
-   Approval can be established by policy or a consent record; its
-   acquisition is outside this profile.  Its scope MUST unambiguously
-   identify the acting principal and authorized access.  A shared client
-   MUST NOT let one Registered Agent use another's approval.
+   The means of obtaining delegation approval is outside this profile.
+   Approval MUST identify the acting principal and authorized access
+   unambiguously; a shared client MUST NOT let one agent use another's
+   approval.  Missing approval MUST prevent delegated issuance.
 
-   Only one current actor is supported.  Inputs with an existing act
-   chain MUST be rejected, not erased or extended.  This includes both
-   actor credential types and user subject inputs.  The grant lifetime
-   MUST NOT exceed 300 seconds or the remaining validity of its actor or
-   agent credential, accepted user credential, or applicable delegation.
-   User authorization-state inputs retain the scope ceiling required by
-   their input profile.
+5.4.  Grant Construction
 
-6.4.  Response and Errors
+   The IdP MUST issue a signed JWT satisfying [WAG] or [ID-JAG], as
+   requested, with an approved asymmetric algorithm and a kid resolvable
+   through trusted issuer configuration.  Implementations MUST support
+   ES256 [RFC7518] in addition to requirements of the underlying
+   specifications.
 
-   The response follows [RFC8693]. issued_token_type MUST equal the
-   requested WAG or ID-JAG token type; token_type MUST be N_A.
-   access_token contains the grant, expires_in gives its remaining
-   lifetime, and scope lists the issued scopes.  No refresh token is
-   issued.
+   The grant MUST contain the IdP's issuer in iss, the exact target RAS
+   issuer in aud, and the approved resource and scope. cnf.jkt MUST
+   equal the thumbprint of the validated instance key.  The grant
+   lifetime MUST NOT exceed 300 seconds or the remaining validity of the
+   IdP-issued access token, accepted user credential, or applicable
+   delegation.  The IdP MUST assign a unique jti and MUST NOT reuse
+   (iss, jti).
 
-   The client MUST check that the response's issued type matches the
-   requested type and that the grant has the expected protected type,
-   audience, resource, scope subset, and cnf.jkt for its proven key.
-   Missing or inconsistent binding MUST cause failure.  These checks do
-   not replace the RAS's cryptographic grant validation.
+   For WAG, sub MUST equal the Registered Agent identifier in the IdP-
+   issued access token and sub_profile MUST be ai_agent.  The grant MUST
+   NOT contain act.
 
-   {
-     "access_token": "eyJ...workload-authorization-grant...",
-     "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
-     "token_type": "N_A",
-     "expires_in": 240,
-     "scope": "tickets.read"
-   }
+   For ID-JAG, sub is the user identifier resolved under ID-JAG's
+   subject-mapping rules.  Actor Profile construction MUST introduce
+   exactly one actor, with act.iss and act.sub copied from the IdP-
+   issued access token and act.sub_profile=ai_agent.  The ID-JAG MUST
+   include the downstream client_id and other required ID-JAG claims,
+   including applicable tenant context.  Translating a client identifier
+   MUST NOT rewrite the agent actor's namespace.
 
-   Malformed requests, unsupported combinations, and actor depth
-   violations use invalid_request.  Failed shared client-assertion
-   validation uses invalid_client under [ACTOR-PROFILE]; later actor-
-   input policy failures use invalid_grant.  Other invalid credentials
-   or inconsistent identity/key bindings use invalid_grant.
-   Unacceptable targets use invalid_target; impermissible scopes use
-   invalid_scope.  For a validated actor whose required delegation
-   cannot be established or is prohibited, the IdP MUST use
-   actor_unauthorized from [ACTOR-PROFILE].  It MUST NOT issue a self-
-   acting grant in response to that failure.  Clients not allowed to use
-   this profile receive unauthorized_client.  Authentication and
-   freshness challenges retain the selected authentication method and
-   [RFC9449] errors.
+   The IdP MAY include client_instance for downstream audit or risk.  If
+   included, it MUST identify the authenticated instance through an
+   unambiguous mapping, with iss equal to the IdP issuer and id an IdP-
+   assigned reference.  It describes the subject's execution for WAG and
+   the actor's execution for ID-JAG, without changing either principal.
+   The IdP SHOULD scope this reference to the recipient.
 
-7.  Authorization Grants
-
-   This section defines self-acting and explicit actor grants.  Client-
-   based grants follow Section 4.
-
-   Grants MUST be signed JWTs in JWS Compact Serialization [RFC7515]
-   under the approved IdP issuer.  The protected header MUST contain an
-   approved asymmetric alg and a kid resolvable through trusted issuer
-   key configuration.  Implementations MUST support ES256 [RFC7518] and
-   reject none and symmetric MAC algorithms.
-
-   Self-acting grants follow [WAG] with typ=oauth-wag+jwt; explicit
-   actor grants follow [ID-JAG] with typ=oauth-id-jag+jwt.  See
-   Appendix "Coordination with Related Work" for the proposed WAG
-   identifiers and IdP deployment.
-
-   The following claims are REQUIRED in both cases:
-
-   iss:  The approved IdP issuer.
-
-   aud:  A string containing the exact RAS issuer identifier.
-
-   sub:  The Registered Agent identifier from the IdP-issued access
-      token in self-acting mode; the downstream-mapped user identifier
-      in explicit delegation.  It MUST be nonempty and non-reassignable
-      within the grant issuer's namespace.
-
-   iat, exp, jti:  Issue time, expiration time, and unique grant
-      identifier. exp MUST exceed iat by at most 300 seconds, subject to
-      Section 6.3.  The IdP MUST NOT reuse (iss, jti).
-
-   resource, scope:  The single approved resource and nonempty, space-
-      delimited approved scopes.
-
-   cnf:  An object containing jkt, the JWK SHA-256 thumbprint of the
-      proven presenter public key.  The IdP MUST derive it from the
-      validated key, not an unsigned request value.
-
-   Self-acting grants MUST have sub_profile=ai_agent and MUST NOT
-   contain act.  Explicit delegation MUST contain an Actor Profile act
-   constructed from the validated actor input:
-
-   *  IdP-issued access token: copy its iss and sub; set
-      sub_profile=ai_agent.
-
-   *  Client assertion: set act.sub to its sub (the IdP-side client_id)
-      and act.iss to the IdP issuer as the configured actor namespace.
-      Classification follows [ACTOR-PROFILE] and [ENTITY-PROFILES]; CIMD
-      alone does not establish ai_agent.
-
-   The client actor's act.sub can equal the ID-JAG's client_id when both
-   servers use the same CIMD identifier.  When downstream client IDs
-   differ, translate only client_id; preserve the actor's namespace and
-   subject.  Client assertion evidence MUST NOT be mapped into a
-   subordinate Registered Agent identity.
-
-   Explicit ID-JAGs MUST include the downstream client_id and other
-   claims required by [ID-JAG], including applicable tenant context.
-   User classification is supplied only when authoritative.  User and
-   actor identities MUST resolve to distinct principals.
-
-   The IdP MAY include client_instance as defined by [INSTANCE] for
-   downstream audit or risk evaluation only when instance evidence has
-   been validated under [INSTANCE] or an approved workload input
-   profile.  If included, its iss MUST equal the grant issuer and its id
-   MUST be an IdP-assigned reference to the authenticated upstream
-   instance.  The IdP MUST retain that mapping and SHOULD scope it to
-   the downstream trust relationship.  It describes execution of the
-   subject in self-acting mode and of the current actor in explicit
-   delegation; it MUST NOT add an actor or change the subject.  Omitting
-   this context does not relax agent authentication or key binding.
-
-   agent_id is not required in a grant: sub or act already identifies
-   the agent.  Optional groups describe only the subject and follow
-   Section 10.2.
-
-   Example self-acting grant payload:
+   Example WAG payload:
 
    {
      "iss": "https://idp.example/tenant/acme",
@@ -728,13 +473,15 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "cnf": { "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU" },
+     "cnf": {
+       "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU"
+     },
      "iat": 1789128000,
      "exp": 1789128240,
      "jti": "grant-f194"
    }
 
-   Example explicit grant using a Registered Agent:
+   Example ID-JAG payload:
 
    {
      "iss": "https://idp.example/tenant/acme",
@@ -748,320 +495,118 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "cnf": { "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU" },
+     "cnf": {
+       "jkt": "Ak20Cf62SpTybasujYXbaI-Ms655MyvOZCtnnf8y1QU"
+     },
      "iat": 1789128000,
      "exp": 1789128240,
      "jti": "grant-f195"
    }
 
-8.  Redeeming a Grant
+5.5.  Response and Errors
 
-   This section applies to self-acting and explicit actor grants.
-   Client-based redemption follows Section 4.
+   The response follows [RFC8693]. issued_token_type MUST equal the
+   requested output type, token_type MUST be N_A, and access_token
+   contains the grant. expires_in gives its remaining lifetime and scope
+   lists approved scopes.  No refresh token is issued.
 
-   The client sends the grant in assertion with
-   grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer to the RAS
-   token endpoint, accompanied by a fresh DPoP proof using the bound
-   key.  An optional resource MUST equal the grant's resource; optional
-   scope MUST be a nonempty subset of its scopes.  If omitted, the
-   grant's values apply. audience, actor inputs, and
-   authorization_details are not permitted.  Explicit actor requests
-   MUST authenticate as the grant's downstream client using its
-   registered method.
+   The client MUST verify the returned type and the grant's protected
+   JWT type, audience, resource, scope subset, and cnf.jkt for its
+   proven key.  A mismatch MUST cause failure.  These checks do not
+   replace cryptographic grant validation at the RAS.
 
-   POST /token HTTP/1.1
-   Host: as.app.example
-   Content-Type: application/x-www-form-urlencoded
-   DPoP: eyJ...instance-proof-for-ras...
+   Malformed requests, unsupported outputs or combinations, and actor
+   chains use invalid_request.  Invalid exchange credentials or
+   inconsistent bindings use invalid_grant; invalid targets and scopes
+   use invalid_target and invalid_scope.  Missing or prohibited
+   delegation for a validated actor uses actor_unauthorized under
+   [ACTOR-PROFILE].  A client not permitted to use this profile receives
+   unauthorized_client.  ATTEST authentication and DPoP freshness errors
+   retain their base processing.  A failed delegated request MUST NOT
+   produce a self-acting grant.
 
-   grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
-   &assertion=eyJ...workload-authorization-grant...
+6.  Grant Consumption
 
-   The RAS MUST:
+   Redemption, client authentication, replay handling, token responses,
+   and resource-server processing follow [WAG] or [ID-JAG] and
+   [RFC7523].  Delegated processing additionally follows Actor Profile,
+   including preservation of act.  This document does not define a
+   separate redemption protocol, access-token format, or introspection
+   schema.  Downstream access-token lifetimes and refresh behavior
+   follow the underlying grant and resource authorization policy.
 
-   1.  Select this profile through the approved trust configuration in
-       Section 3 and validate signature, protected type, required
-       claims, audience, and lifetime.  Reject mode/type mismatches.
+   Grants issued here are bound to the instance key.  The IdP MUST issue
+   only to a RAS configured to validate that binding.  The client MUST
+   present a fresh DPoP proof at redemption.  The RAS MUST validate it
+   under [RFC9449] and reject a missing or invalid proof or a key that
+   does not match cnf.jkt, using ID-JAG's bound-grant processing for ID-
+   JAG and the same checks for WAG.  WAG's binding and redemption
+   specification still requires the coordination described in
+   Appendix "Coordination with Related Work".  A valid access token
+   issued by the RAS, rather than an upstream credential or grant, is
+   used at the resource server.
 
-   2.  Validate the DPoP proof for its token endpoint under [RFC9449].
-       Compute its public-key thumbprint and compare it to cnf.jkt.
-       Missing or mismatched proof MUST fail.
+7.  Metadata and Configuration
 
-   3.  Enforce delegated client authentication and exact downstream
-       client_id matching under [ID-JAG].  Apply Actor Profile grant
-       validation and presenter-continuation processing.
+   The IdP MUST advertise client_credentials, token exchange, and
+   attest_jwt_client_auth_dpop through existing [RFC8414] metadata, and
+   DPoP ES256 support under [RFC9449].  Profile selection and approved
+   identity bindings use the configuration in Section 3.  Delegated
+   implementations use Actor Profile's existing metadata for ID Token
+   subject input, JWT access-token actor input, ID-JAG output, and
+   supported entity profiles, including ai_agent.
 
-   4.  Resolve the subject and, for explicit delegation, the actor under
-       Section 10.  Check current local status and policy.  A suspended
-       client actor or Registered Agent MUST be rejected.
+   RAS capabilities are advertised under the selected grant and, where
+   applicable, Actor Profile.  The IdP MUST verify the configured RAS
+   supports the required grant, binding, and actor processing before
+   issuance.  No new grant-profile identifier, metadata parameter,
+   bootstrap scope, or token marker is defined here.  Metadata discovery
+   does not establish issuer trust or delegation authority.
 
-   5.  Apply the requested scope subset and local policy without
-       exceeding the grant.  For delegated access, evaluate user
-       permissions, permitted actor behavior, and delegation bounds
-       together.  Their permissions MUST NOT be unioned.
+8.  Security and Privacy Considerations
 
-   6.  Atomically consume (iss, jti) upon successful issuance.  A grant
-       MUST produce at most one successful issuance across all RAS
-       nodes.  Replay state MUST be retained through grant expiration
-       plus accepted clock skew.
+   The security requirements of [ATTEST], [INSTANCE], [RFC8693],
+   [RFC8725], and the selected output specification apply.  The IdP MUST
+   bind client, agent, instance, tenant, and key to one authorized
+   request.  Independently valid credentials for different agents or
+   instances MUST NOT be combined.  A stable instance identifier does
+   not authorize key rebinding or establish a delegation relationship.
 
-   A lost successful response requires a new grant.  Consumed grants
-   fail with invalid_grant.  Malformed requests and invalid scope use
-   invalid_request and invalid_scope.  Explicit actor structure,
-   identity, depth, and policy errors follow [ACTOR-PROFILE], including
-   actor_unauthorized for a prohibited or unconfirmed relationship.
-   Other grant validation failures use invalid_grant; authentication and
-   nonce challenges retain their base errors.  No failure permits bearer
-   issuance or retry under a less restrictive grant profile.
+   The IdP MUST check current status and authorization on each issuance,
+   including attester trust, agent bindings, assignments, and
+   delegation.  It MUST define freshness limits for cached authorization
+   data and reject data exceeding those limits.  A disabled agent or
+   revoked binding MUST prevent new issuance once applied at the IdP,
+   even if an earlier access token remains unexpired.  This does not
+   promise immediate revocation of downstream access tokens.
 
-9.  Access Tokens and Resource Processing
+   Configured requirements for agent identity, key binding, or explicit
+   actors MUST NOT be bypassed by choosing an existing client-based
+   flow.  Supplying only a logical client identity does not authenticate
+   an agent underneath it.  Successful grant redemption does not justify
+   adding an actor hop merely because a runtime or server participated.
 
-   This section applies to self-acting and explicit actor grants.
-   Client-based access tokens follow Section 4, including its existing
-   authentication and sender-constraint choices.
+   Stable agent and instance identifiers can permit correlation.  The
+   IdP SHOULD release only necessary context and retain internal
+   mappings for recipient-scoped instance references.  Raw attestation
+   material and private keys MUST NOT appear in grants or audit logs.
 
-   The RAS MUST issue an access token for the approved resource, bound
-   to the grant's confirmation key, with token_type=DPoP, expires_in,
-   and scope.  It MUST NOT be accompanied by a refresh token.  The RAS
-   MUST set its lifetime according to resource authorization and
-   revocation policy, including any explicit delegation expiration.
-   Grant expiration limits redemption; it does not by itself limit the
-   resulting access token's lifetime.  The client MUST reject another
-   token type or scopes broader than those in the grant.
+9.  IANA Considerations
 
-   The RAS and RS select the access-token format and validation
-   mechanism for their deployment.  The RS MUST obtain the validated
-   subject, resource, expiration, scopes, and confirmation key, and the
-   actor in explicit delegation.  Subject mapping MUST preserve the
-   underlying principal.  In explicit delegation the RAS MUST preserve
-   the validated act unchanged under [ACTOR-PROFILE]; resolving a local
-   actor record does not permit rewriting its namespace or adding a
-   runtime actor.  Self-acting tokens MUST NOT introduce act.
+   This specification requests registration of agent_id in the JWT
+   Claims registry established by [RFC7519], with description "Attester-
+   scoped agent principal identifier", reference Section 4.1, and Change
+   Controller IETF.  Its value is a nonempty StringOrURI.
 
-   When [RFC7662] introspection is used, active results MUST include
-   sub, aud, exp, scope, and cnf.jkt.  Explicit actor results MUST also
-   include the unchanged act and applicable subject classification under
-   Actor Profile's introspection compatibility path.  An established
-   logical client MUST be reported as client_id.  Inactive results MUST
-   NOT disclose this context.  Explicit actor JWT access tokens MUST
-   follow Actor Profile's access-token output rules.  A token claiming
-   [RFC9068] conformance MUST include its required client_id; a
-   clientless self-acting deployment MUST use another token format.
-
-   The RAS MAY propagate a grant's validated client_instance unchanged
-   in the access token or introspection response when needed by the RS.
-   A resource requiring instance context MUST have that requirement
-   configured throughout the issuance path; missing required context
-   MUST cause rejection.  Other deployments need not propagate it.
-
-   The RS MUST enforce audience, expiry, scope, and local policy, and
-   verify DPoP against the token's validated confirmation key, including
-   the access-token hash required by [RFC9449].  It MUST NOT accept
-   grants or the IdP-issued access tokens defined here as resource
-   access tokens.  Explicit actor processing MUST follow
-   [ACTOR-PROFILE], including actor policy and errors, without reducing
-   access to user-only authorization.
-
-   The RS needs no upstream platform attestation support.  Instance
-   context supports audit and risk restrictions; an instance identifier
-   does not itself grant permissions.
-
-10.  Provisioning and Attributes
-
-   For requests using an IdP-issued access token, the IdP MUST resolve
-   an active Registered Agent before issuing tokens or grants.  Records
-   MAY be synchronized from platforms or admitted just in time under
-   explicit policy.  Each source MUST be restricted to approved
-   namespaces and writable attributes.  Changes to bindings and
-   assignments, including platform migration, MUST be authenticated and
-   audited.
-
-10.1.  Downstream Correlation
-
-   Client-based delegation uses ID-JAG's user and client mappings.  An
-   explicit client actor is resolved using its qualified actor identity
-   and an approved client association.  Neither case requires separate
-   agent provisioning.  Different client and actor identifiers MUST NOT
-   be assumed equivalent without that association.
-
-   For Registered Agents, the following requirements apply.
-
-   The RAS MUST resolve the issuer-qualified agent identity to the same
-   local principal in self-acting and explicit actor cases, within the
-   authorized target tenant.  Provisioning and grant processing MUST use
-   a consistent mapping.  User mapping follows [ID-JAG].  A valid grant
-   MUST NOT implicitly reactivate a disabled agent.
-
-   Provisioning is a deployment choice.  SCIM Agent resources
-   [SCIM-AGENT] with [RFC7644], JIT admission, and administrative
-   configuration are possible mechanisms.  A SCIM deployment can use
-   externalId [RFC7643] for the IdP's agent identifier, with the issuer
-   and tenant established by its authenticated provisioning
-   relationship.  An unqualified identifier is insufficient for
-   correlation.  Synchronization and conflict resolution procedures are
-   outside this profile.  Per-instance directory records are not
-   required.
-
-10.2.  Groups and Ownership
-
-   The RAS MUST correlate membership references to the appropriate local
-   user, client, or agent records, retaining their distinct principal
-   identities.  Ownership MUST NOT implicitly confer the owner's data
-   privileges.
-
-   In grants under this profile, optional groups MUST be an array of
-   nonempty strings identifying groups in the grant issuer's namespace.
-   These are exact identifiers, not display names.  The RAS MUST map
-   them through tenant trust before use in policy.  They describe the
-   subject: the agent in WAG and the user in ID-JAG.  Actor memberships
-   in explicit delegation MUST come from trusted actor state at the RAS;
-   this profile does not define group authorization claims inside act.
-
-   Grant groups are audience-filtered assertions, not a complete
-   directory snapshot.  Absence MUST NOT imply an empty membership set,
-   nor may a truncated array be treated as complete.  Missing required
-   membership evidence MUST cause the affected authorization to fail.
-   The trust relationship MUST designate local state or grant claims as
-   authoritative for each membership policy and bound its age.
-   Conflicting sources MUST NOT be unioned to broaden authority.
-
-   Assignments, user resource permissions, and delegation bounds MUST be
-   evaluated separately.  Groups and ownership are policy inputs, not
-   self-executing permissions.
-
-11.  Authorization Server Metadata
-
-   Use existing [RFC8414], [ID-JAG], and authentication-method metadata.
-   Client-based delegation advertises ID-JAG support using
-   urn:ietf:params:oauth:grant-profile:id-jag; it does not require Actor
-   Profile or this document's grant-profile identifier.
-
-   A RAS implementing the self-acting or explicit actor requirements
-   MUST advertise urn:ietf:params:oauth:grant-profile:agent-federation
-   in authorization_grant_profiles_supported.  An explicit actor RAS
-   MUST additionally advertise ID-JAG and Actor Profile support.  This
-   advertisement does not make every ID-JAG require an actor; trusted
-   configuration selects the requirements for each context.
-
-   Servers MUST advertise the grant types and authentication methods for
-   their implemented paths.  An IdP supporting Registered Agent
-   bootstrap MUST advertise client_credentials, token exchange, and
-   attest_jwt_client_auth_dpop.  An IdP supporting client actor input
-   MUST advertise token exchange and private_key_jwt.  Instance profile
-   selection is administratively configured.  Explicit actor IdPs MUST
-   advertise the corresponding Actor Profile input and output types;
-   entity-profile metadata lists supported actor types.  Self-acting and
-   explicit actor servers MUST advertise DPoP ES256 support.  An
-   introspection endpoint is advertised when used.
-
-   Clients advertise applicable grant profiles and grant types under
-   their base specifications.  CIMD processing follows [CIMD].  No new
-   capability object, case parameter, or token marker is defined.
-   Metadata does not establish issuer trust or delegation authority.
-
-   Example RAS metadata for existing client-based delegation:
-
-   {
-     "issuer": "https://as.app.example",
-     "token_endpoint": "https://as.app.example/token",
-     "grant_types_supported": [
-       "urn:ietf:params:oauth:grant-type:jwt-bearer"
-     ],
-     "authorization_grant_profiles_supported": [
-       "urn:ietf:params:oauth:grant-profile:id-jag"
-     ]
-   }
-
-12.  Security Considerations
-
-   The requirements of each referenced specification apply to the paths
-   using it.  Client-based delegation follows [ID-JAG]; explicit actor
-   processing additionally follows [ACTOR-PROFILE].  [ATTEST] and
-   [INSTANCE] apply when instance evidence is used.
-
-12.1.  Binding and Substitution
-
-   For the Registered Agent path, the IdP MUST bind agent, instance,
-   client, tenant, and proof key together.  Client actor input MUST bind
-   the authenticated client, authorized actor, and proven key to the
-   same request.  Independently valid credentials do not establish their
-   delegation relationship.
-
-   Self-acting and explicit actor grants require proof at issuance and
-   redemption, with fresh proofs for each endpoint and DPoP nonce and
-   replay handling under [RFC9449].  Binding only the access token does
-   not protect a bearer grant.  The separate grant type in [JWT-DPOP] is
-   not implicitly selected.  Existing client-based delegation retains
-   ID-JAG's sender-constraint rules.
-
-   The IdP MUST issue grants only to a RAS supporting the required
-   processing.  IdP, RAS, and RS MUST enforce configured requirements
-   for actors, instance context, and sender constraints.  They MUST NOT
-   downgrade after failed checks, remove act to obtain client-based
-   access, or infer a subordinate agent from a shared client.  A
-   correctly authorized client-based flow is not a downgrade when the
-   resource permits it.  A gateway changing the presenter requires
-   separately authorized credential and identity mapping.
-
-12.2.  Lifecycle and Freshness
-
-   IdP and RAS MUST enforce current client and, where applicable, agent
-   status, bindings, assignments, and delegation when issuing authority.
-   Disabling a principal or revoking authorization MUST prevent
-   subsequent issuance once applied at the relevant server.  A valid
-   credential MUST NOT override that decision.
-
-   Deployments MUST define authorization-data freshness limits, access-
-   token lifetimes, and revocation behavior for issued tokens in each
-   supported case.  Data older than the configured limits MUST NOT
-   authorize issuance.  The policy MUST account for synchronization
-   delays and any resource-server validation cache.
-
-   Grant expiration prevents later redemption; it does not revoke an
-   access token already issued from that grant.  Residual access
-   therefore depends on access-token lifetime and the deployment's
-   revocation mechanism.  This profile specifies no synchronization
-   protocol and does not promise immediate revocation.
-
-13.  Privacy Considerations
-
-   Stable agent identifiers permit correlation across applications.  The
-   IdP SHOULD scope instance references to downstream trust
-   relationships and MUST retain an unambiguous internal mapping.  One
-   key across IdP, RAS, and RS also permits correlation; instances
-   SHOULD use separate key/evidence contexts for unrelated trust
-   relationships while retaining agent identity.
-
-   Only needed identity context SHOULD be released.  Raw platform
-   evidence and owner personal data SHOULD NOT appear in grants.  Audit
-   records SHOULD identify qualified principals, available instance
-   context, authorization case, target, and decision; they MUST NOT
-   contain raw credentials or private keys.
-
-14.  IANA Considerations
-
-14.1.  JWT Claims
-
-   This specification requests registration of agent_id in the registry
-   established by [RFC7519], with description "Attester-scoped agent
-   principal identifier", reference Section 5.1, and Change Controller
-   IETF.
-
-   client_instance is defined by [INSTANCE]; act uses [ACTOR-PROFILE];
-   ai_agent is defined by [ENTITY-PROFILES].  No new actor format or
-   access-token type is registered.
-
-14.2.  OAuth URI
-
-   Register urn:ietf:params:oauth:grant-profile:agent-federation in the
-   registry established by [RFC6755], with Common Name "Agent Federation
-   Grant Profile", Change Controller IETF, and reference Section 11.
+   client_instance is defined by [INSTANCE]; act follows
+   [ACTOR-PROFILE]; ai_agent is defined by [ENTITY-PROFILES].  No new
+   actor format, access-token type, or grant-profile URI is registered.
    WAG identifiers are addressed in Appendix "Coordination with Related
    Work".
 
-15.  References
+10.  References
 
-15.1.  Normative References
+10.1.  Normative References
 
    [INSTANCE] McGuinness, K., "Client Instance Identification for
               Attestation-Based Client Authentication", Work in
@@ -1099,12 +644,6 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
               identity-assertion-authz-grant-04>.
 
-   [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
-              Document", Work in Progress, Internet-Draft, draft-ietf-
-              oauth-client-id-metadata-document-02, 6 July 2026,
-              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              client-id-metadata-document-02>.
-
    [WAG]      Carleton, P., "Workload Authorization Grant", Work in
               Progress, Internet-Draft, draft-carleton-workload-authz-
               grant-00, 3 August 2026,
@@ -1114,10 +653,6 @@ Table of Contents
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6749>.
-
-   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
-              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
-              2015, <https://www.rfc-editor.org/rfc/rfc7515>.
 
    [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
               DOI 10.17487/RFC7518, May 2015,
@@ -1135,10 +670,6 @@ Table of Contents
    [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
               Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
               2015, <https://www.rfc-editor.org/rfc/rfc7638>.
-
-   [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
-              RFC 7662, DOI 10.17487/RFC7662, October 2015,
-              <https://www.rfc-editor.org/rfc/rfc7662>.
 
    [RFC8414]  Jones, M., Sakimura, N., and J. Bradley, "OAuth 2.0
               Authorization Server Metadata", RFC 8414,
@@ -1177,17 +708,23 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-15.2.  Informative References
+10.2.  Informative References
+
+   [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
+              Document", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-client-id-metadata-document-02, 6 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              client-id-metadata-document-02>.
+
+   [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
+              RFC 7662, DOI 10.17487/RFC7662, October 2015,
+              <https://www.rfc-editor.org/rfc/rfc7662>.
 
    [EMA]      Model Context Protocol, "MCP Enterprise-Managed
               Authorization", 2026,
               <https://github.com/modelcontextprotocol/ext-
               auth/blob/main/specification/stable/enterprise-managed-
               authorization.mdx>.
-
-   [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
-              for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
-              <https://www.rfc-editor.org/rfc/rfc6755>.
 
    [SCIM-AGENT]
               Wahl, M., Zollner, D., Dingle, P., and I. Kazzouzi, "AI
@@ -1221,102 +758,116 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-parecki-
               oauth-jwt-dpop-grant-01>.
 
+Deployment and Compatibility
+
+   This appendix is informative.  Existing ID-JAG flows, including MCP
+   Enterprise-Managed Authorization [EMA], can authorize a client for a
+   user without a separately represented agent.  The user is the subject
+   and the client is identified through normal OAuth context.  Absence
+   of act does not imply absence of authorization, a human presenter, or
+   self-acting access.  Those deployments retain their existing
+   authentication and sender-constraint choices and need no bootstrap
+   from this specification.
+
+   CIMD [CIMD] can supply client metadata and a common client identifier
+   across servers.  When the client itself is the explicit actor, Actor
+   Profile already defines JWT client assertion input, including reuse
+   of one JWT as client_assertion and actor_token.  That path does not
+   require an additional IdP-issued access token or ATTEST.  A shared
+   client identity does not distinguish separately governed agents.
+   Instance identification can add audit context to client-based flows
+   without introducing an actor.
+
+   Agent admission and provisioning can use administrative
+   configuration, JIT, or SCIM Agent resources [SCIM-AGENT] with
+   [RFC7644].  A SCIM externalId [RFC7643] can correlate a record with
+   the IdP agent identifier when issuer and tenant are retained.
+   Groups, ownership, and assignments are policy inputs; group claims
+   about an ID-JAG user do not describe the agent actor's memberships.
+   Provisioning transport, synchronization, policy engines, access-token
+   formats, and introspection [RFC7662] are deployment choices outside
+   this profile.
+
+   Native workload mechanisms such as [SPIFFE-OAUTH] can support
+   additional input profiles.  Those profiles need their own credential
+   validation, client and agent mapping, and proof rules.  They are not
+   interchangeable with the Client Attestation input specified here.
+
 Interoperability Cases
 
-   An interoperability exercise should include independent client, IdP,
-   RAS, and RS implementations and the applicable cases below:
+   Independent platform, client, and IdP implementations can exercise:
 
-   +===============================+===================================+
-   | Case                          | Required result                   |
-   +===============================+===================================+
-   | Existing EMA request without  | ID-JAG processing; no new         |
-   | actor or instance evidence    | bootstrap requirement             |
-   +-------------------------------+-----------------------------------+
-   | Client-based grant without    | User subject and downstream       |
-   | act                           | client binding; no inferred agent |
-   +-------------------------------+-----------------------------------+
-   | Client-based bearer flow      | No added ATTEST, Actor Profile,   |
-   | permitted by policy           | or DPoP requirement               |
-   +-------------------------------+-----------------------------------+
-   | CIMD client assertion used    | One validation; explicit client   |
-   | in both request parameters    | actor; no IdP-issued access token |
-   +-------------------------------+-----------------------------------+
-   | Different downstream client   | Translate client_id; preserve     |
-   | ID                            | canonical act                     |
-   +-------------------------------+-----------------------------------+
-   | Client assertion substituted  | Reject                            |
-   | for required Registered       |                                   |
-   | Agent                         |                                   |
-   +-------------------------------+-----------------------------------+
-   | Registered Agent acting for   | User subject and Registered Agent |
-   | a user                        | act                               |
-   +-------------------------------+-----------------------------------+
-   | Agent acting for itself       | WAG subject is the agent; no act  |
-   +-------------------------------+-----------------------------------+
-   | Missing or invalid actor      | Reject without client-based       |
-   | evidence where required       | fallback                          |
-   +-------------------------------+-----------------------------------+
-   | Optional instance evidence    | Audit context; no new actor       |
-   | on client-based access        |                                   |
-   +-------------------------------+-----------------------------------+
-   | Unrelated IdP-issued access   | Reject inconsistent bindings      |
-   | token or proof key            |                                   |
-   +-------------------------------+-----------------------------------+
-   | Valid credentials without     | actor_unauthorized                |
-   | required actor authorization  |                                   |
-   +-------------------------------+-----------------------------------+
-   | Replayed self-acting or       | Reject                            |
-   | explicit actor grant          |                                   |
-   +-------------------------------+-----------------------------------+
-   | Disabled principal with       | No new authority                  |
-   | valid credentials             |                                   |
-   +-------------------------------+-----------------------------------+
+         +================================+======================+
+         | Case                           | Required result      |
+         +================================+======================+
+         | Approved platform binding and  | IdP access token for |
+         | instance proof                 | the Registered Agent |
+         +--------------------------------+----------------------+
+         | Missing, ambiguous, or         | Reject issuance      |
+         | disabled binding               |                      |
+         +--------------------------------+----------------------+
+         | Same agent in a second runtime | Same agent subject;  |
+         |                                | distinct instance    |
+         +--------------------------------+----------------------+
+         | Unrelated client, agent,       | Reject inconsistent  |
+         | instance, or key at exchange   | evidence             |
+         +--------------------------------+----------------------+
+         | Agent acting for itself        | WAG subject is the   |
+         |                                | agent; no act        |
+         +--------------------------------+----------------------+
+         | Agent acting for a user        | User subject;        |
+         |                                | Registered Agent act |
+         +--------------------------------+----------------------+
+         | Valid user and agent           | actor_unauthorized   |
+         | credentials without delegation |                      |
+         +--------------------------------+----------------------+
+         | Unsupported requested output   | invalid_request; no  |
+         |                                | fallback             |
+         +--------------------------------+----------------------+
+         | Optional downstream instance   | Same principal and   |
+         | context                        | binding semantics    |
+         +--------------------------------+----------------------+
+         | Grant redemption with missing  | Reject under the     |
+         | or mismatched proof            | bound-grant rules    |
+         +--------------------------------+----------------------+
 
                                   Table 2
 
-   Implementations need only exercise cases for their supported paths.
+   Only cases for the implemented output are applicable.  Existing
+   client-based deployments are compatibility context, not an additional
+   conformance path for this specification.
 
 Coordination with Related Work
 
    _RFC EDITOR: Remove this section before publication._
 
-   The WAG token type urn:ietf:params:oauth:token-type:wag and JWT type
-   oauth-wag+jwt are proposed pending coordination with [WAG]; their
-   generic definitions and registrations are expected there.  WAG's
-   platform-issued model, advance-projection restrictions, and issuer/
-   audience rules need alignment with this governed IdP deployment
-   before publication.
+   The proposed WAG token type urn:ietf:params:oauth:token-type:wag and
+   JWT type oauth-wag+jwt await definition and registration in [WAG].
+   WAG's issuer model, advance-projection restrictions, and audience
+   rules need alignment with this IdP-issued use.  WAG currently leaves
+   proof of possession open; the bound-grant checks selected in
+   Section 6 need alignment there before publication.  They are not an
+   assertion that unextended WAG implementations support them.
 
-   Actor Profile's generic JWT-grant audience guidance currently uses a
-   token endpoint, while ID-JAG requires the RAS issuer.  This profile
-   selects ID-JAG's audience and needs the corresponding grant-profile
-   precedence clarified in Actor Profile.  ID-JAG actor processing and
-   metadata for its specific output type should be reviewed together
-   with that work.  This does not change actor identity or preservation
-   semantics.
-
-   Sender-bound grant processing also needs coordination with the JWT
-   authorization-grant work.  SCIM Agent resources remain an optional
-   provisioning mechanism and are not required for federation
-   conformance.
+   Actor Profile's generic JWT-grant audience guidance uses a token
+   endpoint, while ID-JAG uses the RAS issuer.  This document selects
+   ID-JAG's audience and needs grant-profile precedence clarified in
+   Actor Profile.  Redemption details for sender-bound JWT grants also
+   need coordination with [JWT-DPOP] and ID-JAG.  This document does not
+   register a competing redemption mechanism.
 
 Document History
 
    _RFC EDITOR: Remove this section before publication._
 
-   *  Preserved existing ID-JAG/EMA client-based delegation and added
-      explicit client or Registered Agent actors and self-acting WAG.
+   *  Focused the standards-track profile on platform-to-IdP agent
+      identity binding, access-token acquisition, and grant issuance.
 
-   *  Replaced CIA with ATTEST instance identification and folded in
-      vocabulary from draft-mcguinness-oauth-ai-agent-instance.
+   *  Reused ATTEST instance identification and Actor Profile
+      delegation.
 
-   *  Applied Actor Profile to explicit actor delegation and defined
-      downstream identity correlation, resource processing, and
-      lifecycle rules.
-
-   *  Limited the core to federation semantics; provisioning and access-
-      token formats are deployment choices, downstream instance context
-      is optional, and provenance vocabulary is deferred.
+   *  Moved existing client flows and deployment choices to informative
+      guidance and inherited downstream grant processing.
 
 Author's Address
 
