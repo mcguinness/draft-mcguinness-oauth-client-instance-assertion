@@ -35,6 +35,7 @@ normative:
   RFC7515:
   RFC7518:
   RFC7519:
+  RFC7521:
   RFC7523:
   RFC7662:
   RFC8414:
@@ -52,585 +53,192 @@ informative:
 
 --- abstract
 
-This specification profiles OAuth 2.0 Token Exchange to let an
-agent instance obtain a Workload Authorization Grant from an
-identity provider and redeem it at a resource authorization
-server. The identity provider maintains an agent registry,
-federates instance evidence from agent platforms, and authorizes
-access for agents acting as themselves. The resource authorization
-server trusts the identity provider as grant issuer and retains
-control over resource access. The profile defines a mandatory
-instance-evidence input, registry resolution, discovery, grant
-issuance and redemption, and proof-of-possession requirements.
+This specification defines a profile of OAuth 2.0 Token Exchange
+and the JWT Profile for OAuth 2.0 Authorization Grants that enables
+an agent instance to obtain access to protected resources using an
+identity provider as a Workload Authorization Grant issuer. The
+identity provider authenticates the instance, resolves its identity
+to a registered agent, and issues a grant for a Resource
+Authorization Server. The profile specifies the assertion input,
+grant contents, token endpoint processing, authorization server
+metadata, and proof-of-possession requirements for an agent acting
+on its own behalf.
 
 --- middle
 
 # Introduction
 
-An enterprise can use an identity provider (IdP) to manage agents
-from multiple platforms and authorize their access to applications.
-Platforms supply authenticated runtime evidence; the IdP resolves
-that evidence to a registered agent and issues an application-bound
-Workload Authorization Grant (WAG). Downstream applications need
-trust in the IdP rather than a separate federation integration with
-every agent platform.
+An agent platform can operate multiple instances of an agent, each
+with its own runtime identity and key. An identity provider (IdP)
+can maintain registered identities for agents from several platforms
+and authorize their access to applications. A Resource
+Authorization Server that trusts the IdP can issue access tokens
+for those agents without establishing a separate trust relationship
+with each platform.
 
-This document defines the complete exchange for an agent acting as
-itself. Access on behalf of a user remains a distinct authorization
-case, addressed by {{ID-JAG}} and applicable delegation profiles.
-A user who owns or administers an agent is not thereby the subject
-on whose behalf it acts.
+This specification profiles OAuth 2.0 Token Exchange {{RFC8693}} to
+exchange a Client Instance Assertion {{CIA}} for a Workload
+Authorization Grant (WAG) {{WAG}}. The assertion carries the agent
+identity claims defined by {{AGENT}}. The client presents the WAG
+at a Resource Authorization Server using the JWT authorization
+grant defined by {{RFC7523}}. Both requests use Demonstrating Proof
+of Possession (DPoP) {{RFC9449}} with the instance's key.
 
-{{CIA}} supplies instance evidence and client binding. {{AGENT}}
-defines agent and runtime identity and provenance claims. {{WAG}}
-supplies the authorization grant. This document selects a common
-input and binding mechanism and defines the registry and policy
-processing that connects them. It does not define a registry API,
-agent discovery protocol, or permission language.
+The IdP determines whether the agent is authorized to obtain a
+grant for the requested resource and scope. The Resource
+Authorization Server independently determines whether to accept
+the grant and which permissions to include in an access token.
+The registered agent is the subject of the grant and access token;
+the runtime instance is identified separately.
 
-# Conventions and Roles
+This profile applies to agents acting on their own behalf.
+Authorization on behalf of an end-user, including the identity
+assertion exchange defined by {{ID-JAG}}, is outside its scope.
+Agent provisioning protocols and the means by which a platform
+initially authenticates an instance are also outside its scope.
+
+# Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
-Registered Agent:
-: An agent principal with an IdP-managed identifier, administrative
-  status, federation bindings, and application assignments. It may
-  have several concurrent or successive Agent Instances.
+OAuth terms are used as defined in {{RFC6749}}, {{RFC7521}}, and
+{{RFC8693}}. JWT terms are used as defined in {{RFC7519}}. Agent
+Principal, Agent Instance, Agent Platform, and Agent Attester are
+used as defined in {{AGENT}}.
 
-Agent Instance:
-: A concrete execution of an agent, as defined by {{AGENT}}. Each
-  instance holds its own proof-of-possession key.
+## Roles
 
-Agent Platform:
-: The system operating agent instances and provisioning or
-  synchronizing their registered identities. Its trusted Agent
-  Attester issues instance evidence, possibly using a separate
-  workload identity service.
+Client:
+: The agent instance making token requests and accessing protected
+  resources. At the IdP, the instance is bound to an OAuth client
+  registration as specified by {{CIA}}. This profile does not
+  require a client registration at the Resource Authorization Server.
 
-IdP:
-: The authorization server that maintains the agent registry,
-  validates federated evidence, and issues WAGs. It acts as WAG
-  issuer for one tenancy under each issuer identifier.
+IdP Authorization Server (IdP):
+: The authorization server that validates instance assertions,
+  maintains registered agent identities and their authorization
+  policy, and issues WAGs.
 
 Resource Authorization Server (RAS):
-: The authorization server that accepts WAGs from trusted IdPs and
-  issues access tokens for its Resource Servers (RSes).
-
-# Deployment and Trust {#deployment}
-
-~~~ ascii-art
- Agent Platform       Agent Instance        IdP              RAS
-       |                     |               |                |
-       |-- registry synchronization -------->|                |
-       |-- CIA ------------->|               |                |
-       |                     |               |                |
-       |                     |-- exchange -->|                |
-       |                     |   CIA + DPoP  |                |
-       |                     |<-- WAG -------|                |
-       |                     |               |                |
-       |                     |-- WAG + DPoP ------------------>|
-       |                     |<-- resource access token ------|
-~~~
-
-The client integration at the IdP represents a logical platform
-application, not a separate OAuth registration for every agent.
-The IdP MUST approve its client metadata and acceptable instance
-issuers under administrative policy. A client-published
-`instance_issuers` entry alone MUST NOT authorize federation into
-an enterprise agent or application assignment.
-
-The RAS MUST establish an explicit trust relationship authorizing
-the IdP issuer to issue workload grants for a particular local
-tenancy and set of resources. Existing user SSO trust does not
-implicitly grant that authority. The IdP MUST maintain a distinct
-issuer identifier for each tenancy, following {{WAG}}; keys and
-subject resolution MUST be scoped to that issuer. This profile
-does not define a shared-issuer tenant-claim alternative.
-
-Metadata and key locations MUST be obtained from trusted
-configuration or authenticated discovery for the approved issuer.
-A token's untrusted key-location headers MUST NOT establish trust.
-Discovery advertises capability; registry and RAS configuration
-establish authorization.
-
-# Agent Registry Binding {#registry}
-
-The registry MUST maintain the following logical information; this
-list defines processing requirements, not a provisioning schema:
-
-| Information | Meaning |
-| --- | --- |
-| Canonical agent identifier | Immutable IdP-scoped principal identifier, never reassigned |
-| Administrative status | Whether the agent is enabled for new grants |
-| Federation bindings | Approved input issuer, IdP client identifier, and platform agent identifier |
-| Application assignments | Permitted RAS issuers, resources, and maximum scopes |
-| Attribute authority | Which provisioning or attestation sources may supply each authorization or provenance attribute |
-
-The IdP resolves the exact tuple `(CIA.iss, CIA.client_id,
-CIA.agent_id)` through an approved federation binding to one
-Registered Agent. This tuple MUST NOT resolve to multiple agents.
-The IdP MUST reject unknown, ambiguous, or disabled identities.
-It MUST NOT resolve agents by display name, model, platform
-product name, key thumbprint, or an unqualified `externalId`.
-
-The CIA's `sub` / `agent_instance_id` identifies the runtime;
-its `agent_id` identifies the platform's logical agent. The
-Attester MUST authenticate the runtime's relationship to that
-agent before asserting those claims, per {{AGENT}}. The IdP MUST
-validate that relationship under the approved binding and record
-which canonical agent the runtime represents. Conflicting runtime
-assignments MUST be rejected.
-
-Provisioning MAY use {{SCIM-AGENT}}, another trusted connector, or
-administrative configuration. When SCIM is used, the connector's
-identity and issuer context qualify `externalId`; copying a SCIM
-record does not by itself create a federation binding. Only
-administratively authorized sources may establish or change
-bindings and assignments. Just-in-time creation MAY occur under
-such a policy before issuance; a valid signature alone does not
-authorize creation, reactivation, or new application assignments.
-
-The IdP MUST maintain an issuer-scoped, non-reassigned runtime
-identifier derived from the authenticated `(CIA.iss, CIA.sub)`
-identity, independently of its key. It MAY preserve the incoming
-identifier when its namespace is trusted and collision-free.
-The WAG uses the IdP's canonical agent and runtime identifiers;
-the IdP retains the original identifiers and their mappings for
-audit. Both identifiers SHOULD be URIs within controlled
-namespaces. Neither is inferred from URI structure at the RS.
-
-# Discovery and Client Configuration {#metadata}
-
-An IdP or RAS implementing this profile MUST publish the
-`workload_agent_federation` member in its OAuth authorization
-server metadata ({{RFC8414}}). The member is a JSON object:
-
-`roles`:
-: REQUIRED. Nonempty array containing `issuer`,
-  `resource_authorization_server`, or both.
-
-`subject_token_types_supported`:
-: REQUIRED for the `issuer` role. Array containing at least
-  `urn:ietf:params:oauth:token-type:client-instance-jwt`.
-  Additional types require an explicitly defined input profile
-  with equivalent identity, client, registry, and key validation.
-
-`grant_signing_alg_values_supported`:
-: REQUIRED. Nonempty array of JWS algorithms supported for issuing
-  or validating WAGs, according to the advertised role. If both
-  roles are advertised, listed algorithms apply to both. `ES256`
-  MUST be supported. Symmetric MAC algorithms and `none` MUST NOT
-  be listed or accepted.
-
-The IdP MUST advertise the RFC 8693 token-exchange grant and
-`client_instance_assertion` client authentication method. The RAS
-MUST advertise the RFC 7523 JWT bearer grant. Both MUST advertise
-DPoP support using `dpop_signing_alg_values_supported` and MUST
-support `ES256` DPoP proofs. Other asymmetric algorithms MAY be
-used by agreement through these metadata values.
-
-The instance MUST verify issuer-role support at the IdP and
-redemption-role support at the RAS before depending on this
-profile. Missing metadata means this profile is not advertised;
-a generic JWT or bearer fallback MUST NOT be attempted. Supported
-algorithms remain subject to issuer-specific trust configuration.
-
-The mandatory input uses approved CIA client metadata, including
-`instance_issuers`, `ai_agent_instance_profile: true`, and
-`token_endpoint_auth_method: client_instance_assertion`. Other
-client authentication methods MAY be supported; a CIA MUST NOT
-replace a separately registered method without agreement.
-A registration or grant-support flag does not confer application
-assignments. Client registration at the RAS is not required by
-this profile.
-
-# Obtaining a WAG {#issuance}
-
-## Request {#exchange-request}
-
-The instance sends an RFC 8693 token request to the IdP with a
-resource indicator per {{RFC8707}} and the following parameters:
-
-| Parameter | Required value or meaning |
-| --- | --- |
-| `grant_type` | `urn:ietf:params:oauth:grant-type:token-exchange` |
-| `requested_token_type` | `urn:ietf:params:oauth:token-type:wag` |
-| `subject_token` | Agent-profiled CIA issued for this IdP |
-| `subject_token_type` | `urn:ietf:params:oauth:token-type:client-instance-jwt` |
-| `client_id` | Approved client integration at the IdP |
-| `audience` | Exactly one target RAS issuer identifier |
-| `resource` | Exactly one target API resource URI |
-| `scope` | Nonempty requested scope string for that resource |
-
-The request MUST contain a DPoP proof made with the key in the
-CIA's `cnf.jkt`. The CIA MUST contain `client_id`, `agent_id`,
-`agent_instance_id`, and `cnf.jkt`, and its `sub` MUST equal
-`agent_instance_id`. Its `aud` MUST be the IdP issuer identifier.
-The CIA lifetime MUST NOT exceed 300 seconds. Raw bearer workload
-credentials without the required agent claims and key binding
-are not a conforming input; a trusted workload identity adapter
-can issue the required CIA after authenticating the workload.
-
-For this specifically requested output profile, CIA is subject
-identity evidence in `subject_token`. This document profiles its
-validation and, where configured, client authentication, without
-using CIA's delegated access-token representation. The request
-MUST NOT contain `actor_token`, `actor_token_type`, or
-`client_instance_assertion`. The CIA is not a user authorization
-grant and the request does not require a preliminary IdP access
-token. Ordinary CIA token exchanges retain their actor-token
-presentation and delegation rules.
-
-## IdP Processing {#idp-processing}
-
-The IdP MUST perform the following checks before issuing a WAG:
-
-1. Validate request syntax, supported types, and approved client
-   configuration. Validate the CIA's signature, issuer descriptor,
-   JWT type, time claims, exact audience and `client_id` binding,
-   and agent claims per {{CIA}} and {{AGENT}}. Reject an `act`
-   claim in the CIA; this profile does not accept delegated input.
-2. Validate the DPoP proof for this token endpoint per {{RFC9449}}
-   and match its JWK thumbprint to `cnf.jkt`. Use the CIA
-   instance-assertion authentication procedure when that method
-   is registered, substituting `subject_token` for its normal
-   presentation slot. All authentication checks still apply.
-   Otherwise, independently authenticate the registered client.
-3. Resolve the Registered Agent and runtime under {{registry}}.
-   Evaluate current administrative status, attestation freshness,
-   and authorization to execute as that agent. Resolve requested
-   RAS and resource against approved application assignments.
-4. Compute granted scope as a nonempty subset of the requested
-   scopes permitted by IdP policy for that agent and resource.
-   The IdP MUST NOT import requester-supplied roles or groups as
-   authority. Attribute sources follow the registry's policy.
-5. Atomically reject reuse of an accepted CIA `(iss, jti)` through
-   its expiry, including accepted clock skew. Perform this replay
-   check once for a successful request, even when the same CIA
-   authenticates the client and supplies subject evidence.
-6. Issue a WAG per {{grant}} and record the canonical agent,
-   originating runtime identity, key, target, authorization
-   decision, and grant `jti` for audit.
-
-A DPoP proof establishes key possession, not the key's authority
-to represent an agent. That authority comes from validated
-instance evidence and registry binding. The IdP MUST NOT bind a
-WAG to an arbitrary requester-selected key.
-
-## WAG Contents {#grant}
-
-The WAG is a signed JWT ({{RFC7519}}) conforming to {{WAG}} and
-the following additional requirements. JWS signing follows
-{{RFC7515}} and {{RFC7518}}. The IdP MUST sign it with an approved
-asymmetric key published for its tenancy issuer. Its protected
-`typ` header MUST be `oauth-wag+jwt`.
-
-| Claim | Requirement |
-| --- | --- |
-| `iss` | Exact trusted IdP tenancy issuer |
-| `sub` | Canonical Registered Agent identifier |
-| `agent_id` | Equal to `sub` |
-| `agent_instance_id` | Canonical identifier of the validated runtime |
-| `aud` | Single string equal to the approved RAS issuer identifier |
-| `resource` | Single string equal to the approved target API URI |
-| `scope` | Nonempty scope string approved by the IdP |
-| `cnf` | Contains `jkt` equal to the validated instance key thumbprint |
-| `iat`, `exp`, `jti` | Issuance time, expiration time, and fresh unique grant identifier |
-
-The WAG MUST NOT contain `act`. A runtime implementing a
-Registered Agent does not create delegation from that agent to
-itself. The identifiers and provenance semantics are defined by
-{{AGENT}}; `sub` need not equal `agent_instance_id`.
-
-The time claims are NumericDate values; `exp` MUST be later than
-`iat` and no more than 300 seconds after it. The grant's expiration
-MUST NOT exceed the CIA expiration. The IdP MUST include only
-validated, sufficiently fresh provenance it is authorized to
-reassert. Optional WAG properties retain their issuer-scoped
-meaning and cannot expand the scope ceiling. Raw `agent_runtime`
-evidence MUST NOT be included in this profile's WAG; the IdP
-consumes it when evaluating issuance policy.
-
-The IdP MUST retain authority over canonical identity, status,
-and assignments even when another system attests runtime facts.
-Issuer trust does not imply that the IdP independently measured
-the runtime or model.
-
-## Response {#exchange-response}
-
-The successful RFC 8693 response MUST include:
-
-* `access_token`: the WAG JWT;
-* `issued_token_type`: `urn:ietf:params:oauth:token-type:wag`;
-* `token_type`: `N_A`;
-* `expires_in`: the WAG's remaining lifetime in seconds; and
-* `scope`: the scope approved in the WAG.
-
-The IdP MUST NOT issue a refresh token in this response. The
-instance MUST verify that the returned token type is WAG and that
-the grant's target and binding agree with its request and key.
-A mismatch or absent binding is an error, not permission to retry
-without proof. Further WAGs require fresh evidence and another
-policy evaluation.
-
-# Redeeming a WAG {#redemption}
-
-The instance presents the WAG in `assertion` with
-`grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`, exactly
-one `resource`, and a fresh DPoP proof for the RAS token endpoint
-made with the same instance key. `scope` MAY request a subset of
-the WAG's scopes; omission requests the WAG's granted scopes.
-The request MUST NOT include `client_instance_assertion`,
-`actor_token`, or `actor_token_type`. Client authentication is
-not required at the RAS by this profile: the IdP grant and bound
-instance key establish the presenting principal. Separate client
-authentication, if required
-by deployment policy, MUST NOT alter that identity or relax the
-grant's restrictions.
-
-The RAS MUST:
-
-1. Validate the JWT signature, protected `typ`, allowed algorithm,
-   exact trusted issuer, required claim types, and time claims.
-   Enforce the lifetime bound in {{grant}} and reject future `iat`
-   values beyond the configured clock-skew allowance.
-   Resolve signing keys only within that issuer's trust record.
-2. Require `aud` to equal its issuer identifier and verify the
-   issuer-to-local-tenancy authorization. Require the requested
-   `resource` to equal the grant's resource and belong to that
-   configured tenancy and RAS. Comparisons are exact strings;
-   URI normalization MUST NOT establish identity or authorization.
-3. Resolve `(iss, sub)` to the registered workload principal under
-   local policy. A local account MAY be created just in time under
-   the trusted assignment policy; a grant MUST NOT create or
-   reactivate a disabled account contrary to local policy.
-4. Require `agent_id == sub`, a valid runtime identifier, no `act`,
-   and an instance `cnf.jkt`. Validate the DPoP proof per
-   {{RFC9449}} and require its key thumbprint to equal that value.
-5. Require any requested scope to be a subset of the WAG scope.
-   Apply local authorization policy, issuing only a nonempty
-   subset of both that request and the IdP-approved scope.
-6. Atomically reject reuse of an accepted `(iss, jti)` through the
-   grant's expiration, including accepted clock skew, and issue
-   a DPoP-bound access token for the approved resource and key.
-
-The RAS MUST NOT issue a bearer access token or refresh token.
-The access-token response uses `token_type: DPoP` and reports its
-actual scope and lifetime. Access tokens MUST expire within 300
-seconds of issuance. They can outlive the redeemed WAG; expiry of
-a consumed grant is not access-token revocation.
-
-## Resource Token Representation {#resource-token}
-
-Access tokens and active introspection responses MUST identify
-the Registered Agent as `sub`, include `sub_profile` containing
-`ai_agent`, and convey `agent_instance_id` and `cnf.jkt`. The RAS
-MUST use issuer-qualified subject and runtime mappings wherever
-accepted IdP namespaces could collide. It MUST retain the original
-IdP issuer, agent and runtime identifiers with token state. It
-MUST NOT label the registered principal `client_instance` merely
-because CIA authenticated one of its runtimes, or introduce `act`
-for that runtime. Provenance disclosure follows {{AGENT}}.
-
-This profile does not require a `client_id` at the RAS or in its
-access tokens. An implementation MUST NOT manufacture one by
-copying the grant issuer or subject. A token format that requires
-a client identifier needs a separate client identity arrangement.
-
-The RAS MUST support authenticated {{RFC7662}} introspection for
-opaque tokens issued under this profile. JWT access tokens MAY
-also be supported under an agreed token format. The RS MUST
-validate token authenticity, audience, expiry, and DPoP binding
-before authorizing access. It applies its own permissions to the
-validated subject and scope; neither registry ownership nor a
-platform property is a portable permission assignment.
-
-# Lifecycle and Errors {#lifecycle}
-
-Disabling an agent, removing an assignment, or revoking platform
-issuer trust MUST prevent new WAG issuance once that change is
-applied at the IdP. Registry connectors MUST have an agreed
-maximum synchronization delay; exceeding it MUST prevent issuance
-that depends on the stale data. Local RAS disabling MUST prevent
-new access-token issuance for that principal.
-
-These changes do not automatically invalidate an already issued
-WAG or access token. With the lifetime limits above, an
-outstanding grant can produce at most another 300 seconds of
-access after its last valid redemption; deployments MUST account
-for clock skew and synchronization delay as well. Earlier
-termination requires deployment-supported revocation or status
-propagation. A runtime restart receives a new instance identifier;
-key rotation within the same instance retains its identifier and
-requires fresh attested key binding. Retired agent identifiers
-MUST NOT be reassigned.
-
-Errors use {{RFC6749}}, {{RFC8693}}, {{CIA}}, and {{RFC9449}}:
-
-| Condition | Error |
-| --- | --- |
-| Malformed request or forbidden actor/instance parameter | `invalid_request` |
-| CIA validation fails when CIA is the registered client credential | `invalid_client`, per CIA |
-| Invalid subject evidence with independent client authentication; unknown, disabled, or ambiguously bound agent | `invalid_request` |
-| Unapproved target RAS, resource, or tenancy at the IdP | `invalid_target` |
-| Invalid or wholly unauthorized requested scope | `invalid_scope` |
-| Invalid, expired, replayed, mistargeted, or incorrectly bound WAG at the RAS | `invalid_grant` |
-| Malformed DPoP proof or nonce challenge | DPoP error/challenge per RFC 9449, subject to CIA authentication error handling |
-
-The IdP and RAS MUST NOT fall back to a different grant profile
-or bearer processing after a profile validation failure. Error
-responses SHOULD avoid exposing whether unrelated agents exist.
-
-# Security and Privacy Considerations {#security}
-
-The security considerations of {{CIA}}, {{AGENT}}, {{WAG}},
-{{RFC8693}}, {{RFC8725}}, and {{RFC9449}} apply. Registry writers
-and federation-binding administrators control who can obtain
-authority as an agent. The IdP MUST authenticate these operations,
-limit each source to its approved namespace and attributes, and
-audit changes. Syncing an agent from another platform MUST NOT
-merge identities based on names or overwrite enterprise policy.
-
-Keys MUST be instance-specific. Sharing a platform credential
-cannot substitute for runtime proof. Replay caches must cover all
-accepting nodes for each issuer and endpoint service. DPoP proofs
-are fresh for each endpoint; proof for the IdP cannot be reused at
-the RAS or RS. Logs MUST NOT record raw grants, credentials, or
-private keys. Audits should retain issuer-qualified identities and
-policy decisions while minimizing model and runtime disclosure.
-
-The IdP MUST evaluate current registry state at each issuance.
-Valid signatures alone do not establish current model state,
-platform membership, or application assignment. Registry polling,
-evidence lifetime, WAG lifetime, and access-token lifetime each
-contribute separately to the stale-authorization window.
-
-# Conformance {#conformance}
-
-An IdP conforms by implementing the CIA subject-token input and
-DPoP baseline, registry checks, discovery, WAG issuance, errors,
-and lifecycle rules above. A RAS conforms by implementing the
-advertised WAG validation, DPoP token issuance, subject resolution,
-and resource-token rules. An instance conforms by implementing
-the baseline exchange and redemption, verifying the output type
-and key binding, and supporting DPoP nonce challenges.
-
-Implementations MUST pass at least these interoperability cases:
-
-| Case | Required result |
-| --- | --- |
-| Trusted CIA, active bound agent, approved target, matching key | WAG, then DPoP-bound resource token |
-| Two runtimes for one registered agent | Same grant subject, distinct runtime identifiers and keys |
-| Key rotation with fresh evidence | Same agent/runtime identifiers, new key binding |
-| Same platform agent ID from a different unapproved issuer | Reject registry resolution |
-| Disabled agent or removed application assignment | Reject new WAG issuance |
-| Requester tries to substitute another agent or binding key | Reject |
-| CIA or WAG replay | Reject second accepted use |
-| Wrong RAS, resource, local tenancy, or broadened scope | Reject |
-| User/delegated evidence or actor-token request | Reject |
-| Missing profile capability or grant confirmation | No bearer or generic-JWT fallback |
-
-# IANA Considerations {#iana}
-
-## Authorization Server Metadata
-
-IANA is requested to register `workload_agent_federation` in the
-"OAuth Authorization Server Metadata" registry:
-
-Metadata Name:
-: `workload_agent_federation`
-
-Metadata Description:
-: Workload Agent Federation roles, input token types, and WAG
-  signing algorithms supported by an authorization server
-
-Change Controller:
-: IETF
-
-Specification Document(s):
-: {{metadata}} of this document
-
-## Coordination with WAG {#wag-coordination}
-
-**Editor's note:** `urn:ietf:params:oauth:token-type:wag` and
-`oauth-wag+jwt` are proposed, unassigned identifiers used here to
-make the draft exchange precise. Their generic definitions and
-OAuth URI and media-type registrations belong in {{WAG}} and
-must be coordinated there before publication. This document does
-not claim that those registrations already exist. The required
-`resource` and `scope` processing is a constraint of this
-federation profile. The agent claims are registered by {{AGENT}},
-and the CIA token type by {{CIA}}.
-
---- back
-
-# Example {#example}
-{:numbered="false"}
-
-The IdP `https://idp.example/tenants/acme` has approved client
-`https://platform.example/client`, whose instance issuer is
-`https://runtime.platform.example`. An active registry entry
-maps that issuer, client, and platform agent ID
-`urn:platform:agent:support` to `urn:acme:agent:42`. The entry
-permits `issues.read` at resource `https://support.example/api`
-through RAS `https://as.support.example`.
-
-The platform authenticates runtime `run-7`, verifies its agent
-membership, and issues this CIA. Signature and key values are
-abbreviated throughout; line breaks in forms are for display.
+: The authorization server that accepts WAGs from a trusted IdP
+  and issues access tokens for its protected resources.
+
+Resource Server (RS):
+: The server hosting protected resources. It accepts access tokens
+  issued by the RAS; it does not process the WAG.
+
+## Terms
+
+Registered Agent:
+: An Agent Principal represented in the IdP's agent registry. A
+  registered agent can have multiple concurrent or successive
+  instances.
+
+Federation Binding:
+: An IdP-configured association between an assertion issuer,
+  client identifier, and platform agent identifier and a
+  registered agent, as specified in {{registry}}.
+
+Subject Resolution:
+: The process of mapping an authenticated, issuer-qualified
+  identifier to a principal in the receiving authorization
+  server's namespace.
+
+# Workload Authorization Grant {#grant}
+
+A WAG issued under this profile represents authorization for a
+registered agent to request an access token at a particular RAS.
+It uses the JWT authorization grant format and presentation
+specified by {{WAG}} and {{RFC7523}}, with the constraints in this
+section. The IdP issues the grant following the token exchange in
+{{issuance}}.
+
+The grant MUST be a signed JWT using JWS Compact Serialization
+{{RFC7515}} and a key published for the IdP's issuer identifier.
+The protected `typ` header parameter MUST be
+`oauth-wag+jwt`. The signature algorithm MUST be asymmetric and
+permitted by the issuer's trust configuration. Implementations
+MUST support `ES256` {{RFC7518}}. They MUST NOT issue or accept a
+grant using `none` or a symmetric MAC algorithm.
+
+## Claims
+
+The following claims are REQUIRED:
+
+`iss`:
+: The IdP's issuer identifier, as defined in {{RFC8414}}. The value
+  identifies a single tenancy as specified in {{tenant-trust}}.
+
+`sub`:
+: A StringOrURI identifying the registered agent in the IdP's
+  namespace. The identifier MUST be unique within that issuer
+  and MUST NOT be reassigned to a different agent.
+
+`aud`:
+: A JSON string containing the issuer identifier of the intended
+  RAS. This profile restricts the audience to one issuer identifier;
+  an array or token endpoint URL MUST NOT be used.
+
+`agent_id`:
+: The Agent Principal identifier defined by {{AGENT}}. Its value
+  MUST equal `sub`.
+
+`agent_instance_id`:
+: The Agent Instance identifier defined by {{AGENT}}, expressed in
+  the IdP's namespace using the mapping in {{registry}}. This
+  claim identifies the runtime that presented the assertion and
+  need not equal `sub`.
+
+`resource`:
+: A JSON string containing the resource URI authorized by the IdP,
+  using the resource identifier syntax defined in Section 2 of
+  {{RFC8707}}. This profile permits exactly one resource.
+
+`scope`:
+: A nonempty JSON string containing the granted scopes in the
+  format defined in Section 3.3 of {{RFC6749}}.
+
+`cnf`:
+: A JSON object containing the `jkt` confirmation method defined
+  in Section 6.1 of {{RFC9449}}. Its value MUST be the thumbprint
+  of the instance key validated during token exchange.
+
+`jti`:
+: A unique identifier for the grant, as defined in Section 4.1.7
+  of {{RFC7519}}. The IdP MUST assign a new value to each grant.
+
+`iat`:
+: The time of issuance, expressed as a NumericDate.
+
+`exp`:
+: The expiration time, expressed as a NumericDate. The value MUST
+  be later than `iat`, no more than 300 seconds after `iat`, and
+  no later than the expiration of the input assertion.
+
+The WAG MUST NOT contain an `act` claim. The instance represents
+an execution of the registered agent.
+Additional agent claims follow {{AGENT}}. The IdP MUST include only
+claims obtained from validated evidence or an authorized registry
+source, subject to its freshness policy. It MUST NOT include raw
+`agent_runtime` evidence in the WAG. Additional authorization
+properties defined by {{WAG}} do not expand the granted scope.
+
+## Example
+
+The following non-normative example shows the decoded header and
+claims of a WAG. The signature is omitted and the key thumbprint
+is abbreviated.
+The IdP has authorized registered agent `urn:acme:agent:42`,
+executing as instance `urn:acme:instance:run-7`, to request access
+to the support API.
 
 ~~~ json
 {
-  "iss": "https://runtime.platform.example",
-  "sub": "https://runtime.platform.example/instances/run-7",
-  "aud": "https://idp.example/tenants/acme",
-  "client_id": "https://platform.example/client",
-  "agent_id": "urn:platform:agent:support",
-  "agent_instance_id":
-    "https://runtime.platform.example/instances/run-7",
-  "agent_platform": "urn:example:orchestrator:v5",
-  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1789135200,
-  "exp": 1789135500,
-  "jti": "cia-run-7-1"
+  "typ": "oauth-wag+jwt",
+  "alg": "ES256",
+  "kid": "idp-key-1"
 }
 ~~~
-
-The client is registered for instance-assertion authentication,
-so the CIA and DPoP proof also authenticate the client at the IdP:
-
-~~~ http-message
-POST /tenants/acme/token HTTP/1.1
-Host: idp.example
-Content-Type: application/x-www-form-urlencoded
-DPoP: <proof for the IdP endpoint signed by the instance key>
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
-&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Awag
-&subject_token=eyJ...agent-profiled-cia...
-&subject_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
-&client_id=https%3A%2F%2Fplatform.example%2Fclient
-&audience=https%3A%2F%2Fas.support.example
-&resource=https%3A%2F%2Fsupport.example%2Fapi
-&scope=issues.read
-~~~
-
-After registry and authorization checks, the IdP returns:
-
-~~~ json
-{
-  "access_token": "eyJ...workload-authorization-grant...",
-  "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
-  "token_type": "N_A",
-  "expires_in": 290,
-  "scope": "issues.read"
-}
-~~~
-
-The decoded WAG uses the IdP's canonical identities and a protected
-header with `typ: oauth-wag+jwt` and `alg: ES256`:
 
 ~~~ json
 {
@@ -650,8 +258,274 @@ header with `typ: oauth-wag+jwt` and `alg: ES256`:
 }
 ~~~
 
-The instance redeems it at the RAS without a downstream client
-registration or another CIA:
+# Protocol {#protocol}
+
+## Overview {#deployment}
+
+The client obtains a Client Instance Assertion from an Agent
+Attester trusted by the IdP. It exchanges that assertion for a WAG,
+then presents the WAG to the RAS to obtain an access token. The
+same instance key is used throughout the exchange.
+
+~~~ ascii-art
+  Agent Attester       Client             IdP             RAS
+        |                 |                |               |
+        |-- Assertion --->|                |               |
+        |                 |                |               |
+        |                 |-- Token ------>|               |
+        |                 |   Exchange     |               |
+        |                 |<-- WAG --------|               |
+        |                 |                |               |
+        |                 |-- Access Token Request ------->|
+        |                 |<-- Access Token ---------------|
+~~~
+
+Before the exchange, the IdP and RAS establish the trust and
+subject mappings described in {{identity}}. The client determines
+support for this profile using {{metadata}}. All token endpoint
+requests and responses are subject to the transport security
+requirements of {{RFC6749}} and {{RFC8693}}.
+
+## Instance Assertion {#instance-assertion}
+
+The client obtains a Client Instance Assertion conforming to
+{{CIA}} and {{AGENT}}. The assertion MUST contain `client_id`,
+`agent_id`, `agent_instance_id`, and `cnf.jkt`. Its `sub` MUST equal
+`agent_instance_id`, and its `aud` MUST be the IdP issuer
+identifier. Its lifetime MUST NOT exceed 300 seconds. The Agent
+Attester MUST authenticate the instance's relationship to the
+agent identified by `agent_id` before issuing the assertion.
+
+How the client obtains the assertion is outside the scope of this
+specification. For example, an Agent Attester can authenticate
+native workload credentials and issue an assertion containing the
+required agent claims and key confirmation.
+
+The examples below use an assertion with the following decoded
+claims. The platform's agent and instance identifiers are mapped
+to the IdP identifiers shown in {{grant}}.
+
+~~~ json
+{
+  "iss": "https://runtime.platform.example",
+  "sub": "https://runtime.platform.example/instances/run-7",
+  "aud": "https://idp.example/tenants/acme",
+  "client_id": "https://platform.example/client",
+  "agent_id": "urn:platform:agent:support",
+  "agent_instance_id":
+    "https://runtime.platform.example/instances/run-7",
+  "agent_platform": "urn:example:orchestrator:v5",
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135200,
+  "exp": 1789135500,
+  "jti": "cia-run-7-1"
+}
+~~~
+
+## Token Exchange {#issuance}
+
+### Request {#exchange-request}
+
+The client makes an HTTP POST request to the IdP token endpoint
+using the request format in Section 2.1 of {{RFC8693}}. Parameters
+are encoded as `application/x-www-form-urlencoded` in the request
+body:
+
+`grant_type`:
+: REQUIRED. The value MUST be
+  `urn:ietf:params:oauth:grant-type:token-exchange`.
+
+`requested_token_type`:
+: REQUIRED. The value MUST be
+  `urn:ietf:params:oauth:token-type:wag`.
+
+`subject_token`:
+: REQUIRED. The Client Instance Assertion described in
+  {{instance-assertion}}.
+
+`subject_token_type`:
+: REQUIRED. The value MUST be
+  `urn:ietf:params:oauth:token-type:client-instance-jwt`.
+
+`client_id`:
+: REQUIRED. The client identifier registered at the IdP. The value
+  MUST equal the assertion's `client_id` claim.
+
+`audience`:
+: REQUIRED. The issuer identifier of the intended RAS. This
+  parameter MUST occur exactly once.
+
+`resource`:
+: REQUIRED. The target resource URI, as defined in Section 2 of
+  {{RFC8707}}. This parameter MUST occur exactly once.
+
+`scope`:
+: REQUIRED. A nonempty scope string for the requested resource,
+  using the syntax in Section 3.3 of {{RFC6749}}.
+
+The client MUST include a DPoP proof in the `DPoP` HTTP header
+field, signed with the key identified by the assertion's
+`cnf.jkt`. Client authentication follows {{client-metadata}}.
+The request MUST NOT contain `actor_token`, `actor_token_type`,
+or `client_instance_assertion`.
+
+This use of `subject_token` is the grant-issuance extension defined
+by {{CIA}}. It supplies evidence about the agent requesting a WAG;
+it does not request a delegated access token. No preliminary IdP
+access token is required.
+
+The following is a non-normative request example. Extra line
+breaks and indentation in form bodies are for display only; JWTs
+and DPoP proofs are abbreviated throughout the examples.
+
+~~~ http-message
+POST /tenants/acme/token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: <proof for the IdP endpoint signed by the instance key>
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
+&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Awag
+&subject_token=eyJ...agent-profiled-cia...
+&subject_token_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&client_id=https%3A%2F%2Fplatform.example%2Fclient
+&audience=https%3A%2F%2Fas.support.example
+&resource=https%3A%2F%2Fsupport.example%2Fapi
+&scope=issues.read
+~~~
+
+### Processing Rules {#idp-processing}
+
+The IdP MUST enable this profile for the client before accepting
+the request. It selects the profile using `requested_token_type`
+and the approved client configuration. The request processing
+requirements of {{RFC8693}}, {{CIA}}, and {{AGENT}} apply with
+these additional rules:
+
+1. The IdP MUST validate the assertion's signature, JWT type,
+   issuer trust, audience, time claims, client binding, and agent
+   claims. It MUST enforce {{instance-assertion}} and reject an
+   assertion containing `act`.
+2. The IdP MUST validate the DPoP proof under Section 4.3 of
+   {{RFC9449}} and verify that its key thumbprint matches the
+   assertion's `cnf.jkt`. When the registered authentication
+   method is `client_instance_assertion`, the IdP MUST apply the
+   authentication procedure in {{CIA}} to the assertion in
+   `subject_token`. Otherwise, it MUST validate the client's
+   separately registered authentication method.
+3. The IdP MUST resolve the agent and instance using {{registry}}
+   and verify that the agent is enabled. It MUST evaluate current
+   policy for the assertion's freshness, the instance's authority
+   to execute as that agent, and the requested audience and resource.
+4. The IdP MUST restrict the granted scopes to a nonempty subset
+   of the requested scopes permitted for that agent and resource.
+   Authorization attributes MUST come from sources approved for
+   those attributes in the registry.
+5. The IdP MUST prevent a second successful use of the assertion's
+   `(iss, jti)` pair until its expiration, including accepted clock
+   skew. Replay detection and acceptance MUST be atomic. An
+   assertion used for both authentication and subject evidence
+   constitutes one use within the request.
+6. The IdP MUST issue the WAG with the resolved agent and instance
+   identifiers, approved audience, resource, scopes, and validated
+   key confirmation, as specified in {{grant}}. It MUST retain the
+   input identity mapping and the grant's `jti`, key, target, and
+   authorization decision for audit.
+
+### Response {#exchange-response}
+
+On success, the IdP returns a token exchange response as defined
+in Section 2.2.1 of {{RFC8693}}, with the following parameters:
+
+`access_token`:
+: REQUIRED. The WAG. This parameter carries an authorization
+  grant rather than an access token in this exchange.
+
+`issued_token_type`:
+: REQUIRED. The value MUST be
+  `urn:ietf:params:oauth:token-type:wag`.
+
+`token_type`:
+: REQUIRED. The value MUST be `N_A`.
+
+`expires_in`:
+: REQUIRED. The remaining lifetime of the WAG in seconds.
+
+`scope`:
+: REQUIRED. The scope string included in the WAG.
+
+The response MUST NOT contain a `refresh_token`. The client MUST
+verify the returned token type, audience, resource, and key binding
+before using the grant. If they do not match the requested type,
+target, and instance key, the client MUST reject the response.
+
+For example:
+
+~~~ http-message
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+Pragma: no-cache
+
+{
+  "access_token": "eyJ...workload-authorization-grant...",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
+  "token_type": "N_A",
+  "expires_in": 290,
+  "scope": "issues.read"
+}
+~~~
+
+### Error Response {#exchange-errors}
+
+The IdP returns errors using Section 2.2.2 of {{RFC8693}} and
+Section 5.2 of {{RFC6749}}. The following rules apply:
+
+* `invalid_request` is returned for a malformed request, a
+  prohibited actor or instance parameter, invalid subject evidence
+  when independent client authentication is used, or an unknown,
+  disabled, or ambiguously bound agent.
+* `invalid_client` is returned for client authentication failures,
+  including assertion validation failures when the assertion is
+  the registered client authentication credential, per {{CIA}}.
+* `invalid_target` is returned when the IdP cannot authorize the
+  requested audience or resource for the agent's tenancy.
+* `invalid_scope` is returned for an invalid scope request or when
+  no requested scope can be granted.
+
+DPoP proof errors and nonce challenges follow {{RFC9449}}, subject
+to the authentication error handling specified by {{CIA}}.
+
+## Access Token Request {#redemption}
+
+The client makes an HTTP POST request to the RAS token endpoint
+using Section 2.1 of {{RFC7523}}. The following parameters are
+encoded as `application/x-www-form-urlencoded` in the request body:
+
+`grant_type`:
+: REQUIRED. The value MUST be
+  `urn:ietf:params:oauth:grant-type:jwt-bearer`.
+
+`assertion`:
+: REQUIRED. The WAG obtained from the IdP.
+
+`resource`:
+: REQUIRED. The resource URI from the WAG. This parameter MUST
+  occur exactly once and MUST equal the grant's `resource` claim.
+
+`scope`:
+: OPTIONAL. The requested scopes, which MUST be a subset of the
+  WAG's scopes. If omitted, the request is for all scopes in the WAG.
+
+The client MUST include a DPoP proof for the RAS token endpoint,
+signed with the key identified by the WAG's `cnf.jkt`. The request
+MUST NOT contain `client_instance_assertion`, `actor_token`, or
+`actor_token_type`. Client authentication requirements are
+specified in {{client-metadata}}.
+
+For example:
 
 ~~~ http-message
 POST /token HTTP/1.1
@@ -665,33 +539,355 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
 &scope=issues.read
 ~~~
 
-The RAS returns a DPoP access token. An illustrative active
-introspection response is below; the RAS's mapping gives the
-registered agent and runtime unambiguous local identifiers:
+### Processing Rules {#ras-processing}
 
-~~~ json
+The RAS applies Section 3.1 of {{RFC7523}} and Section 5.2 of
+{{RFC7521}}, with the following additional requirements:
+
+1. The RAS MUST validate the signature and all required headers
+   and claims specified in {{grant}}. It MUST reject an expired
+   grant or an `iat` value in the future, allowing only its
+   configured clock skew, and enforce the maximum grant lifetime.
+2. The RAS MUST verify that `iss` is authorized for this profile
+   and for the target tenancy under {{tenant-trust}}. Signing keys
+   MUST be resolved within that issuer's trust configuration.
+3. The RAS MUST require `aud` to equal its issuer identifier and
+   the requested `resource` to equal the grant's resource. The
+   resource MUST belong to the tenancy authorized for that issuer.
+   Identifier comparisons MUST use exact string matching;
+   URI normalization MUST NOT be applied.
+4. The RAS MUST resolve `(iss, sub)` under {{ras-subject}} and
+   verify that local policy permits access for that principal.
+5. The RAS MUST validate the DPoP proof under Section 4.3 of
+   {{RFC9449}} and verify that its key thumbprint equals the
+   WAG's `cnf.jkt`.
+6. The RAS MUST reject requested scopes outside the WAG's scopes.
+   It MUST restrict access-token scopes to a nonempty subset of
+   the requested scopes permitted by local policy.
+7. The RAS MUST prevent a second successful use of `(iss, jti)`
+   until the grant expires, including accepted clock skew. Replay
+   detection and grant acceptance MUST be atomic.
+
+### Response {#access-token-response}
+
+On success, the RAS returns the token response defined in
+Section 5.1 of {{RFC6749}} and Section 5 of {{RFC9449}}. The
+`token_type` MUST be `DPoP`. The response MUST include `scope` and
+`expires_in` with the issued scope and lifetime, and MUST NOT
+include `refresh_token`. The access token MUST be bound to the
+verified instance key and expire within 300 seconds of issuance.
+
+For example:
+
+~~~ http-message
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+Pragma: no-cache
+
 {
-  "active": true,
-  "sub": "acme-agent-42",
-  "sub_profile": "ai_agent",
-  "agent_instance_id": "acme-instance-run-7",
-  "aud": "https://support.example/api",
-  "scope": "issues.read",
+  "access_token": "2YotnFZFEjr1zCsicMWpAA",
   "token_type": "DPoP",
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1789135220,
-  "exp": 1789135520
+  "expires_in": 300,
+  "scope": "issues.read"
 }
 ~~~
 
-There is no `act`: the registered agent is acting as itself through
-one authenticated runtime. A second runtime maps to the same
-registered subject with a different instance identifier and key.
+To obtain another access token, the client obtains a fresh
+assertion and repeats the exchange. Neither a consumed WAG nor
+an assertion already accepted by the IdP can be reused.
+
+### Error Response {#access-token-errors}
+
+Errors follow Section 5.2 of {{RFC6749}}. The RAS MUST return
+`invalid_grant` for a WAG that fails validation, including an
+expired, replayed, incorrectly targeted, or incorrectly bound
+grant, or a subject for which local policy prohibits issuance.
+It MUST return `invalid_request` for a malformed request or a
+prohibited actor or instance parameter, and `invalid_scope` for
+invalid scopes or when no requested scope can be granted.
+
+DPoP proof validation failures use `invalid_dpop_proof`; nonce
+challenges use `use_dpop_nonce`, as specified in {{RFC9449}}.
+A valid proof made with a key that does not match the WAG is a
+grant binding failure and results in `invalid_grant`.
+
+## Access Token Contents {#resource-token}
+
+The RAS MUST associate the registered agent, authenticated instance,
+and verified DPoP key with the access token. JWT access tokens and
+active introspection responses MUST contain `sub` identifying the
+registered agent, `sub_profile` including `ai_agent`,
+`agent_instance_id` identifying the runtime, and `cnf.jkt`
+identifying the verified key. They MUST NOT contain `act` for
+that runtime or classify a distinct registered agent as
+`client_instance` solely because a CIA authenticated its instance.
+Subject and instance identifiers are mapped as specified in
+{{ras-subject}}. Additional claims follow {{AGENT}}.
+
+This profile does not prescribe a JWT access token format. When
+issuing opaque access tokens, the RAS MUST support authenticated
+introspection under {{RFC7662}} and provide the corresponding
+identity and key confirmation. The RS MUST validate access token
+authenticity, audience, expiration, and DPoP binding under
+{{RFC9449}} before applying its authorization policy.
+
+# Identity and Tenant Relationships {#identity}
+
+## IdP Subject Resolution {#registry}
+
+The IdP MUST maintain an approved federation binding from the
+exact tuple `(iss, client_id, agent_id)` in a validated assertion
+to one registered agent. It MUST reject an unknown or ambiguous
+binding. Agent identifiers MUST be stable across runtime and key
+changes and MUST NOT be reassigned. Display names, model names,
+platform product identifiers, and key thumbprints MUST NOT be
+used to resolve the registered agent.
+
+The registry MUST also maintain the agent's enabled status,
+permitted RAS issuers, resources and scopes, and the sources
+authorized to supply its attributes. Only administratively
+authorized sources may create or modify bindings and assignments.
+A client-published `instance_issuers` value does not by itself
+establish a federation binding or authorize access to a resource.
+
+The IdP MUST map the authenticated `(iss, sub)` of the assertion
+to an issuer-scoped, non-reassigned instance identifier and retain
+the relationship to its registered agent. It MUST reject a
+conflicting agent assignment for the same instance. The mapping
+MUST remain stable across key rotation. The IdP MAY preserve an
+incoming identifier if its namespace is trusted and collision-free.
+Agent and instance identifiers SHOULD be URIs in controlled
+namespaces.
+
+Registry provisioning can use {{SCIM-AGENT}}, an administrative
+interface, or another trusted mechanism. A SCIM `externalId` MUST
+be qualified by the provisioning source and issuer context when
+used in a binding. Provisioning alone does not authorize
+federation. Just-in-time provisioning MAY occur before issuance
+under an explicit administrative policy; a valid assertion alone
+MUST NOT authorize account creation, reactivation, or assignment.
+
+## Issuer and Tenant Trust {#tenant-trust}
+
+The IdP MUST use a distinct issuer identifier for each tenancy,
+following the issuer model in {{WAG}}. The RAS MUST establish an
+explicit trust relationship binding that issuer to a local tenancy
+and the resources for which it may issue grants. User SSO trust
+alone MUST NOT authorize acceptance of WAGs.
+
+Metadata and signing keys MUST be obtained through trusted
+configuration or authenticated discovery for the approved issuer.
+Keys and subject mappings MUST be scoped to that issuer. An
+untrusted JWT header containing a key URL MUST NOT establish
+issuer trust.
+
+## RAS Subject Resolution {#ras-subject}
+
+The RAS MUST resolve the WAG's `(iss, sub)` to a local agent
+principal under the configured issuer and tenancy relationship.
+It MAY provision a local principal just in time under that policy.
+A grant MUST NOT reactivate a disabled principal contrary to local
+policy.
+
+The RAS MUST preserve the identity of the authorized agent and
+instance when mapping them to its own namespace. Mappings MUST
+distinguish identifiers from different accepted issuers that could
+otherwise collide. The RAS MUST retain the original IdP issuer,
+agent identifier, and instance identifier with the token state.
+
+# Authorization Server Metadata {#metadata}
+
+An authorization server supporting this profile MUST publish the
+following member in its metadata document defined by {{RFC8414}}:
+
+`workload_agent_federation`:
+: A JSON object describing support for this profile. If absent,
+  support is not advertised.
+
+The `workload_agent_federation` object contains these members:
+
+`roles`:
+: REQUIRED. A nonempty array of strings containing `issuer`,
+  `resource_authorization_server`, or both. The values indicate
+  support for WAG issuance and acceptance, respectively.
+
+`subject_token_types_supported`:
+: REQUIRED when `roles` contains `issuer`. An array of supported
+  subject token type identifiers. The array MUST contain
+  `urn:ietf:params:oauth:token-type:client-instance-jwt`.
+  Additional types require a separately specified input profile
+  defining identity, client, registry, and key validation.
+
+`grant_signing_alg_values_supported`:
+: REQUIRED. A nonempty array of JWS algorithm names supported for
+  WAG issuance or validation, as indicated by `roles`. If both
+  roles are present, listed algorithms apply to both. The array
+  MUST contain `ES256` and MUST NOT contain `none` or symmetric
+  MAC algorithms.
+
+The IdP MUST include `urn:ietf:params:oauth:grant-type:token-exchange`
+in `grant_types_supported` and `client_instance_assertion` in
+`token_endpoint_auth_methods_supported`. The RAS MUST include
+`urn:ietf:params:oauth:grant-type:jwt-bearer` in
+`grant_types_supported`. Both MUST publish
+`dpop_signing_alg_values_supported` containing `ES256` per
+{{RFC9449}}. Additional asymmetric algorithms MAY be supported.
+
+The client MUST verify that the IdP advertises the `issuer` role
+and the RAS advertises the `resource_authorization_server` role
+before using this profile. Advertised capabilities do not
+establish issuer trust or override configured algorithm policy.
+
+# Client Metadata {#client-metadata}
+
+The client registration at the IdP follows {{CIA}} and MUST have
+an administratively approved `instance_issuers` value and
+`ai_agent_instance_profile` set to `true` as defined by {{AGENT}}.
+The registration represents the logical client application;
+individual agent instances do not require separate registrations.
+
+The IdP MUST support `client_instance_assertion` as a
+`token_endpoint_auth_method` for this profile. With this method,
+the assertion in `subject_token` and the DPoP proof authenticate
+the client. All authentication requirements in {{CIA}} apply,
+with `subject_token` replacing the normal presentation parameter.
+The IdP MAY support other client authentication methods. The
+client MUST use the method associated with its registration;
+assertion presentation MUST NOT replace a different registered
+method without agreement.
+
+This profile does not require `client_id` or client authentication
+at the RAS. The WAG and proof of the bound instance key establish
+the presenting agent's authorization. If a deployment separately
+requires client authentication at the RAS, it MUST NOT alter the
+grant subject or relax grant restrictions. An implementation MUST
+NOT construct a client identifier by copying the grant's issuer
+or subject.
+A JWT access token format that requires `client_id` needs a
+separately established client identity.
+
+# Security Considerations {#security}
+
+The security considerations of {{CIA}}, {{AGENT}}, {{WAG}},
+{{RFC7521}}, {{RFC8693}}, {{RFC8725}}, and {{RFC9449}} apply.
+
+## Registry and Attribute Authority
+
+A federation binding authorizes an issuer to attest instances of
+a registered agent. Compromise of the issuer or registry writer
+can therefore permit unauthorized grant issuance. The IdP MUST
+authenticate registry changes, restrict each source to its
+approved namespace and attributes, and audit binding and assignment
+changes. Synchronization MUST NOT merge agents by display name
+or allow a platform source to overwrite enterprise policy.
+
+An assertion's signature authenticates its issuer's statements;
+it does not establish that the IdP independently measured model
+or runtime state. The IdP MUST evaluate evidence freshness and
+current registry policy at each issuance.
+
+## Token Substitution
+
+The assertion, WAG, and access token have different audiences and
+processing rules. Implementations MUST enforce their respective
+audiences, presentation parameters, and, for JWTs, token types. If profile
+validation fails, the IdP and RAS MUST NOT retry processing under
+a less restrictive grant profile or issue a bearer token. Clients
+MUST NOT fall back to an unadvertised profile or bearer processing
+when capability or key confirmation is missing.
+
+## Proof of Possession and Replay
+
+Each instance MUST hold its own proof-of-possession key. Validating
+a DPoP proof establishes possession of that key; the assertion and
+registry binding establish its authority to represent the agent.
+The IdP MUST NOT replace the validated binding with an arbitrary
+requester-selected key.
+
+Clients MUST generate a proof appropriate to each endpoint and
+support DPoP nonce challenges. Replay detection MUST cover every
+node accepting assertions or WAGs for the corresponding issuer
+and endpoint service. The single-use restrictions in {{protocol}}
+apply in addition to DPoP proof validation.
+
+## Lifecycle {#lifecycle}
+
+Disabling an agent, removing an assignment, or revoking assertion
+issuer trust MUST prevent new WAG issuance once the change is
+applied at the IdP. Registry synchronization MUST have a configured
+maximum delay; the IdP MUST reject issuance that depends on data
+stale beyond that limit. Disabling a local agent at the RAS MUST
+prevent new access-token issuance for that agent.
+
+These changes do not by themselves invalidate previously issued
+grants or access tokens. An access token can outlive the consumed
+WAG. With the lifetime limits in this profile, the token can
+remain usable for up to 300 seconds after grant redemption, in
+addition to synchronization delay and accepted clock skew.
+Earlier termination requires a deployment-supported revocation
+or status propagation mechanism.
+
+A restarted runtime MUST receive a new instance identifier. Key
+rotation within an existing instance MUST preserve its identifier
+and requires fresh evidence binding the new key.
+
+# Privacy Considerations {#privacy}
+
+Stable agent identifiers permit correlation across instances and
+resources. Instance identifiers permit correlation of requests
+within an execution. The IdP and RAS SHOULD limit disclosure of
+identifiers and provenance to the parties that require them for
+authorization or audit. Error responses SHOULD NOT disclose the
+existence of unrelated agents.
+
+Logs MUST NOT contain raw assertions, grants, credentials, or
+private keys. Audit records should retain issuer-qualified
+identifiers and authorization decisions while minimizing model
+and runtime information. The claim disclosure requirements of
+{{AGENT}} apply.
+
+# IANA Considerations {#iana}
+
+## OAuth Authorization Server Metadata Registration
+
+This specification requests registration of the following value
+in the "OAuth Authorization Server Metadata" registry established
+by {{RFC8414}}:
+
+Metadata Name:
+: `workload_agent_federation`
+
+Metadata Description:
+: Workload Agent Federation roles, subject token types, and grant
+  signing algorithms supported by an authorization server.
+
+Change Controller:
+: IETF
+
+Specification Document(s):
+: {{metadata}} of this document.
+
+--- back
+
+# Open Issues {#wag-coordination}
+{:numbered="false"}
+
+*RFC EDITOR: Remove this section before publication.*
+
+The token type `urn:ietf:params:oauth:token-type:wag` and JWT type
+`oauth-wag+jwt` are proposed identifiers pending coordination with
+{{WAG}}. Their generic definitions and OAuth URI and media type
+registrations are expected to be specified there. The IdP issuer
+role and the audience restrictions in this profile also need to
+be aligned with that specification before publication. The agent
+claims are defined and registered by {{AGENT}}; the CIA token type
+is defined by {{CIA}}.
 
 # Document History
 {:numbered="false"}
 
-*RFC EDITOR: please remove this section before publication.*
+*RFC EDITOR: Remove this section before publication.*
 
 ## -00
 {:numbered="false"}
