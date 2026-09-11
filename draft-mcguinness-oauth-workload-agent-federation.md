@@ -44,6 +44,7 @@ normative:
   RFC8725:
   RFC9449:
   CIA: I-D.mcguinness-oauth-client-instance-assertion
+  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   AGENT: I-D.mcguinness-oauth-ai-agent-instance
   WAG: I-D.carleton-workload-authz-grant
 
@@ -83,6 +84,15 @@ identity claims defined by {{AGENT}}. The client presents the WAG
 at a Resource Authorization Server using the JWT authorization
 grant defined by {{RFC7523}}. Both requests use Demonstrating Proof
 of Possession (DPoP) {{RFC9449}} with the instance's key.
+
+The IdP MUST implement {{CIA}}, including its requirement to
+implement {{ACTOR-PROFILE}}. This document uses CIA's
+grant-issuance extension; the resulting WAG follows {{grant}}.
+Actor Profile support does not require an `act` claim when no
+delegated actor is represented. The RAS and RS use Actor Profile's
+subject-classification rules as specified in {{resource-token}};
+accepting a WAG does not require them to implement CIA assertion
+processing or its client-registration requirements.
 
 The IdP determines whether the agent is authorized to obtain a
 grant for the requested resource and scope. The Resource
@@ -638,6 +648,10 @@ that runtime or classify a distinct registered agent as
 `client_instance` solely because a CIA authenticated its instance.
 Subject and instance identifiers are mapped as specified in
 {{ras-subject}}. Additional claims follow {{AGENT}}.
+The RAS and RS MUST apply the `sub_profile` syntax and
+classification semantics in {{ACTOR-PROFILE}}. Here the claim is
+top-level and classifies the registered agent named by `sub`;
+it does not classify `agent_instance_id` or establish delegation.
 
 This profile does not prescribe a JWT access token format. When
 issuing opaque access tokens, the RAS MUST support authenticated

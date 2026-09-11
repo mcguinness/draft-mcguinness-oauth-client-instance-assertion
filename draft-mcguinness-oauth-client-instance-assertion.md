@@ -409,6 +409,10 @@ exchange, or choosing a different representation by matching
 subject strings. Authorization-grant contents are governed by the
 companion profile; {{access-token}} governs access tokens issued
 under this document.
+Use of this extension does not relax the requirement for CIA
+implementations to implement {{ACTOR-PROFILE}}. That dependency
+does not require a companion profile to introduce an `act` claim
+when its grant represents no delegated actor.
 
 # Client Instance Model {#client-instance-model}
 
@@ -1536,7 +1540,7 @@ configuration. It is not inferred from subject-string similarity.
 | `client_credentials` ({{RFC6749}}) | none | self-acting |
 | `refresh_token` ({{RFC6749}}) | inherited from the original grant | inherited |
 | jwt-bearer ({{RFC7523}}) | the grant assertion's `sub` | delegation by default; subject-instance under an explicit grant profile |
-| token-exchange ({{RFC8693}}) | the `subject_token`'s subject | delegation |
+| token-exchange for access-token issuance ({{RFC8693}}) | the `subject_token`'s subject | delegation |
 
 Unless the authorization-grant profile explicitly specifies that
 the grant subject represents the presenting client instance, the
@@ -1558,12 +1562,15 @@ normally uses WAG without a separate Client Instance Assertion;
 this document applies only when an instance assertion is also
 presented and its OAuth client binding is validated.
 
-Token exchange remains delegation under this profile, including
+Token exchange for access-token issuance remains delegation under
+this profile, including
 when the `subject_token` was a self-acting or subject-instance
 access token naming the same instance now presenting the
 assertion. Its actor chain MUST NOT be collapsed by matching
 identifiers. The subject-instance exception for JWT authorization
 grants does not alter token-exchange chain processing.
+Token exchange for authorization-grant issuance follows the
+explicitly selected companion profile under {{subject-evidence-profiles}}.
 
 When none of these classifications applies (for example, custom
 or experimental grants), the AS MUST refuse issuance with
