@@ -6,7 +6,7 @@ category: std
 docname: draft-mcguinness-oauth-ai-agent-instance-latest
 submissiontype: IETF
 stand_alone: yes
-date: 2026-09-10
+date: 2026-09-11
 ipr: trust200902
 area: "Security"
 workgroup: "Web Authorization Protocol"
@@ -252,6 +252,64 @@ specifications that do. In particular, fine-grained permission
 description composes via Rich Authorization Requests
 ({{RFC9396}}), and hardware-rooted runtime evidence composes via
 Entity Attestation Token formats ({{RFC9711}}).
+
+## Interoperability with WAG {#wag-interop}
+
+This profile can be applied by WAG issuers, authorization servers,
+and resource servers as a coordinated deployment profile. WAG
+supplies the authorization grant and issuer trust model; this
+document supplies the agent identity, provenance, instance key
+binding, and access-token representation rules. The integration
+uses the existing WAG token request and JWT claims extension
+points; it introduces no new grant type or request parameter.
+
+| WAG element | Integration with this profile |
+| --- | --- |
+| Grant issuer | Acts as the Agent Attester within the trusted tenancy |
+| Grant `sub` | Equals `agent_instance_id`; identifies the authorized agent instance |
+| `assertion` parameter | Carries the WAG and its agent claims together |
+| Agent properties | Retain WAG authorization semantics alongside the `agent_*` identity and provenance claims |
+| Instance proof | Binds grant redemption and the access token to the authenticated instance key |
+| Access-token subject | Names the agent; separate evidence for the same instance does not add `act` |
+
+Interoperable deployment requires agreement at three boundaries:
+
+* **Issuer and AS:** establish the trusted issuer, tenancy, and
+  subject namespace, activate this profile per {{metadata}}, and
+  agree on a supported confirmation method. The issuer includes
+  `agent_instance_id` and the applicable provenance claims per
+  {{carrier-wag}}. A WAG-only request includes `cnf`; omission
+  requires the independently validated binding described in
+  {{wag-binding}}.
+* **Instance and AS:** use the WAG presentation in `assertion`
+  with its RFC 7523 grant type and target `resource`, accompanied
+  by the required DPoP or mutual-TLS proof. Client authentication,
+  if deployed, retains its separate meaning. A separate CIA is
+  optional and follows {{carrier-composition}}, including its
+  client binding and issuer-qualified identity checks.
+* **AS and resource server:** agree on the access-token format,
+  issuer context, sender-constraint mechanism, and selective
+  provenance disclosure per {{surfacing-wag}}. WAG authorization
+  properties retain their issuer-scoped permission mappings;
+  raw runtime evidence is consumed by the AS per {{surfacing}}.
+
+Support for the RFC 7523 grant type or WAG alone does not imply
+support for this agent profile. Conversely,
+`ai_agent_instance_profile_supported` does not advertise every
+carrier. Deployments establish WAG-carrier support through the
+trusted issuer agreement in {{metadata}}. An AS that accepts a
+WAG without applying this profile does not thereby establish the
+agent provenance, instance binding, or token representation
+guarantees defined here. Once this profile is required, missing
+or invalid evidence is rejected under {{errors}}; it cannot be
+handled by silently falling back to ordinary WAG processing.
+
+WAG's prohibition on refresh-token issuance continues to apply
+({{refresh}}). Delegation through a subsequent token exchange is
+governed by {{chains}}; this integration does not repurpose the
+WAG as a CIA actor token. {{appendix-example-wag}} illustrates
+WAG-only issuance and composition with a separate runtime
+authority.
 
 # Agent Instance Claims {#agent-claims}
 
