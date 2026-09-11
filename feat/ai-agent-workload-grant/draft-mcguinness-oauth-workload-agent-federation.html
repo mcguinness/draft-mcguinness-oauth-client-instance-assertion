@@ -7,16 +7,16 @@
 <title>OAuth 2.0 Workload Agent Federation</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
-       This specification profiles OAuth 2.0 Token Exchange to let an
-agent instance obtain a Workload Authorization Grant from an
-identity provider and redeem it at a resource authorization
-server. The identity provider maintains an agent registry,
-federates instance evidence from agent platforms, and authorizes
-access for agents acting as themselves. The resource authorization
-server trusts the identity provider as grant issuer and retains
-control over resource access. The profile defines a mandatory
-instance-evidence input, registry resolution, discovery, grant
-issuance and redemption, and proof-of-possession requirements. 
+       This specification defines a profile of OAuth 2.0 Token Exchange
+and the JWT Profile for OAuth 2.0 Authorization Grants that enables
+an agent instance to obtain access to protected resources using an
+identity provider as a Workload Authorization Grant issuer. The
+identity provider authenticates the instance, resolves its identity
+to a registered agent, and issues a grant for a Resource
+Authorization Server. The profile specifies the assertion input,
+grant contents, token endpoint processing, authorization server
+metadata, and proof-of-possession requirements for an agent acting
+on its own behalf. 
     " name="description">
 <meta content="xml2rfc 3.34.0" name="generator">
 <meta content="OAuth" name="keyword">
@@ -1089,16 +1089,16 @@ svg {
 <h1 id="title">OAuth 2.0 Workload Agent Federation</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This specification profiles OAuth 2.0 Token Exchange to let an
-agent instance obtain a Workload Authorization Grant from an
-identity provider and redeem it at a resource authorization
-server. The identity provider maintains an agent registry,
-federates instance evidence from agent platforms, and authorizes
-access for agents acting as themselves. The resource authorization
-server trusts the identity provider as grant issuer and retains
-control over resource access. The profile defines a mandatory
-instance-evidence input, registry resolution, discovery, grant
-issuance and redemption, and proof-of-possession requirements.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">This specification defines a profile of OAuth 2.0 Token Exchange
+and the JWT Profile for OAuth 2.0 Authorization Grants that enables
+an agent instance to obtain access to protected resources using an
+identity provider as a Workload Authorization Grant issuer. The
+identity provider authenticates the instance, resolves its identity
+to a registered agent, and issues a grant for a Resource
+Authorization Server. The profile specifies the assertion input,
+grant contents, token endpoint processing, authorization server
+metadata, and proof-of-possession requirements for an agent acting
+on its own behalf.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1168,89 +1168,147 @@ issuance and redemption, and proof-of-possession requirements.<a href="#section-
             <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
-            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-roles" class="internal xref">Conventions and Roles</a></p>
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.1">
+                <p id="section-toc.1-1.2.2.1.1" class="keepWithNext"><a href="#section-2.1" class="auto internal xref">2.1</a>.  <a href="#name-roles" class="internal xref">Roles</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2.2.2">
+                <p id="section-toc.1-1.2.2.2.1" class="keepWithNext"><a href="#section-2.2" class="auto internal xref">2.2</a>.  <a href="#name-terms" class="internal xref">Terms</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
-            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-deployment-and-trust" class="internal xref">Deployment and Trust</a></p>
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-workload-authorization-gran" class="internal xref">Workload Authorization Grant</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-claims" class="internal xref">Claims</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-example" class="internal xref">Example</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
-            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-agent-registry-binding" class="internal xref">Agent Registry Binding</a></p>
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-protocol" class="internal xref">Protocol</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-overview" class="internal xref">Overview</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-instance-assertion" class="internal xref">Instance Assertion</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-token-exchange" class="internal xref">Token Exchange</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.1">
+                    <p id="section-toc.1-1.4.2.3.2.1.1"><a href="#section-4.3.1" class="auto internal xref">4.3.1</a>.  <a href="#name-request" class="internal xref">Request</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.2">
+                    <p id="section-toc.1-1.4.2.3.2.2.1"><a href="#section-4.3.2" class="auto internal xref">4.3.2</a>.  <a href="#name-processing-rules" class="internal xref">Processing Rules</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.3">
+                    <p id="section-toc.1-1.4.2.3.2.3.1"><a href="#section-4.3.3" class="auto internal xref">4.3.3</a>.  <a href="#name-response" class="internal xref">Response</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3.2.4">
+                    <p id="section-toc.1-1.4.2.3.2.4.1"><a href="#section-4.3.4" class="auto internal xref">4.3.4</a>.  <a href="#name-error-response" class="internal xref">Error Response</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
+                <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-access-token-request" class="internal xref">Access Token Request</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.1">
+                    <p id="section-toc.1-1.4.2.4.2.1.1"><a href="#section-4.4.1" class="auto internal xref">4.4.1</a>.  <a href="#name-processing-rules-2" class="internal xref">Processing Rules</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.2">
+                    <p id="section-toc.1-1.4.2.4.2.2.1"><a href="#section-4.4.2" class="auto internal xref">4.4.2</a>.  <a href="#name-response-2" class="internal xref">Response</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4.2.3">
+                    <p id="section-toc.1-1.4.2.4.2.3.1"><a href="#section-4.4.3" class="auto internal xref">4.4.3</a>.  <a href="#name-error-response-2" class="internal xref">Error Response</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.5">
+                <p id="section-toc.1-1.4.2.5.1"><a href="#section-4.5" class="auto internal xref">4.5</a>.  <a href="#name-access-token-contents" class="internal xref">Access Token Contents</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
-            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-discovery-and-client-config" class="internal xref">Discovery and Client Configuration</a></p>
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-identity-and-tenant-relatio" class="internal xref">Identity and Tenant Relationships</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-idp-subject-resolution" class="internal xref">IdP Subject Resolution</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-issuer-and-tenant-trust" class="internal xref">Issuer and Tenant Trust</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-ras-subject-resolution" class="internal xref">RAS Subject Resolution</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
-            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-obtaining-a-wag" class="internal xref">Obtaining a WAG</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
-                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-request" class="internal xref">Request</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
-                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-idp-processing" class="internal xref">IdP Processing</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
-                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-wag-contents" class="internal xref">WAG Contents</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
-                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-response" class="internal xref">Response</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-authorization-server-metada" class="internal xref">Authorization Server Metadata</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
-            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-redeeming-a-wag" class="internal xref">Redeeming a WAG</a></p>
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-client-metadata" class="internal xref">Client Metadata</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
-                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-resource-token-representati" class="internal xref">Resource Token Representation</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-registry-and-attribute-auth" class="internal xref">Registry and Attribute Authority</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-token-substitution" class="internal xref">Token Substitution</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-proof-of-possession-and-rep" class="internal xref">Proof of Possession and Replay</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.4">
+                <p id="section-toc.1-1.8.2.4.1"><a href="#section-8.4" class="auto internal xref">8.4</a>.  <a href="#name-lifecycle" class="internal xref">Lifecycle</a></p>
 </li>
             </ul>
 </li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-lifecycle-and-errors" class="internal xref">Lifecycle and Errors</a></p>
-</li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-and-privacy-consid" class="internal xref">Security and Privacy Considerations</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-privacy-considerations" class="internal xref">Privacy Considerations</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
-            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-conformance" class="internal xref">Conformance</a></p>
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-oauth-authorization-server-" class="internal xref">OAuth Authorization Server Metadata Registration</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
-            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-references" class="internal xref">References</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
-                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-authorization-server-metada" class="internal xref">Authorization Server Metadata</a></p>
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
-                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-coordination-with-wag" class="internal xref">Coordination with WAG</a></p>
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-references" class="internal xref">References</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
-                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
-                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-open-issues" class="internal xref">Open Issues</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-example" class="internal xref">Example</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
 <ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
-                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-00" class="internal xref">-00</a></p>
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-00" class="internal xref">-00</a></p>
 </li>
             </ul>
 </li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
 </li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
-            <p id="section-toc.1-1.16.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1261,836 +1319,1101 @@ issuance and redemption, and proof-of-possession requirements.<a href="#section-
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">An enterprise can use an identity provider (IdP) to manage agents
-from multiple platforms and authorize their access to applications.
-Platforms supply authenticated runtime evidence; the IdP resolves
-that evidence to a registered agent and issues an application-bound
-Workload Authorization Grant (WAG). Downstream applications need
-trust in the IdP rather than a separate federation integration with
-every agent platform.<a href="#section-1-1" class="pilcrow">¶</a></p>
-<p id="section-1-2">This document defines the complete exchange for an agent acting as
-itself. Access on behalf of a user remains a distinct authorization
-case, addressed by <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and applicable delegation profiles.
-A user who owns or administers an agent is not thereby the subject
-on whose behalf it acts.<a href="#section-1-2" class="pilcrow">¶</a></p>
-<p id="section-1-3"><span>[<a href="#CIA" class="cite xref">CIA</a>]</span> supplies instance evidence and client binding. <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>
-defines agent and runtime identity and provenance claims. <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>
-supplies the authorization grant. This document selects a common
-input and binding mechanism and defines the registry and policy
-processing that connects them. It does not define a registry API,
-agent discovery protocol, or permission language.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-1">An agent platform can operate multiple instances of an agent, each
+with its own runtime identity and key. An identity provider (IdP)
+can maintain registered identities for agents from several platforms
+and authorize their access to applications. A Resource
+Authorization Server that trusts the IdP can issue access tokens
+for those agents without establishing a separate trust relationship
+with each platform.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">This specification profiles OAuth 2.0 Token Exchange <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> to
+exchange a Client Instance Assertion <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> for a Workload
+Authorization Grant (WAG) <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. The assertion carries the agent
+identity claims defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The client presents the WAG
+at a Resource Authorization Server using the JWT authorization
+grant defined by <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>. Both requests use Demonstrating Proof
+of Possession (DPoP) <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> with the instance's key.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">The IdP determines whether the agent is authorized to obtain a
+grant for the requested resource and scope. The Resource
+Authorization Server independently determines whether to accept
+the grant and which permissions to include in an access token.
+The registered agent is the subject of the grant and access token;
+the runtime instance is identified separately.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">This profile applies to agents acting on their own behalf.
+Authorization on behalf of an end-user, including the identity
+assertion exchange defined by <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, is outside its scope.
+Agent provisioning protocols and the means by which a platform
+initially authenticates an instance are also outside its scope.<a href="#section-1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="conventions-and-roles">
+<div id="conventions-and-definitions">
 <section id="section-2">
-      <h2 id="name-conventions-and-roles">
-<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-roles" class="section-name selfRef">Conventions and Roles</a>
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
       </h2>
 <p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
 "<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
 described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
 appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-2-2">
-        <dt id="section-2-2.1">Registered Agent:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.2">
-          <p id="section-2-2.2.1">An agent principal with an IdP-managed identifier, administrative
-status, federation bindings, and application assignments. It may
-have several concurrent or successive Agent Instances.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
+<p id="section-2-2">OAuth terms are used as defined in <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>, <span>[<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>, and
+<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>. JWT terms are used as defined in <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>. Agent
+Principal, Agent Instance, Agent Platform, and Agent Attester are
+used as defined in <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>.<a href="#section-2-2" class="pilcrow">¶</a></p>
+<div id="roles">
+<section id="section-2.1">
+        <h3 id="name-roles">
+<a href="#section-2.1" class="section-number selfRef">2.1. </a><a href="#name-roles" class="section-name selfRef">Roles</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-2.1-1">
+          <dt id="section-2.1-1.1">Client:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-1.2">
+            <p id="section-2.1-1.2.1">The agent instance making token requests and accessing protected
+resources. At the IdP, the instance is bound to an OAuth client
+registration as specified by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>. This profile does not
+require a client registration at the Resource Authorization Server.<a href="#section-2.1-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.1-1.3">IdP Authorization Server (IdP):</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-1.4">
+            <p id="section-2.1-1.4.1">The authorization server that validates instance assertions,
+maintains registered agent identities and their authorization
+policy, and issues WAGs.<a href="#section-2.1-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.1-1.5">Resource Authorization Server (RAS):</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-1.6">
+            <p id="section-2.1-1.6.1">The authorization server that accepts WAGs from a trusted IdP
+and issues access tokens for its protected resources.<a href="#section-2.1-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.1-1.7">Resource Server (RS):</dt>
+          <dd style="margin-left: 1.5em" id="section-2.1-1.8">
+            <p id="section-2.1-1.8.1">The server hosting protected resources. It accepts access tokens
+issued by the RAS; it does not process the WAG.<a href="#section-2.1-1.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-2.3">Agent Instance:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.4">
-          <p id="section-2-2.4.1">A concrete execution of an agent, as defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. Each
-instance holds its own proof-of-possession key.<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-2-2.5">Agent Platform:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.6">
-          <p id="section-2-2.6.1">The system operating agent instances and provisioning or
-synchronizing their registered identities. Its trusted Agent
-Attester issues instance evidence, possibly using a separate
-workload identity service.<a href="#section-2-2.6.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-2-2.7">IdP:</dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.8">
-          <p id="section-2-2.8.1">The authorization server that maintains the agent registry,
-validates federated evidence, and issues WAGs. It acts as WAG
-issuer for one tenancy under each issuer identifier.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-2-2.9">Resource Authorization Server (RAS):</dt>
-        <dd style="margin-left: 1.5em" id="section-2-2.10">
-          <p id="section-2-2.10.1">The authorization server that accepts WAGs from trusted IdPs and
-issues access tokens for its Resource Servers (RSes).<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
-</dd>
-      <dd class="break"></dd>
 </dl>
 </section>
 </div>
-<div id="deployment">
-<section id="section-3">
-      <h2 id="name-deployment-and-trust">
-<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-deployment-and-trust" class="section-name selfRef">Deployment and Trust</a>
-      </h2>
-<div class="alignLeft art-ascii-art art-text artwork" id="section-3-1">
-<pre>
- Agent Platform       Agent Instance        IdP              RAS
-       |                     |               |                |
-       |-- registry synchronization --------&gt;|                |
-       |-- CIA -------------&gt;|               |                |
-       |                     |               |                |
-       |                     |-- exchange --&gt;|                |
-       |                     |   CIA + DPoP  |                |
-       |                     |&lt;-- WAG -------|                |
-       |                     |               |                |
-       |                     |-- WAG + DPoP ------------------&gt;|
-       |                     |&lt;-- resource access token ------|
-</pre><a href="#section-3-1" class="pilcrow">¶</a>
-</div>
-<p id="section-3-2">The client integration at the IdP represents a logical platform
-application, not a separate OAuth registration for every agent.
-The IdP <span class="bcp14">MUST</span> approve its client metadata and acceptable instance
-issuers under administrative policy. A client-published
-<code>instance_issuers</code> entry alone <span class="bcp14">MUST NOT</span> authorize federation into
-an enterprise agent or application assignment.<a href="#section-3-2" class="pilcrow">¶</a></p>
-<p id="section-3-3">The RAS <span class="bcp14">MUST</span> establish an explicit trust relationship authorizing
-the IdP issuer to issue workload grants for a particular local
-tenancy and set of resources. Existing user SSO trust does not
-implicitly grant that authority. The IdP <span class="bcp14">MUST</span> maintain a distinct
-issuer identifier for each tenancy, following <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>; keys and
-subject resolution <span class="bcp14">MUST</span> be scoped to that issuer. This profile
-does not define a shared-issuer tenant-claim alternative.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4">Metadata and key locations <span class="bcp14">MUST</span> be obtained from trusted
-configuration or authenticated discovery for the approved issuer.
-A token's untrusted key-location headers <span class="bcp14">MUST NOT</span> establish trust.
-Discovery advertises capability; registry and RAS configuration
-establish authorization.<a href="#section-3-4" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="registry">
-<section id="section-4">
-      <h2 id="name-agent-registry-binding">
-<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-agent-registry-binding" class="section-name selfRef">Agent Registry Binding</a>
-      </h2>
-<p id="section-4-1">The registry <span class="bcp14">MUST</span> maintain the following logical information; this
-list defines processing requirements, not a provisioning schema:<a href="#section-4-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-1">
-        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
-<thead>
-          <tr>
-            <th class="text-left" rowspan="1" colspan="1">Information</th>
-            <th class="text-left" rowspan="1" colspan="1">Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Canonical agent identifier</td>
-            <td class="text-left" rowspan="1" colspan="1">Immutable IdP-scoped principal identifier, never reassigned</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Administrative status</td>
-            <td class="text-left" rowspan="1" colspan="1">Whether the agent is enabled for new grants</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Federation bindings</td>
-            <td class="text-left" rowspan="1" colspan="1">Approved input issuer, IdP client identifier, and platform agent identifier</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Application assignments</td>
-            <td class="text-left" rowspan="1" colspan="1">Permitted RAS issuers, resources, and maximum scopes</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Attribute authority</td>
-            <td class="text-left" rowspan="1" colspan="1">Which provisioning or attestation sources may supply each authorization or provenance attribute</td>
-          </tr>
-        </tbody>
-      </table>
-<p id="section-4-3">The IdP resolves the exact tuple <code>(CIA.iss, CIA.client_id,
-CIA.agent_id)</code> through an approved federation binding to one
-Registered Agent. This tuple <span class="bcp14">MUST NOT</span> resolve to multiple agents.
-The IdP <span class="bcp14">MUST</span> reject unknown, ambiguous, or disabled identities.
-It <span class="bcp14">MUST NOT</span> resolve agents by display name, model, platform
-product name, key thumbprint, or an unqualified <code>externalId</code>.<a href="#section-4-3" class="pilcrow">¶</a></p>
-<p id="section-4-4">The CIA's <code>sub</code> / <code>agent_instance_id</code> identifies the runtime;
-its <code>agent_id</code> identifies the platform's logical agent. The
-Attester <span class="bcp14">MUST</span> authenticate the runtime's relationship to that
-agent before asserting those claims, per <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The IdP <span class="bcp14">MUST</span>
-validate that relationship under the approved binding and record
-which canonical agent the runtime represents. Conflicting runtime
-assignments <span class="bcp14">MUST</span> be rejected.<a href="#section-4-4" class="pilcrow">¶</a></p>
-<p id="section-4-5">Provisioning <span class="bcp14">MAY</span> use <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>, another trusted connector, or
-administrative configuration. When SCIM is used, the connector's
-identity and issuer context qualify <code>externalId</code>; copying a SCIM
-record does not by itself create a federation binding. Only
-administratively authorized sources may establish or change
-bindings and assignments. Just-in-time creation <span class="bcp14">MAY</span> occur under
-such a policy before issuance; a valid signature alone does not
-authorize creation, reactivation, or new application assignments.<a href="#section-4-5" class="pilcrow">¶</a></p>
-<p id="section-4-6">The IdP <span class="bcp14">MUST</span> maintain an issuer-scoped, non-reassigned runtime
-identifier derived from the authenticated <code>(CIA.iss, CIA.sub)</code>
-identity, independently of its key. It <span class="bcp14">MAY</span> preserve the incoming
-identifier when its namespace is trusted and collision-free.
-The WAG uses the IdP's canonical agent and runtime identifiers;
-the IdP retains the original identifiers and their mappings for
-audit. Both identifiers <span class="bcp14">SHOULD</span> be URIs within controlled
-namespaces. Neither is inferred from URI structure at the RS.<a href="#section-4-6" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="metadata">
-<section id="section-5">
-      <h2 id="name-discovery-and-client-config">
-<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-discovery-and-client-config" class="section-name selfRef">Discovery and Client Configuration</a>
-      </h2>
-<p id="section-5-1">An IdP or RAS implementing this profile <span class="bcp14">MUST</span> publish the
-<code>workload_agent_federation</code> member in its OAuth authorization
-server metadata (<span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>). The member is a JSON object:<a href="#section-5-1" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-5-2">
-        <dt id="section-5-2.1">
-<code>roles</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-5-2.2">
-          <p id="section-5-2.2.1"><span class="bcp14">REQUIRED</span>. Nonempty array containing <code>issuer</code>,
-<code>resource_authorization_server</code>, or both.<a href="#section-5-2.2.1" class="pilcrow">¶</a></p>
+<div id="terms">
+<section id="section-2.2">
+        <h3 id="name-terms">
+<a href="#section-2.2" class="section-number selfRef">2.2. </a><a href="#name-terms" class="section-name selfRef">Terms</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-2.2-1">
+          <dt id="section-2.2-1.1">Registered Agent:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.2-1.2">
+            <p id="section-2.2-1.2.1">An Agent Principal represented in the IdP's agent registry. A
+registered agent can have multiple concurrent or successive
+instances.<a href="#section-2.2-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.2-1.3">Federation Binding:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.2-1.4">
+            <p id="section-2.2-1.4.1">An IdP-configured association between an assertion issuer,
+client identifier, and platform agent identifier and a
+registered agent, as specified in <a href="#registry" class="auto internal xref">Section 5.1</a>.<a href="#section-2.2-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-2.2-1.5">Subject Resolution:</dt>
+          <dd style="margin-left: 1.5em" id="section-2.2-1.6">
+            <p id="section-2.2-1.6.1">The process of mapping an authenticated, issuer-qualified
+identifier to a principal in the receiving authorization
+server's namespace.<a href="#section-2.2-1.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-5-2.3">
-<code>subject_token_types_supported</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-5-2.4">
-          <p id="section-5-2.4.1"><span class="bcp14">REQUIRED</span> for the <code>issuer</code> role. Array containing at least
-<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>.
-Additional types require an explicitly defined input profile
-with equivalent identity, client, registry, and key validation.<a href="#section-5-2.4.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-5-2.5">
-<code>grant_signing_alg_values_supported</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-5-2.6">
-          <p id="section-5-2.6.1"><span class="bcp14">REQUIRED</span>. Nonempty array of JWS algorithms supported for issuing
-or validating WAGs, according to the advertised role. If both
-roles are advertised, listed algorithms apply to both. <code>ES256</code>
-            <span class="bcp14">MUST</span> be supported. Symmetric MAC algorithms and <code>none</code> <span class="bcp14">MUST NOT</span>
-be listed or accepted.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
-</dd>
-      <dd class="break"></dd>
 </dl>
-<p id="section-5-3">The IdP <span class="bcp14">MUST</span> advertise the RFC 8693 token-exchange grant and
-<code>client_instance_assertion</code> client authentication method. The RAS
-<span class="bcp14">MUST</span> advertise the RFC 7523 JWT bearer grant. Both <span class="bcp14">MUST</span> advertise
-DPoP support using <code>dpop_signing_alg_values_supported</code> and <span class="bcp14">MUST</span>
-support <code>ES256</code> DPoP proofs. Other asymmetric algorithms <span class="bcp14">MAY</span> be
-used by agreement through these metadata values.<a href="#section-5-3" class="pilcrow">¶</a></p>
-<p id="section-5-4">The instance <span class="bcp14">MUST</span> verify issuer-role support at the IdP and
-redemption-role support at the RAS before depending on this
-profile. Missing metadata means this profile is not advertised;
-a generic JWT or bearer fallback <span class="bcp14">MUST NOT</span> be attempted. Supported
-algorithms remain subject to issuer-specific trust configuration.<a href="#section-5-4" class="pilcrow">¶</a></p>
-<p id="section-5-5">The mandatory input uses approved CIA client metadata, including
-<code>instance_issuers</code>, <code>ai_agent_instance_profile: true</code>, and
-<code>token_endpoint_auth_method: client_instance_assertion</code>. Other
-client authentication methods <span class="bcp14">MAY</span> be supported; a CIA <span class="bcp14">MUST NOT</span>
-replace a separately registered method without agreement.
-A registration or grant-support flag does not confer application
-assignments. Client registration at the RAS is not required by
-this profile.<a href="#section-5-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="issuance">
-<section id="section-6">
-      <h2 id="name-obtaining-a-wag">
-<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-obtaining-a-wag" class="section-name selfRef">Obtaining a WAG</a>
-      </h2>
-<div id="exchange-request">
-<section id="section-6.1">
-        <h3 id="name-request">
-<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-request" class="section-name selfRef">Request</a>
-        </h3>
-<p id="section-6.1-1">The instance sends an RFC 8693 token request to the IdP with a
-resource indicator per <span>[<a href="#RFC8707" class="cite xref">RFC8707</a>]</span> and the following parameters:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-2">
-          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
-<thead>
-            <tr>
-              <th class="text-left" rowspan="1" colspan="1">Parameter</th>
-              <th class="text-left" rowspan="1" colspan="1">Required value or meaning</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>grant_type</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>urn:ietf:params:oauth:grant-type:token-exchange</code>
-</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>requested_token_type</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>urn:ietf:params:oauth:token-type:wag</code>
-</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>subject_token</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Agent-profiled CIA issued for this IdP</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>subject_token_type</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>
-</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>client_id</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Approved client integration at the IdP</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>audience</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Exactly one target RAS issuer identifier</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>resource</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Exactly one target API resource URI</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>scope</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Nonempty requested scope string for that resource</td>
-            </tr>
-          </tbody>
-        </table>
-<p id="section-6.1-3">The request <span class="bcp14">MUST</span> contain a DPoP proof made with the key in the
-CIA's <code>cnf.jkt</code>. The CIA <span class="bcp14">MUST</span> contain <code>client_id</code>, <code>agent_id</code>,
-<code>agent_instance_id</code>, and <code>cnf.jkt</code>, and its <code>sub</code> <span class="bcp14">MUST</span> equal
-<code>agent_instance_id</code>. Its <code>aud</code> <span class="bcp14">MUST</span> be the IdP issuer identifier.
-The CIA lifetime <span class="bcp14">MUST NOT</span> exceed 300 seconds. Raw bearer workload
-credentials without the required agent claims and key binding
-are not a conforming input; a trusted workload identity adapter
-can issue the required CIA after authenticating the workload.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
-<p id="section-6.1-4">For this specifically requested output profile, CIA is subject
-identity evidence in <code>subject_token</code>. This document profiles its
-validation and, where configured, client authentication, without
-using CIA's delegated access-token representation. The request
-<span class="bcp14">MUST NOT</span> contain <code>actor_token</code>, <code>actor_token_type</code>, or
-<code>client_instance_assertion</code>. The CIA is not a user authorization
-grant and the request does not require a preliminary IdP access
-token. Ordinary CIA token exchanges retain their actor-token
-presentation and delegation rules.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="idp-processing">
-<section id="section-6.2">
-        <h3 id="name-idp-processing">
-<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-idp-processing" class="section-name selfRef">IdP Processing</a>
-        </h3>
-<p id="section-6.2-1">The IdP <span class="bcp14">MUST</span> perform the following checks before issuing a WAG:<a href="#section-6.2-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-6.2-2">
-<li id="section-6.2-2.1">
-            <p id="section-6.2-2.1.1">Validate request syntax, supported types, and approved client
-configuration. Validate the CIA's signature, issuer descriptor,
-JWT type, time claims, exact audience and <code>client_id</code> binding,
-and agent claims per <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> and <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. Reject an <code>act</code>
-claim in the CIA; this profile does not accept delegated input.<a href="#section-6.2-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.2-2.2">
-            <p id="section-6.2-2.2.1">Validate the DPoP proof for this token endpoint per <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>
-and match its JWK thumbprint to <code>cnf.jkt</code>. Use the CIA
-instance-assertion authentication procedure when that method
-is registered, substituting <code>subject_token</code> for its normal
-presentation slot. All authentication checks still apply.
-Otherwise, independently authenticate the registered client.<a href="#section-6.2-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.2-2.3">
-            <p id="section-6.2-2.3.1">Resolve the Registered Agent and runtime under <a href="#registry" class="auto internal xref">Section 4</a>.
-Evaluate current administrative status, attestation freshness,
-and authorization to execute as that agent. Resolve requested
-RAS and resource against approved application assignments.<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.2-2.4">
-            <p id="section-6.2-2.4.1">Compute granted scope as a nonempty subset of the requested
-scopes permitted by IdP policy for that agent and resource.
-The IdP <span class="bcp14">MUST NOT</span> import requester-supplied roles or groups as
-authority. Attribute sources follow the registry's policy.<a href="#section-6.2-2.4.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.2-2.5">
-            <p id="section-6.2-2.5.1">Atomically reject reuse of an accepted CIA <code>(iss, jti)</code> through
-its expiry, including accepted clock skew. Perform this replay
-check once for a successful request, even when the same CIA
-authenticates the client and supplies subject evidence.<a href="#section-6.2-2.5.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="section-6.2-2.6">
-            <p id="section-6.2-2.6.1">Issue a WAG per <a href="#grant" class="auto internal xref">Section 6.3</a> and record the canonical agent,
-originating runtime identity, key, target, authorization
-decision, and grant <code>jti</code> for audit.<a href="#section-6.2-2.6.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-<p id="section-6.2-3">A DPoP proof establishes key possession, not the key's authority
-to represent an agent. That authority comes from validated
-instance evidence and registry binding. The IdP <span class="bcp14">MUST NOT</span> bind a
-WAG to an arbitrary requester-selected key.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="grant">
-<section id="section-6.3">
-        <h3 id="name-wag-contents">
-<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-wag-contents" class="section-name selfRef">WAG Contents</a>
+<section id="section-3">
+      <h2 id="name-workload-authorization-gran">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-workload-authorization-gran" class="section-name selfRef">Workload Authorization Grant</a>
+      </h2>
+<p id="section-3-1">A WAG issued under this profile represents authorization for a
+registered agent to request an access token at a particular RAS.
+It uses the JWT authorization grant format and presentation
+specified by <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> and <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>, with the constraints in this
+section. The IdP issues the grant following the token exchange in
+<a href="#issuance" class="auto internal xref">Section 4.3</a>.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">The grant <span class="bcp14">MUST</span> be a signed JWT using JWS Compact Serialization
+<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> and a key published for the IdP's issuer identifier.
+The protected <code>typ</code> header parameter <span class="bcp14">MUST</span> be
+<code>oauth-wag+jwt</code>. The signature algorithm <span class="bcp14">MUST</span> be asymmetric and
+permitted by the issuer's trust configuration. Implementations
+<span class="bcp14">MUST</span> support <code>ES256</code> <span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>. They <span class="bcp14">MUST NOT</span> issue or accept a
+grant using <code>none</code> or a symmetric MAC algorithm.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<div id="claims">
+<section id="section-3.1">
+        <h3 id="name-claims">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-claims" class="section-name selfRef">Claims</a>
         </h3>
-<p id="section-6.3-1">The WAG is a signed JWT (<span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>) conforming to <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> and
-the following additional requirements. JWS signing follows
-<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> and <span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>. The IdP <span class="bcp14">MUST</span> sign it with an approved
-asymmetric key published for its tenancy issuer. Its protected
-<code>typ</code> header <span class="bcp14">MUST</span> be <code>oauth-wag+jwt</code>.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-3">
-          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
-<thead>
-            <tr>
-              <th class="text-left" rowspan="1" colspan="1">Claim</th>
-              <th class="text-left" rowspan="1" colspan="1">Requirement</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>iss</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Exact trusted IdP tenancy issuer</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>sub</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Canonical Registered Agent identifier</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>agent_id</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Equal to <code>sub</code>
-</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>agent_instance_id</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Canonical identifier of the validated runtime</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>aud</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Single string equal to the approved RAS issuer identifier</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>resource</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Single string equal to the approved target API URI</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>scope</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Nonempty scope string approved by the IdP</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>cnf</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Contains <code>jkt</code> equal to the validated instance key thumbprint</td>
-            </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>iat</code>, <code>exp</code>, <code>jti</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Issuance time, expiration time, and fresh unique grant identifier</td>
-            </tr>
-          </tbody>
-        </table>
-<p id="section-6.3-3">The WAG <span class="bcp14">MUST NOT</span> contain <code>act</code>. A runtime implementing a
-Registered Agent does not create delegation from that agent to
-itself. The identifiers and provenance semantics are defined by
-<span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>; <code>sub</code> need not equal <code>agent_instance_id</code>.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
-<p id="section-6.3-4">The time claims are NumericDate values; <code>exp</code> <span class="bcp14">MUST</span> be later than
-<code>iat</code> and no more than 300 seconds after it. The grant's expiration
-<span class="bcp14">MUST NOT</span> exceed the CIA expiration. The IdP <span class="bcp14">MUST</span> include only
-validated, sufficiently fresh provenance it is authorized to
-reassert. Optional WAG properties retain their issuer-scoped
-meaning and cannot expand the scope ceiling. Raw <code>agent_runtime</code>
-evidence <span class="bcp14">MUST NOT</span> be included in this profile's WAG; the IdP
-consumes it when evaluating issuance policy.<a href="#section-6.3-4" class="pilcrow">¶</a></p>
-<p id="section-6.3-5">The IdP <span class="bcp14">MUST</span> retain authority over canonical identity, status,
-and assignments even when another system attests runtime facts.
-Issuer trust does not imply that the IdP independently measured
-the runtime or model.<a href="#section-6.3-5" class="pilcrow">¶</a></p>
+<p id="section-3.1-1">The following claims are <span class="bcp14">REQUIRED</span>:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-3.1-2">
+          <dt id="section-3.1-2.1">
+<code>iss</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.2">
+            <p id="section-3.1-2.2.1">The IdP's issuer identifier, as defined in <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>. The value
+identifies a single tenancy as specified in <a href="#tenant-trust" class="auto internal xref">Section 5.2</a>.<a href="#section-3.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.3">
+<code>sub</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.4">
+            <p id="section-3.1-2.4.1">A StringOrURI identifying the registered agent in the IdP's
+namespace. The identifier <span class="bcp14">MUST</span> be unique within that issuer
+and <span class="bcp14">MUST NOT</span> be reassigned to a different agent.<a href="#section-3.1-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.5">
+<code>aud</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.6">
+            <p id="section-3.1-2.6.1">A JSON string containing the issuer identifier of the intended
+RAS. This profile restricts the audience to one issuer identifier;
+an array or token endpoint URL <span class="bcp14">MUST NOT</span> be used.<a href="#section-3.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.7">
+<code>agent_id</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.8">
+            <p id="section-3.1-2.8.1">The Agent Principal identifier defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. Its value
+<span class="bcp14">MUST</span> equal <code>sub</code>.<a href="#section-3.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.9">
+<code>agent_instance_id</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.10">
+            <p id="section-3.1-2.10.1">The Agent Instance identifier defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>, expressed in
+the IdP's namespace using the mapping in <a href="#registry" class="auto internal xref">Section 5.1</a>. This
+claim identifies the runtime that presented the assertion and
+need not equal <code>sub</code>.<a href="#section-3.1-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.11">
+<code>resource</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.12">
+            <p id="section-3.1-2.12.1">A JSON string containing the resource URI authorized by the IdP,
+using the resource identifier syntax defined in Section 2 of
+<span>[<a href="#RFC8707" class="cite xref">RFC8707</a>]</span>. This profile permits exactly one resource.<a href="#section-3.1-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.13">
+<code>scope</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.14">
+            <p id="section-3.1-2.14.1">A nonempty JSON string containing the granted scopes in the
+format defined in Section 3.3 of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>.<a href="#section-3.1-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.15">
+<code>cnf</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.16">
+            <p id="section-3.1-2.16.1">A JSON object containing the <code>jkt</code> confirmation method defined
+in Section 6.1 of <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. Its value <span class="bcp14">MUST</span> be the thumbprint
+of the instance key validated during token exchange.<a href="#section-3.1-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.17">
+<code>jti</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.18">
+            <p id="section-3.1-2.18.1">A unique identifier for the grant, as defined in Section 4.1.7
+of <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>. The IdP <span class="bcp14">MUST</span> assign a new value to each grant.<a href="#section-3.1-2.18.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.19">
+<code>iat</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.20">
+            <p id="section-3.1-2.20.1">The time of issuance, expressed as a NumericDate.<a href="#section-3.1-2.20.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-3.1-2.21">
+<code>exp</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-3.1-2.22">
+            <p id="section-3.1-2.22.1">The expiration time, expressed as a NumericDate. The value <span class="bcp14">MUST</span>
+be later than <code>iat</code>, no more than 300 seconds after <code>iat</code>, and
+no later than the expiration of the input assertion.<a href="#section-3.1-2.22.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-3.1-3">The WAG <span class="bcp14">MUST NOT</span> contain an <code>act</code> claim. The instance represents
+an execution of the registered agent.
+Additional agent claims follow <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The IdP <span class="bcp14">MUST</span> include only
+claims obtained from validated evidence or an authorized registry
+source, subject to its freshness policy. It <span class="bcp14">MUST NOT</span> include raw
+<code>agent_runtime</code> evidence in the WAG. Additional authorization
+properties defined by <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> do not expand the granted scope.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="example">
+<section id="section-3.2">
+        <h3 id="name-example">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-example" class="section-name selfRef">Example</a>
+        </h3>
+<p id="section-3.2-1">The following non-normative example shows the decoded header and
+claims of a WAG. The signature is omitted and the key thumbprint
+is abbreviated.
+The IdP has authorized registered agent <code>urn:acme:agent:42</code>,
+executing as instance <code>urn:acme:instance:run-7</code>, to request access
+to the support API.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-3.2-2">
+<pre>
+{
+  "typ": "oauth-wag+jwt",
+  "alg": "ES256",
+  "kid": "idp-key-1"
+}
+</pre><a href="#section-3.2-2" class="pilcrow">¶</a>
+</div>
+<div class="lang-json sourcecode" id="section-3.2-3">
+<pre>
+{
+  "iss": "https://idp.example/tenants/acme",
+  "sub": "urn:acme:agent:42",
+  "agent_id": "urn:acme:agent:42",
+  "agent_instance_id": "urn:acme:instance:run-7",
+  "aud": "https://as.support.example",
+  "resource": "https://support.example/api",
+  "scope": "issues.read",
+  "agent_platform": "urn:example:orchestrator:v5",
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135210,
+  "exp": 1789135500,
+  "jti": "wag-agent-42-1"
+}
+</pre><a href="#section-3.2-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="protocol">
+<section id="section-4">
+      <h2 id="name-protocol">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-protocol" class="section-name selfRef">Protocol</a>
+      </h2>
+<div id="deployment">
+<section id="section-4.1">
+        <h3 id="name-overview">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-overview" class="section-name selfRef">Overview</a>
+        </h3>
+<p id="section-4.1-1">The client obtains a Client Instance Assertion from an Agent
+Attester trusted by the IdP. It exchanges that assertion for a WAG,
+then presents the WAG to the RAS to obtain an access token. The
+same instance key is used throughout the exchange.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="section-4.1-2">
+<pre>
+  Agent Attester       Client             IdP             RAS
+        |                 |                |               |
+        |-- Assertion ---&gt;|                |               |
+        |                 |                |               |
+        |                 |-- Token ------&gt;|               |
+        |                 |   Exchange     |               |
+        |                 |&lt;-- WAG --------|               |
+        |                 |                |               |
+        |                 |-- Access Token Request -------&gt;|
+        |                 |&lt;-- Access Token ---------------|
+</pre><a href="#section-4.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.1-3">Before the exchange, the IdP and RAS establish the trust and
+subject mappings described in <a href="#identity" class="auto internal xref">Section 5</a>. The client determines
+support for this profile using <a href="#metadata" class="auto internal xref">Section 6</a>. All token endpoint
+requests and responses are subject to the transport security
+requirements of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span> and <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="instance-assertion">
+<section id="section-4.2">
+        <h3 id="name-instance-assertion">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-instance-assertion" class="section-name selfRef">Instance Assertion</a>
+        </h3>
+<p id="section-4.2-1">The client obtains a Client Instance Assertion conforming to
+<span>[<a href="#CIA" class="cite xref">CIA</a>]</span> and <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The assertion <span class="bcp14">MUST</span> contain <code>client_id</code>,
+<code>agent_id</code>, <code>agent_instance_id</code>, and <code>cnf.jkt</code>. Its <code>sub</code> <span class="bcp14">MUST</span> equal
+<code>agent_instance_id</code>, and its <code>aud</code> <span class="bcp14">MUST</span> be the IdP issuer
+identifier. Its lifetime <span class="bcp14">MUST NOT</span> exceed 300 seconds. The Agent
+Attester <span class="bcp14">MUST</span> authenticate the instance's relationship to the
+agent identified by <code>agent_id</code> before issuing the assertion.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">How the client obtains the assertion is outside the scope of this
+specification. For example, an Agent Attester can authenticate
+native workload credentials and issue an assertion containing the
+required agent claims and key confirmation.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">The examples below use an assertion with the following decoded
+claims. The platform's agent and instance identifiers are mapped
+to the IdP identifiers shown in <a href="#grant" class="auto internal xref">Section 3</a>.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-4.2-4">
+<pre>
+{
+  "iss": "https://runtime.platform.example",
+  "sub": "https://runtime.platform.example/instances/run-7",
+  "aud": "https://idp.example/tenants/acme",
+  "client_id": "https://platform.example/client",
+  "agent_id": "urn:platform:agent:support",
+  "agent_instance_id":
+    "https://runtime.platform.example/instances/run-7",
+  "agent_platform": "urn:example:orchestrator:v5",
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135200,
+  "exp": 1789135500,
+  "jti": "cia-run-7-1"
+}
+</pre><a href="#section-4.2-4" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="issuance">
+<section id="section-4.3">
+        <h3 id="name-token-exchange">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-token-exchange" class="section-name selfRef">Token Exchange</a>
+        </h3>
+<div id="exchange-request">
+<section id="section-4.3.1">
+          <h4 id="name-request">
+<a href="#section-4.3.1" class="section-number selfRef">4.3.1. </a><a href="#name-request" class="section-name selfRef">Request</a>
+          </h4>
+<p id="section-4.3.1-1">The client makes an HTTP POST request to the IdP token endpoint
+using the request format in Section 2.1 of <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>. Parameters
+are encoded as <code>application/x-www-form-urlencoded</code> in the request
+body:<a href="#section-4.3.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.3.1-2">
+            <dt id="section-4.3.1-2.1">
+<code>grant_type</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.2">
+              <p id="section-4.3.1-2.2.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be
+<code>urn:ietf:params:oauth:grant-type:token-exchange</code>.<a href="#section-4.3.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.3">
+<code>requested_token_type</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.4">
+              <p id="section-4.3.1-2.4.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be
+<code>urn:ietf:params:oauth:token-type:wag</code>.<a href="#section-4.3.1-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.5">
+<code>subject_token</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.6">
+              <p id="section-4.3.1-2.6.1"><span class="bcp14">REQUIRED</span>. The Client Instance Assertion described in
+<a href="#instance-assertion" class="auto internal xref">Section 4.2</a>.<a href="#section-4.3.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.7">
+<code>subject_token_type</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.8">
+              <p id="section-4.3.1-2.8.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be
+<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>.<a href="#section-4.3.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.9">
+<code>client_id</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.10">
+              <p id="section-4.3.1-2.10.1"><span class="bcp14">REQUIRED</span>. The client identifier registered at the IdP. The value
+<span class="bcp14">MUST</span> equal the assertion's <code>client_id</code> claim.<a href="#section-4.3.1-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.11">
+<code>audience</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.12">
+              <p id="section-4.3.1-2.12.1"><span class="bcp14">REQUIRED</span>. The issuer identifier of the intended RAS. This
+parameter <span class="bcp14">MUST</span> occur exactly once.<a href="#section-4.3.1-2.12.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.13">
+<code>resource</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.14">
+              <p id="section-4.3.1-2.14.1"><span class="bcp14">REQUIRED</span>. The target resource URI, as defined in Section 2 of
+<span>[<a href="#RFC8707" class="cite xref">RFC8707</a>]</span>. This parameter <span class="bcp14">MUST</span> occur exactly once.<a href="#section-4.3.1-2.14.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.1-2.15">
+<code>scope</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.1-2.16">
+              <p id="section-4.3.1-2.16.1"><span class="bcp14">REQUIRED</span>. A nonempty scope string for the requested resource,
+using the syntax in Section 3.3 of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>.<a href="#section-4.3.1-2.16.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-4.3.1-3">The client <span class="bcp14">MUST</span> include a DPoP proof in the <code>DPoP</code> HTTP header
+field, signed with the key identified by the assertion's
+<code>cnf.jkt</code>. Client authentication follows <a href="#client-metadata" class="auto internal xref">Section 7</a>.
+The request <span class="bcp14">MUST NOT</span> contain <code>actor_token</code>, <code>actor_token_type</code>,
+or <code>client_instance_assertion</code>.<a href="#section-4.3.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-4">This use of <code>subject_token</code> is the grant-issuance extension defined
+by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>. It supplies evidence about the agent requesting a WAG;
+it does not request a delegated access token. No preliminary IdP
+access token is required.<a href="#section-4.3.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.3.1-5">The following is a non-normative request example. Extra line
+breaks and indentation in form bodies are for display only; JWTs
+and DPoP proofs are abbreviated throughout the examples.<a href="#section-4.3.1-5" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="section-4.3.1-6">
+<pre>
+POST /tenants/acme/token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: &lt;proof for the IdP endpoint signed by the instance key&gt;
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
+&amp;requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Awag
+&amp;subject_token=eyJ...agent-profiled-cia...
+&amp;subject_token_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&amp;client_id=https%3A%2F%2Fplatform.example%2Fclient
+&amp;audience=https%3A%2F%2Fas.support.example
+&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
+&amp;scope=issues.read
+</pre><a href="#section-4.3.1-6" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="idp-processing">
+<section id="section-4.3.2">
+          <h4 id="name-processing-rules">
+<a href="#section-4.3.2" class="section-number selfRef">4.3.2. </a><a href="#name-processing-rules" class="section-name selfRef">Processing Rules</a>
+          </h4>
+<p id="section-4.3.2-1">The IdP <span class="bcp14">MUST</span> enable this profile for the client before accepting
+the request. It selects the profile using <code>requested_token_type</code>
+and the approved client configuration. The request processing
+requirements of <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, and <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span> apply with
+these additional rules:<a href="#section-4.3.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.3.2-2">
+<li id="section-4.3.2-2.1">
+              <p id="section-4.3.2-2.1.1">The IdP <span class="bcp14">MUST</span> validate the assertion's signature, JWT type,
+issuer trust, audience, time claims, client binding, and agent
+claims. It <span class="bcp14">MUST</span> enforce <a href="#instance-assertion" class="auto internal xref">Section 4.2</a> and reject an
+assertion containing <code>act</code>.<a href="#section-4.3.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.3.2-2.2">
+              <p id="section-4.3.2-2.2.1">The IdP <span class="bcp14">MUST</span> validate the DPoP proof under Section 4.3 of
+<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and verify that its key thumbprint matches the
+assertion's <code>cnf.jkt</code>. When the registered authentication
+method is <code>client_instance_assertion</code>, the IdP <span class="bcp14">MUST</span> apply the
+authentication procedure in <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> to the assertion in
+<code>subject_token</code>. Otherwise, it <span class="bcp14">MUST</span> validate the client's
+separately registered authentication method.<a href="#section-4.3.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.3.2-2.3">
+              <p id="section-4.3.2-2.3.1">The IdP <span class="bcp14">MUST</span> resolve the agent and instance using <a href="#registry" class="auto internal xref">Section 5.1</a>
+and verify that the agent is enabled. It <span class="bcp14">MUST</span> evaluate current
+policy for the assertion's freshness, the instance's authority
+to execute as that agent, and the requested audience and resource.<a href="#section-4.3.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.3.2-2.4">
+              <p id="section-4.3.2-2.4.1">The IdP <span class="bcp14">MUST</span> restrict the granted scopes to a nonempty subset
+of the requested scopes permitted for that agent and resource.
+Authorization attributes <span class="bcp14">MUST</span> come from sources approved for
+those attributes in the registry.<a href="#section-4.3.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.3.2-2.5">
+              <p id="section-4.3.2-2.5.1">The IdP <span class="bcp14">MUST</span> prevent a second successful use of the assertion's
+<code>(iss, jti)</code> pair until its expiration, including accepted clock
+skew. Replay detection and acceptance <span class="bcp14">MUST</span> be atomic. An
+assertion used for both authentication and subject evidence
+constitutes one use within the request.<a href="#section-4.3.2-2.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.3.2-2.6">
+              <p id="section-4.3.2-2.6.1">The IdP <span class="bcp14">MUST</span> issue the WAG with the resolved agent and instance
+identifiers, approved audience, resource, scopes, and validated
+key confirmation, as specified in <a href="#grant" class="auto internal xref">Section 3</a>. It <span class="bcp14">MUST</span> retain the
+input identity mapping and the grant's <code>jti</code>, key, target, and
+authorization decision for audit.<a href="#section-4.3.2-2.6.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
 </section>
 </div>
 <div id="exchange-response">
-<section id="section-6.4">
-        <h3 id="name-response">
-<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-response" class="section-name selfRef">Response</a>
-        </h3>
-<p id="section-6.4-1">The successful RFC 8693 response <span class="bcp14">MUST</span> include:<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+<section id="section-4.3.3">
+          <h4 id="name-response">
+<a href="#section-4.3.3" class="section-number selfRef">4.3.3. </a><a href="#name-response" class="section-name selfRef">Response</a>
+          </h4>
+<p id="section-4.3.3-1">On success, the IdP returns a token exchange response as defined
+in Section 2.2.1 of <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, with the following parameters:<a href="#section-4.3.3-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.3.3-2">
+            <dt id="section-4.3.3-2.1">
+<code>access_token</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.3-2.2">
+              <p id="section-4.3.3-2.2.1"><span class="bcp14">REQUIRED</span>. The WAG. This parameter carries an authorization
+grant rather than an access token in this exchange.<a href="#section-4.3.3-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.3-2.3">
+<code>issued_token_type</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.3-2.4">
+              <p id="section-4.3.3-2.4.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be
+<code>urn:ietf:params:oauth:token-type:wag</code>.<a href="#section-4.3.3-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.3-2.5">
+<code>token_type</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.3-2.6">
+              <p id="section-4.3.3-2.6.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be <code>N_A</code>.<a href="#section-4.3.3-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.3-2.7">
+<code>expires_in</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.3-2.8">
+              <p id="section-4.3.3-2.8.1"><span class="bcp14">REQUIRED</span>. The remaining lifetime of the WAG in seconds.<a href="#section-4.3.3-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+            <dd class="break"></dd>
+<dt id="section-4.3.3-2.9">
+<code>scope</code>:</dt>
+            <dd style="margin-left: 1.5em" id="section-4.3.3-2.10">
+              <p id="section-4.3.3-2.10.1"><span class="bcp14">REQUIRED</span>. The scope string included in the WAG.<a href="#section-4.3.3-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+</dl>
+<p id="section-4.3.3-3">The response <span class="bcp14">MUST NOT</span> contain a <code>refresh_token</code>. The client <span class="bcp14">MUST</span>
+verify the returned token type, audience, resource, and key binding
+before using the grant. If they do not match the requested type,
+target, and instance key, the client <span class="bcp14">MUST</span> reject the response.<a href="#section-4.3.3-3" class="pilcrow">¶</a></p>
+<p id="section-4.3.3-4">For example:<a href="#section-4.3.3-4" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="section-4.3.3-5">
+<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+Pragma: no-cache
+
+{
+  "access_token": "eyJ...workload-authorization-grant...",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
+  "token_type": "N_A",
+  "expires_in": 290,
+  "scope": "issues.read"
+}
+</pre><a href="#section-4.3.3-5" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="exchange-errors">
+<section id="section-4.3.4">
+          <h4 id="name-error-response">
+<a href="#section-4.3.4" class="section-number selfRef">4.3.4. </a><a href="#name-error-response" class="section-name selfRef">Error Response</a>
+          </h4>
+<p id="section-4.3.4-1">The IdP returns errors using Section 2.2.2 of <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> and
+Section 5.2 of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>. The following rules apply:<a href="#section-4.3.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.4-2.1">
-            <p id="section-6.4-2.1.1"><code>access_token</code>: the WAG JWT;<a href="#section-6.4-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-4.3.4-2.1">
+              <p id="section-4.3.4-2.1.1"><code>invalid_request</code> is returned for a malformed request, a
+prohibited actor or instance parameter, invalid subject evidence
+when independent client authentication is used, or an unknown,
+disabled, or ambiguously bound agent.<a href="#section-4.3.4-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-6.4-2.2">
-            <p id="section-6.4-2.2.1"><code>issued_token_type</code>: <code>urn:ietf:params:oauth:token-type:wag</code>;<a href="#section-6.4-2.2.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-4.3.4-2.2">
+              <p id="section-4.3.4-2.2.1"><code>invalid_client</code> is returned for client authentication failures,
+including assertion validation failures when the assertion is
+the registered client authentication credential, per <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>.<a href="#section-4.3.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-6.4-2.3">
-            <p id="section-6.4-2.3.1"><code>token_type</code>: <code>N_A</code>;<a href="#section-6.4-2.3.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-4.3.4-2.3">
+              <p id="section-4.3.4-2.3.1"><code>invalid_target</code> is returned when the IdP cannot authorize the
+requested audience or resource for the agent's tenancy.<a href="#section-4.3.4-2.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-6.4-2.4">
-            <p id="section-6.4-2.4.1"><code>expires_in</code>: the WAG's remaining lifetime in seconds; and<a href="#section-6.4-2.4.1" class="pilcrow">¶</a></p>
+            <li class="normal" id="section-4.3.4-2.4">
+              <p id="section-4.3.4-2.4.1"><code>invalid_scope</code> is returned for an invalid scope request or when
+no requested scope can be granted.<a href="#section-4.3.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-6.4-2.5">
-            <p id="section-6.4-2.5.1"><code>scope</code>: the scope approved in the WAG.<a href="#section-6.4-2.5.1" class="pilcrow">¶</a></p>
-</li>
-        </ul>
-<p id="section-6.4-3">The IdP <span class="bcp14">MUST NOT</span> issue a refresh token in this response. The
-instance <span class="bcp14">MUST</span> verify that the returned token type is WAG and that
-the grant's target and binding agree with its request and key.
-A mismatch or absent binding is an error, not permission to retry
-without proof. Further WAGs require fresh evidence and another
-policy evaluation.<a href="#section-6.4-3" class="pilcrow">¶</a></p>
+          </ul>
+<p id="section-4.3.4-3">DPoP proof errors and nonce challenges follow <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, subject
+to the authentication error handling specified by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>.<a href="#section-4.3.4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
 <div id="redemption">
-<section id="section-7">
-      <h2 id="name-redeeming-a-wag">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-redeeming-a-wag" class="section-name selfRef">Redeeming a WAG</a>
-      </h2>
-<p id="section-7-1">The instance presents the WAG in <code>assertion</code> with
-<code>grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer</code>, exactly
-one <code>resource</code>, and a fresh DPoP proof for the RAS token endpoint
-made with the same instance key. <code>scope</code> <span class="bcp14">MAY</span> request a subset of
-the WAG's scopes; omission requests the WAG's granted scopes.
-The request <span class="bcp14">MUST NOT</span> include <code>client_instance_assertion</code>,
-<code>actor_token</code>, or <code>actor_token_type</code>. Client authentication is
-not required at the RAS by this profile: the IdP grant and bound
-instance key establish the presenting principal. Separate client
-authentication, if required
-by deployment policy, <span class="bcp14">MUST NOT</span> alter that identity or relax the
-grant's restrictions.<a href="#section-7-1" class="pilcrow">¶</a></p>
-<p id="section-7-2">The RAS <span class="bcp14">MUST</span>:<a href="#section-7-2" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-7-3">
-<li id="section-7-3.1">
-          <p id="section-7-3.1.1">Validate the JWT signature, protected <code>typ</code>, allowed algorithm,
-exact trusted issuer, required claim types, and time claims.
-Enforce the lifetime bound in <a href="#grant" class="auto internal xref">Section 6.3</a> and reject future <code>iat</code>
-values beyond the configured clock-skew allowance.
-Resolve signing keys only within that issuer's trust record.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-7-3.2">
-          <p id="section-7-3.2.1">Require <code>aud</code> to equal its issuer identifier and verify the
-issuer-to-local-tenancy authorization. Require the requested
-<code>resource</code> to equal the grant's resource and belong to that
-configured tenancy and RAS. Comparisons are exact strings;
-URI normalization <span class="bcp14">MUST NOT</span> establish identity or authorization.<a href="#section-7-3.2.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-7-3.3">
-          <p id="section-7-3.3.1">Resolve <code>(iss, sub)</code> to the registered workload principal under
-local policy. A local account <span class="bcp14">MAY</span> be created just in time under
-the trusted assignment policy; a grant <span class="bcp14">MUST NOT</span> create or
-reactivate a disabled account contrary to local policy.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-7-3.4">
-          <p id="section-7-3.4.1">Require <code>agent_id == sub</code>, a valid runtime identifier, no <code>act</code>,
-and an instance <code>cnf.jkt</code>. Validate the DPoP proof per
-<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and require its key thumbprint to equal that value.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-7-3.5">
-          <p id="section-7-3.5.1">Require any requested scope to be a subset of the WAG scope.
-Apply local authorization policy, issuing only a nonempty
-subset of both that request and the IdP-approved scope.<a href="#section-7-3.5.1" class="pilcrow">¶</a></p>
-</li>
-        <li id="section-7-3.6">
-          <p id="section-7-3.6.1">Atomically reject reuse of an accepted <code>(iss, jti)</code> through the
-grant's expiration, including accepted clock skew, and issue
-a DPoP-bound access token for the approved resource and key.<a href="#section-7-3.6.1" class="pilcrow">¶</a></p>
-</li>
-      </ol>
-<p id="section-7-4">The RAS <span class="bcp14">MUST NOT</span> issue a bearer access token or refresh token.
-The access-token response uses <code>token_type: DPoP</code> and reports its
-actual scope and lifetime. Access tokens <span class="bcp14">MUST</span> expire within 300
-seconds of issuance. They can outlive the redeemed WAG; expiry of
-a consumed grant is not access-token revocation.<a href="#section-7-4" class="pilcrow">¶</a></p>
-<div id="resource-token">
-<section id="section-7.1">
-        <h3 id="name-resource-token-representati">
-<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-resource-token-representati" class="section-name selfRef">Resource Token Representation</a>
+<section id="section-4.4">
+        <h3 id="name-access-token-request">
+<a href="#section-4.4" class="section-number selfRef">4.4. </a><a href="#name-access-token-request" class="section-name selfRef">Access Token Request</a>
         </h3>
-<p id="section-7.1-1">Access tokens and active introspection responses <span class="bcp14">MUST</span> identify
-the Registered Agent as <code>sub</code>, include <code>sub_profile</code> containing
-<code>ai_agent</code>, and convey <code>agent_instance_id</code> and <code>cnf.jkt</code>. The RAS
-<span class="bcp14">MUST</span> use issuer-qualified subject and runtime mappings wherever
-accepted IdP namespaces could collide. It <span class="bcp14">MUST</span> retain the original
-IdP issuer, agent and runtime identifiers with token state. It
-<span class="bcp14">MUST NOT</span> label the registered principal <code>client_instance</code> merely
-because CIA authenticated one of its runtimes, or introduce <code>act</code>
-for that runtime. Provenance disclosure follows <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
-<p id="section-7.1-2">This profile does not require a <code>client_id</code> at the RAS or in its
-access tokens. An implementation <span class="bcp14">MUST NOT</span> manufacture one by
-copying the grant issuer or subject. A token format that requires
-a client identifier needs a separate client identity arrangement.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
-<p id="section-7.1-3">The RAS <span class="bcp14">MUST</span> support authenticated <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> introspection for
-opaque tokens issued under this profile. JWT access tokens <span class="bcp14">MAY</span>
-also be supported under an agreed token format. The RS <span class="bcp14">MUST</span>
-validate token authenticity, audience, expiry, and DPoP binding
-before authorizing access. It applies its own permissions to the
-validated subject and scope; neither registry ownership nor a
-platform property is a portable permission assignment.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<p id="section-4.4-1">The client makes an HTTP POST request to the RAS token endpoint
+using Section 2.1 of <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span>. The following parameters are
+encoded as <code>application/x-www-form-urlencoded</code> in the request body:<a href="#section-4.4-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-4.4-2">
+          <dt id="section-4.4-2.1">
+<code>grant_type</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.4-2.2">
+            <p id="section-4.4-2.2.1"><span class="bcp14">REQUIRED</span>. The value <span class="bcp14">MUST</span> be
+<code>urn:ietf:params:oauth:grant-type:jwt-bearer</code>.<a href="#section-4.4-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.4-2.3">
+<code>assertion</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.4-2.4">
+            <p id="section-4.4-2.4.1"><span class="bcp14">REQUIRED</span>. The WAG obtained from the IdP.<a href="#section-4.4-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.4-2.5">
+<code>resource</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.4-2.6">
+            <p id="section-4.4-2.6.1"><span class="bcp14">REQUIRED</span>. The resource URI from the WAG. This parameter <span class="bcp14">MUST</span>
+occur exactly once and <span class="bcp14">MUST</span> equal the grant's <code>resource</code> claim.<a href="#section-4.4-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.4-2.7">
+<code>scope</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.4-2.8">
+            <p id="section-4.4-2.8.1"><span class="bcp14">OPTIONAL</span>. The requested scopes, which <span class="bcp14">MUST</span> be a subset of the
+WAG's scopes. If omitted, the request is for all scopes in the WAG.<a href="#section-4.4-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-4.4-3">The client <span class="bcp14">MUST</span> include a DPoP proof for the RAS token endpoint,
+signed with the key identified by the WAG's <code>cnf.jkt</code>. The request
+<span class="bcp14">MUST NOT</span> contain <code>client_instance_assertion</code>, <code>actor_token</code>, or
+<code>actor_token_type</code>. Client authentication requirements are
+specified in <a href="#client-metadata" class="auto internal xref">Section 7</a>.<a href="#section-4.4-3" class="pilcrow">¶</a></p>
+<p id="section-4.4-4">For example:<a href="#section-4.4-4" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="section-4.4-5">
+<pre>
+POST /token HTTP/1.1
+Host: as.support.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: &lt;fresh proof for the RAS signed by the same instance key&gt;
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+&amp;assertion=eyJ...workload-authorization-grant...
+&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
+&amp;scope=issues.read
+</pre><a href="#section-4.4-5" class="pilcrow">¶</a>
+</div>
+<div id="ras-processing">
+<section id="section-4.4.1">
+          <h4 id="name-processing-rules-2">
+<a href="#section-4.4.1" class="section-number selfRef">4.4.1. </a><a href="#name-processing-rules-2" class="section-name selfRef">Processing Rules</a>
+          </h4>
+<p id="section-4.4.1-1">The RAS applies Section 3.1 of <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>]</span> and Section 5.2 of
+<span>[<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>, with the following additional requirements:<a href="#section-4.4.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-4.4.1-2">
+<li id="section-4.4.1-2.1">
+              <p id="section-4.4.1-2.1.1">The RAS <span class="bcp14">MUST</span> validate the signature and all required headers
+and claims specified in <a href="#grant" class="auto internal xref">Section 3</a>. It <span class="bcp14">MUST</span> reject an expired
+grant or an <code>iat</code> value in the future, allowing only its
+configured clock skew, and enforce the maximum grant lifetime.<a href="#section-4.4.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.2">
+              <p id="section-4.4.1-2.2.1">The RAS <span class="bcp14">MUST</span> verify that <code>iss</code> is authorized for this profile
+and for the target tenancy under <a href="#tenant-trust" class="auto internal xref">Section 5.2</a>. Signing keys
+<span class="bcp14">MUST</span> be resolved within that issuer's trust configuration.<a href="#section-4.4.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.3">
+              <p id="section-4.4.1-2.3.1">The RAS <span class="bcp14">MUST</span> require <code>aud</code> to equal its issuer identifier and
+the requested <code>resource</code> to equal the grant's resource. The
+resource <span class="bcp14">MUST</span> belong to the tenancy authorized for that issuer.
+Identifier comparisons <span class="bcp14">MUST</span> use exact string matching;
+URI normalization <span class="bcp14">MUST NOT</span> be applied.<a href="#section-4.4.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.4">
+              <p id="section-4.4.1-2.4.1">The RAS <span class="bcp14">MUST</span> resolve <code>(iss, sub)</code> under <a href="#ras-subject" class="auto internal xref">Section 5.3</a> and
+verify that local policy permits access for that principal.<a href="#section-4.4.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.5">
+              <p id="section-4.4.1-2.5.1">The RAS <span class="bcp14">MUST</span> validate the DPoP proof under Section 4.3 of
+<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and verify that its key thumbprint equals the
+WAG's <code>cnf.jkt</code>.<a href="#section-4.4.1-2.5.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.6">
+              <p id="section-4.4.1-2.6.1">The RAS <span class="bcp14">MUST</span> reject requested scopes outside the WAG's scopes.
+It <span class="bcp14">MUST</span> restrict access-token scopes to a nonempty subset of
+the requested scopes permitted by local policy.<a href="#section-4.4.1-2.6.1" class="pilcrow">¶</a></p>
+</li>
+            <li id="section-4.4.1-2.7">
+              <p id="section-4.4.1-2.7.1">The RAS <span class="bcp14">MUST</span> prevent a second successful use of <code>(iss, jti)</code>
+until the grant expires, including accepted clock skew. Replay
+detection and grant acceptance <span class="bcp14">MUST</span> be atomic.<a href="#section-4.4.1-2.7.1" class="pilcrow">¶</a></p>
+</li>
+          </ol>
+</section>
+</div>
+<div id="access-token-response">
+<section id="section-4.4.2">
+          <h4 id="name-response-2">
+<a href="#section-4.4.2" class="section-number selfRef">4.4.2. </a><a href="#name-response-2" class="section-name selfRef">Response</a>
+          </h4>
+<p id="section-4.4.2-1">On success, the RAS returns the token response defined in
+Section 5.1 of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span> and Section 5 of <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. The
+<code>token_type</code> <span class="bcp14">MUST</span> be <code>DPoP</code>. The response <span class="bcp14">MUST</span> include <code>scope</code> and
+<code>expires_in</code> with the issued scope and lifetime, and <span class="bcp14">MUST NOT</span>
+include <code>refresh_token</code>. The access token <span class="bcp14">MUST</span> be bound to the
+verified instance key and expire within 300 seconds of issuance.<a href="#section-4.4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.2-2">For example:<a href="#section-4.4.2-2" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="section-4.4.2-3">
+<pre>
+HTTP/1.1 200 OK
+Content-Type: application/json
+Cache-Control: no-store
+Pragma: no-cache
+
+{
+  "access_token": "2YotnFZFEjr1zCsicMWpAA",
+  "token_type": "DPoP",
+  "expires_in": 300,
+  "scope": "issues.read"
+}
+</pre><a href="#section-4.4.2-3" class="pilcrow">¶</a>
+</div>
+<p id="section-4.4.2-4">To obtain another access token, the client obtains a fresh
+assertion and repeats the exchange. Neither a consumed WAG nor
+an assertion already accepted by the IdP can be reused.<a href="#section-4.4.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="access-token-errors">
+<section id="section-4.4.3">
+          <h4 id="name-error-response-2">
+<a href="#section-4.4.3" class="section-number selfRef">4.4.3. </a><a href="#name-error-response-2" class="section-name selfRef">Error Response</a>
+          </h4>
+<p id="section-4.4.3-1">Errors follow Section 5.2 of <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>. The RAS <span class="bcp14">MUST</span> return
+<code>invalid_grant</code> for a WAG that fails validation, including an
+expired, replayed, incorrectly targeted, or incorrectly bound
+grant, or a subject for which local policy prohibits issuance.
+It <span class="bcp14">MUST</span> return <code>invalid_request</code> for a malformed request or a
+prohibited actor or instance parameter, and <code>invalid_scope</code> for
+invalid scopes or when no requested scope can be granted.<a href="#section-4.4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.4.3-2">DPoP proof validation failures use <code>invalid_dpop_proof</code>; nonce
+challenges use <code>use_dpop_nonce</code>, as specified in <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>.
+A valid proof made with a key that does not match the WAG is a
+grant binding failure and results in <code>invalid_grant</code>.<a href="#section-4.4.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
-<div id="lifecycle">
-<section id="section-8">
-      <h2 id="name-lifecycle-and-errors">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-lifecycle-and-errors" class="section-name selfRef">Lifecycle and Errors</a>
+<div id="resource-token">
+<section id="section-4.5">
+        <h3 id="name-access-token-contents">
+<a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-access-token-contents" class="section-name selfRef">Access Token Contents</a>
+        </h3>
+<p id="section-4.5-1">The RAS <span class="bcp14">MUST</span> associate the registered agent, authenticated instance,
+and verified DPoP key with the access token. JWT access tokens and
+active introspection responses <span class="bcp14">MUST</span> contain <code>sub</code> identifying the
+registered agent, <code>sub_profile</code> including <code>ai_agent</code>,
+<code>agent_instance_id</code> identifying the runtime, and <code>cnf.jkt</code>
+identifying the verified key. They <span class="bcp14">MUST NOT</span> contain <code>act</code> for
+that runtime or classify a distinct registered agent as
+<code>client_instance</code> solely because a CIA authenticated its instance.
+Subject and instance identifiers are mapped as specified in
+<a href="#ras-subject" class="auto internal xref">Section 5.3</a>. Additional claims follow <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>.<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<p id="section-4.5-2">This profile does not prescribe a JWT access token format. When
+issuing opaque access tokens, the RAS <span class="bcp14">MUST</span> support authenticated
+introspection under <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> and provide the corresponding
+identity and key confirmation. The RS <span class="bcp14">MUST</span> validate access token
+authenticity, audience, expiration, and DPoP binding under
+<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> before applying its authorization policy.<a href="#section-4.5-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="identity">
+<section id="section-5">
+      <h2 id="name-identity-and-tenant-relatio">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-identity-and-tenant-relatio" class="section-name selfRef">Identity and Tenant Relationships</a>
       </h2>
-<p id="section-8-1">Disabling an agent, removing an assignment, or revoking platform
-issuer trust <span class="bcp14">MUST</span> prevent new WAG issuance once that change is
-applied at the IdP. Registry connectors <span class="bcp14">MUST</span> have an agreed
-maximum synchronization delay; exceeding it <span class="bcp14">MUST</span> prevent issuance
-that depends on the stale data. Local RAS disabling <span class="bcp14">MUST</span> prevent
-new access-token issuance for that principal.<a href="#section-8-1" class="pilcrow">¶</a></p>
-<p id="section-8-2">These changes do not automatically invalidate an already issued
-WAG or access token. With the lifetime limits above, an
-outstanding grant can produce at most another 300 seconds of
-access after its last valid redemption; deployments <span class="bcp14">MUST</span> account
-for clock skew and synchronization delay as well. Earlier
-termination requires deployment-supported revocation or status
-propagation. A runtime restart receives a new instance identifier;
-key rotation within the same instance retains its identifier and
-requires fresh attested key binding. Retired agent identifiers
-<span class="bcp14">MUST NOT</span> be reassigned.<a href="#section-8-2" class="pilcrow">¶</a></p>
-<p id="section-8-3">Errors use <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>, <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>:<a href="#section-8-3" class="pilcrow">¶</a></p>
-<table class="center" id="table-4">
-        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
-<thead>
-          <tr>
-            <th class="text-left" rowspan="1" colspan="1">Condition</th>
-            <th class="text-left" rowspan="1" colspan="1">Error</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Malformed request or forbidden actor/instance parameter</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_request</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">CIA validation fails when CIA is the registered client credential</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_client</code>, per CIA</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Invalid subject evidence with independent client authentication; unknown, disabled, or ambiguously bound agent</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_request</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Unapproved target RAS, resource, or tenancy at the IdP</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_target</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Invalid or wholly unauthorized requested scope</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_scope</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Invalid, expired, replayed, mistargeted, or incorrectly bound WAG at the RAS</td>
-            <td class="text-left" rowspan="1" colspan="1">
-              <code>invalid_grant</code>
-</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Malformed DPoP proof or nonce challenge</td>
-            <td class="text-left" rowspan="1" colspan="1">DPoP error/challenge per RFC 9449, subject to CIA authentication error handling</td>
-          </tr>
-        </tbody>
-      </table>
-<p id="section-8-5">The IdP and RAS <span class="bcp14">MUST NOT</span> fall back to a different grant profile
-or bearer processing after a profile validation failure. Error
-responses <span class="bcp14">SHOULD</span> avoid exposing whether unrelated agents exist.<a href="#section-8-5" class="pilcrow">¶</a></p>
+<div id="registry">
+<section id="section-5.1">
+        <h3 id="name-idp-subject-resolution">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-idp-subject-resolution" class="section-name selfRef">IdP Subject Resolution</a>
+        </h3>
+<p id="section-5.1-1">The IdP <span class="bcp14">MUST</span> maintain an approved federation binding from the
+exact tuple <code>(iss, client_id, agent_id)</code> in a validated assertion
+to one registered agent. It <span class="bcp14">MUST</span> reject an unknown or ambiguous
+binding. Agent identifiers <span class="bcp14">MUST</span> be stable across runtime and key
+changes and <span class="bcp14">MUST NOT</span> be reassigned. Display names, model names,
+platform product identifiers, and key thumbprints <span class="bcp14">MUST NOT</span> be
+used to resolve the registered agent.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">The registry <span class="bcp14">MUST</span> also maintain the agent's enabled status,
+permitted RAS issuers, resources and scopes, and the sources
+authorized to supply its attributes. Only administratively
+authorized sources may create or modify bindings and assignments.
+A client-published <code>instance_issuers</code> value does not by itself
+establish a federation binding or authorize access to a resource.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">The IdP <span class="bcp14">MUST</span> map the authenticated <code>(iss, sub)</code> of the assertion
+to an issuer-scoped, non-reassigned instance identifier and retain
+the relationship to its registered agent. It <span class="bcp14">MUST</span> reject a
+conflicting agent assignment for the same instance. The mapping
+<span class="bcp14">MUST</span> remain stable across key rotation. The IdP <span class="bcp14">MAY</span> preserve an
+incoming identifier if its namespace is trusted and collision-free.
+Agent and instance identifiers <span class="bcp14">SHOULD</span> be URIs in controlled
+namespaces.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">Registry provisioning can use <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>, an administrative
+interface, or another trusted mechanism. A SCIM <code>externalId</code> <span class="bcp14">MUST</span>
+be qualified by the provisioning source and issuer context when
+used in a binding. Provisioning alone does not authorize
+federation. Just-in-time provisioning <span class="bcp14">MAY</span> occur before issuance
+under an explicit administrative policy; a valid assertion alone
+<span class="bcp14">MUST NOT</span> authorize account creation, reactivation, or assignment.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="tenant-trust">
+<section id="section-5.2">
+        <h3 id="name-issuer-and-tenant-trust">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-issuer-and-tenant-trust" class="section-name selfRef">Issuer and Tenant Trust</a>
+        </h3>
+<p id="section-5.2-1">The IdP <span class="bcp14">MUST</span> use a distinct issuer identifier for each tenancy,
+following the issuer model in <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. The RAS <span class="bcp14">MUST</span> establish an
+explicit trust relationship binding that issuer to a local tenancy
+and the resources for which it may issue grants. User SSO trust
+alone <span class="bcp14">MUST NOT</span> authorize acceptance of WAGs.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">Metadata and signing keys <span class="bcp14">MUST</span> be obtained through trusted
+configuration or authenticated discovery for the approved issuer.
+Keys and subject mappings <span class="bcp14">MUST</span> be scoped to that issuer. An
+untrusted JWT header containing a key URL <span class="bcp14">MUST NOT</span> establish
+issuer trust.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="ras-subject">
+<section id="section-5.3">
+        <h3 id="name-ras-subject-resolution">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-ras-subject-resolution" class="section-name selfRef">RAS Subject Resolution</a>
+        </h3>
+<p id="section-5.3-1">The RAS <span class="bcp14">MUST</span> resolve the WAG's <code>(iss, sub)</code> to a local agent
+principal under the configured issuer and tenancy relationship.
+It <span class="bcp14">MAY</span> provision a local principal just in time under that policy.
+A grant <span class="bcp14">MUST NOT</span> reactivate a disabled principal contrary to local
+policy.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">The RAS <span class="bcp14">MUST</span> preserve the identity of the authorized agent and
+instance when mapping them to its own namespace. Mappings <span class="bcp14">MUST</span>
+distinguish identifiers from different accepted issuers that could
+otherwise collide. The RAS <span class="bcp14">MUST</span> retain the original IdP issuer,
+agent identifier, and instance identifier with the token state.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="metadata">
+<section id="section-6">
+      <h2 id="name-authorization-server-metada">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-authorization-server-metada" class="section-name selfRef">Authorization Server Metadata</a>
+      </h2>
+<p id="section-6-1">An authorization server supporting this profile <span class="bcp14">MUST</span> publish the
+following member in its metadata document defined by <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>:<a href="#section-6-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6-2">
+        <dt id="section-6-2.1">
+<code>workload_agent_federation</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-2.2">
+          <p id="section-6-2.2.1">A JSON object describing support for this profile. If absent,
+support is not advertised.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-6-3">The <code>workload_agent_federation</code> object contains these members:<a href="#section-6-3" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-6-4">
+        <dt id="section-6-4.1">
+<code>roles</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-4.2">
+          <p id="section-6-4.2.1"><span class="bcp14">REQUIRED</span>. A nonempty array of strings containing <code>issuer</code>,
+<code>resource_authorization_server</code>, or both. The values indicate
+support for WAG issuance and acceptance, respectively.<a href="#section-6-4.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-4.3">
+<code>subject_token_types_supported</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-4.4">
+          <p id="section-6-4.4.1"><span class="bcp14">REQUIRED</span> when <code>roles</code> contains <code>issuer</code>. An array of supported
+subject token type identifiers. The array <span class="bcp14">MUST</span> contain
+<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>.
+Additional types require a separately specified input profile
+defining identity, client, registry, and key validation.<a href="#section-6-4.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-4.5">
+<code>grant_signing_alg_values_supported</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-4.6">
+          <p id="section-6-4.6.1"><span class="bcp14">REQUIRED</span>. A nonempty array of JWS algorithm names supported for
+WAG issuance or validation, as indicated by <code>roles</code>. If both
+roles are present, listed algorithms apply to both. The array
+<span class="bcp14">MUST</span> contain <code>ES256</code> and <span class="bcp14">MUST NOT</span> contain <code>none</code> or symmetric
+MAC algorithms.<a href="#section-6-4.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-6-5">The IdP <span class="bcp14">MUST</span> include <code>urn:ietf:params:oauth:grant-type:token-exchange</code>
+in <code>grant_types_supported</code> and <code>client_instance_assertion</code> in
+<code>token_endpoint_auth_methods_supported</code>. The RAS <span class="bcp14">MUST</span> include
+<code>urn:ietf:params:oauth:grant-type:jwt-bearer</code> in
+<code>grant_types_supported</code>. Both <span class="bcp14">MUST</span> publish
+<code>dpop_signing_alg_values_supported</code> containing <code>ES256</code> per
+<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. Additional asymmetric algorithms <span class="bcp14">MAY</span> be supported.<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">The client <span class="bcp14">MUST</span> verify that the IdP advertises the <code>issuer</code> role
+and the RAS advertises the <code>resource_authorization_server</code> role
+before using this profile. Advertised capabilities do not
+establish issuer trust or override configured algorithm policy.<a href="#section-6-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="client-metadata">
+<section id="section-7">
+      <h2 id="name-client-metadata">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-client-metadata" class="section-name selfRef">Client Metadata</a>
+      </h2>
+<p id="section-7-1">The client registration at the IdP follows <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> and <span class="bcp14">MUST</span> have
+an administratively approved <code>instance_issuers</code> value and
+<code>ai_agent_instance_profile</code> set to <code>true</code> as defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>.
+The registration represents the logical client application;
+individual agent instances do not require separate registrations.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">The IdP <span class="bcp14">MUST</span> support <code>client_instance_assertion</code> as a
+<code>token_endpoint_auth_method</code> for this profile. With this method,
+the assertion in <code>subject_token</code> and the DPoP proof authenticate
+the client. All authentication requirements in <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> apply,
+with <code>subject_token</code> replacing the normal presentation parameter.
+The IdP <span class="bcp14">MAY</span> support other client authentication methods. The
+client <span class="bcp14">MUST</span> use the method associated with its registration;
+assertion presentation <span class="bcp14">MUST NOT</span> replace a different registered
+method without agreement.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">This profile does not require <code>client_id</code> or client authentication
+at the RAS. The WAG and proof of the bound instance key establish
+the presenting agent's authorization. If a deployment separately
+requires client authentication at the RAS, it <span class="bcp14">MUST NOT</span> alter the
+grant subject or relax grant restrictions. An implementation <span class="bcp14">MUST NOT</span> construct a client identifier by copying the grant's issuer
+or subject.
+A JWT access token format that requires <code>client_id</code> needs a
+separately established client identity.<a href="#section-7-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security">
-<section id="section-9">
-      <h2 id="name-security-and-privacy-consid">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-and-privacy-consid" class="section-name selfRef">Security and Privacy Considerations</a>
+<section id="section-8">
+      <h2 id="name-security-considerations">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-9-1">The security considerations of <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>, <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>,
-<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>, and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> apply. Registry writers
-and federation-binding administrators control who can obtain
-authority as an agent. The IdP <span class="bcp14">MUST</span> authenticate these operations,
-limit each source to its approved namespace and attributes, and
-audit changes. Syncing an agent from another platform <span class="bcp14">MUST NOT</span>
-merge identities based on names or overwrite enterprise policy.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">Keys <span class="bcp14">MUST</span> be instance-specific. Sharing a platform credential
-cannot substitute for runtime proof. Replay caches must cover all
-accepting nodes for each issuer and endpoint service. DPoP proofs
-are fresh for each endpoint; proof for the IdP cannot be reused at
-the RAS or RS. Logs <span class="bcp14">MUST NOT</span> record raw grants, credentials, or
-private keys. Audits should retain issuer-qualified identities and
-policy decisions while minimizing model and runtime disclosure.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">The IdP <span class="bcp14">MUST</span> evaluate current registry state at each issuance.
-Valid signatures alone do not establish current model state,
-platform membership, or application assignment. Registry polling,
-evidence lifetime, WAG lifetime, and access-token lifetime each
-contribute separately to the stale-authorization window.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-8-1">The security considerations of <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>, <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>,
+<span>[<a href="#RFC7521" class="cite xref">RFC7521</a>]</span>, <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>, and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> apply.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<div id="registry-and-attribute-authority">
+<section id="section-8.1">
+        <h3 id="name-registry-and-attribute-auth">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-registry-and-attribute-auth" class="section-name selfRef">Registry and Attribute Authority</a>
+        </h3>
+<p id="section-8.1-1">A federation binding authorizes an issuer to attest instances of
+a registered agent. Compromise of the issuer or registry writer
+can therefore permit unauthorized grant issuance. The IdP <span class="bcp14">MUST</span>
+authenticate registry changes, restrict each source to its
+approved namespace and attributes, and audit binding and assignment
+changes. Synchronization <span class="bcp14">MUST NOT</span> merge agents by display name
+or allow a platform source to overwrite enterprise policy.<a href="#section-8.1-1" class="pilcrow">¶</a></p>
+<p id="section-8.1-2">An assertion's signature authenticates its issuer's statements;
+it does not establish that the IdP independently measured model
+or runtime state. The IdP <span class="bcp14">MUST</span> evaluate evidence freshness and
+current registry policy at each issuance.<a href="#section-8.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="conformance">
-<section id="section-10">
-      <h2 id="name-conformance">
-<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
+<div id="token-substitution">
+<section id="section-8.2">
+        <h3 id="name-token-substitution">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-token-substitution" class="section-name selfRef">Token Substitution</a>
+        </h3>
+<p id="section-8.2-1">The assertion, WAG, and access token have different audiences and
+processing rules. Implementations <span class="bcp14">MUST</span> enforce their respective
+audiences, presentation parameters, and, for JWTs, token types. If profile
+validation fails, the IdP and RAS <span class="bcp14">MUST NOT</span> retry processing under
+a less restrictive grant profile or issue a bearer token. Clients
+<span class="bcp14">MUST NOT</span> fall back to an unadvertised profile or bearer processing
+when capability or key confirmation is missing.<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="proof-of-possession-and-replay">
+<section id="section-8.3">
+        <h3 id="name-proof-of-possession-and-rep">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-proof-of-possession-and-rep" class="section-name selfRef">Proof of Possession and Replay</a>
+        </h3>
+<p id="section-8.3-1">Each instance <span class="bcp14">MUST</span> hold its own proof-of-possession key. Validating
+a DPoP proof establishes possession of that key; the assertion and
+registry binding establish its authority to represent the agent.
+The IdP <span class="bcp14">MUST NOT</span> replace the validated binding with an arbitrary
+requester-selected key.<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<p id="section-8.3-2">Clients <span class="bcp14">MUST</span> generate a proof appropriate to each endpoint and
+support DPoP nonce challenges. Replay detection <span class="bcp14">MUST</span> cover every
+node accepting assertions or WAGs for the corresponding issuer
+and endpoint service. The single-use restrictions in <a href="#protocol" class="auto internal xref">Section 4</a>
+apply in addition to DPoP proof validation.<a href="#section-8.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="lifecycle">
+<section id="section-8.4">
+        <h3 id="name-lifecycle">
+<a href="#section-8.4" class="section-number selfRef">8.4. </a><a href="#name-lifecycle" class="section-name selfRef">Lifecycle</a>
+        </h3>
+<p id="section-8.4-1">Disabling an agent, removing an assignment, or revoking assertion
+issuer trust <span class="bcp14">MUST</span> prevent new WAG issuance once the change is
+applied at the IdP. Registry synchronization <span class="bcp14">MUST</span> have a configured
+maximum delay; the IdP <span class="bcp14">MUST</span> reject issuance that depends on data
+stale beyond that limit. Disabling a local agent at the RAS <span class="bcp14">MUST</span>
+prevent new access-token issuance for that agent.<a href="#section-8.4-1" class="pilcrow">¶</a></p>
+<p id="section-8.4-2">These changes do not by themselves invalidate previously issued
+grants or access tokens. An access token can outlive the consumed
+WAG. With the lifetime limits in this profile, the token can
+remain usable for up to 300 seconds after grant redemption, in
+addition to synchronization delay and accepted clock skew.
+Earlier termination requires a deployment-supported revocation
+or status propagation mechanism.<a href="#section-8.4-2" class="pilcrow">¶</a></p>
+<p id="section-8.4-3">A restarted runtime <span class="bcp14">MUST</span> receive a new instance identifier. Key
+rotation within an existing instance <span class="bcp14">MUST</span> preserve its identifier
+and requires fresh evidence binding the new key.<a href="#section-8.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="privacy">
+<section id="section-9">
+      <h2 id="name-privacy-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-privacy-considerations" class="section-name selfRef">Privacy Considerations</a>
       </h2>
-<p id="section-10-1">An IdP conforms by implementing the CIA subject-token input and
-DPoP baseline, registry checks, discovery, WAG issuance, errors,
-and lifecycle rules above. A RAS conforms by implementing the
-advertised WAG validation, DPoP token issuance, subject resolution,
-and resource-token rules. An instance conforms by implementing
-the baseline exchange and redemption, verifying the output type
-and key binding, and supporting DPoP nonce challenges.<a href="#section-10-1" class="pilcrow">¶</a></p>
-<p id="section-10-2">Implementations <span class="bcp14">MUST</span> pass at least these interoperability cases:<a href="#section-10-2" class="pilcrow">¶</a></p>
-<table class="center" id="table-5">
-        <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
-<thead>
-          <tr>
-            <th class="text-left" rowspan="1" colspan="1">Case</th>
-            <th class="text-left" rowspan="1" colspan="1">Required result</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Trusted CIA, active bound agent, approved target, matching key</td>
-            <td class="text-left" rowspan="1" colspan="1">WAG, then DPoP-bound resource token</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Two runtimes for one registered agent</td>
-            <td class="text-left" rowspan="1" colspan="1">Same grant subject, distinct runtime identifiers and keys</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Key rotation with fresh evidence</td>
-            <td class="text-left" rowspan="1" colspan="1">Same agent/runtime identifiers, new key binding</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Same platform agent ID from a different unapproved issuer</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject registry resolution</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Disabled agent or removed application assignment</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject new WAG issuance</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Requester tries to substitute another agent or binding key</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">CIA or WAG replay</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject second accepted use</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Wrong RAS, resource, local tenancy, or broadened scope</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">User/delegated evidence or actor-token request</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Missing profile capability or grant confirmation</td>
-            <td class="text-left" rowspan="1" colspan="1">No bearer or generic-JWT fallback</td>
-          </tr>
-        </tbody>
-      </table>
+<p id="section-9-1">Stable agent identifiers permit correlation across instances and
+resources. Instance identifiers permit correlation of requests
+within an execution. The IdP and RAS <span class="bcp14">SHOULD</span> limit disclosure of
+identifiers and provenance to the parties that require them for
+authorization or audit. Error responses <span class="bcp14">SHOULD NOT</span> disclose the
+existence of unrelated agents.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">Logs <span class="bcp14">MUST NOT</span> contain raw assertions, grants, credentials, or
+private keys. Audit records should retain issuer-qualified
+identifiers and authorization decisions while minimizing model
+and runtime information. The claim disclosure requirements of
+<span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span> apply.<a href="#section-9-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
-<section id="section-11">
+<section id="section-10">
       <h2 id="name-iana-considerations">
-<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<div id="authorization-server-metadata">
-<section id="section-11.1">
-        <h3 id="name-authorization-server-metada">
-<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-authorization-server-metada" class="section-name selfRef">Authorization Server Metadata</a>
+<div id="oauth-authorization-server-metadata-registration">
+<section id="section-10.1">
+        <h3 id="name-oauth-authorization-server-">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-oauth-authorization-server-" class="section-name selfRef">OAuth Authorization Server Metadata Registration</a>
         </h3>
-<p id="section-11.1-1">IANA is requested to register <code>workload_agent_federation</code> in the
-"OAuth Authorization Server Metadata" registry:<a href="#section-11.1-1" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-11.1-2">
-          <dt id="section-11.1-2.1">Metadata Name:</dt>
-          <dd style="margin-left: 1.5em" id="section-11.1-2.2">
-            <p id="section-11.1-2.2.1"><code>workload_agent_federation</code><a href="#section-11.1-2.2.1" class="pilcrow">¶</a></p>
+<p id="section-10.1-1">This specification requests registration of the following value
+in the "OAuth Authorization Server Metadata" registry established
+by <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>:<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-10.1-2">
+          <dt id="section-10.1-2.1">Metadata Name:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.2">
+            <p id="section-10.1-2.2.1"><code>workload_agent_federation</code><a href="#section-10.1-2.2.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-11.1-2.3">Metadata Description:</dt>
-          <dd style="margin-left: 1.5em" id="section-11.1-2.4">
-            <p id="section-11.1-2.4.1">Workload Agent Federation roles, input token types, and WAG
-signing algorithms supported by an authorization server<a href="#section-11.1-2.4.1" class="pilcrow">¶</a></p>
+<dt id="section-10.1-2.3">Metadata Description:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.4">
+            <p id="section-10.1-2.4.1">Workload Agent Federation roles, subject token types, and grant
+signing algorithms supported by an authorization server.<a href="#section-10.1-2.4.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-11.1-2.5">Change Controller:</dt>
-          <dd style="margin-left: 1.5em" id="section-11.1-2.6">
-            <p id="section-11.1-2.6.1">IETF<a href="#section-11.1-2.6.1" class="pilcrow">¶</a></p>
+<dt id="section-10.1-2.5">Change Controller:</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.6">
+            <p id="section-10.1-2.6.1">IETF<a href="#section-10.1-2.6.1" class="pilcrow">¶</a></p>
 </dd>
           <dd class="break"></dd>
-<dt id="section-11.1-2.7">Specification Document(s):</dt>
-          <dd style="margin-left: 1.5em" id="section-11.1-2.8">
-            <p id="section-11.1-2.8.1"><a href="#metadata" class="auto internal xref">Section 5</a> of this document<a href="#section-11.1-2.8.1" class="pilcrow">¶</a></p>
+<dt id="section-10.1-2.7">Specification Document(s):</dt>
+          <dd style="margin-left: 1.5em" id="section-10.1-2.8">
+            <p id="section-10.1-2.8.1"><a href="#metadata" class="auto internal xref">Section 6</a> of this document.<a href="#section-10.1-2.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
 </section>
 </div>
-<div id="wag-coordination">
-<section id="section-11.2">
-        <h3 id="name-coordination-with-wag">
-<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-coordination-with-wag" class="section-name selfRef">Coordination with WAG</a>
-        </h3>
-<p id="section-11.2-1"><strong>Editor's note:</strong> <code>urn:ietf:params:oauth:token-type:wag</code> and
-<code>oauth-wag+jwt</code> are proposed, unassigned identifiers used here to
-make the draft exchange precise. Their generic definitions and
-OAuth URI and media-type registrations belong in <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> and
-must be coordinated there before publication. This document does
-not claim that those registrations already exist. The required
-<code>resource</code> and <code>scope</code> processing is a constraint of this
-federation profile. The agent claims are registered by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>,
-and the CIA token type by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
-</section>
-</div>
 </section>
 </div>
 <div id="sec-combined-references">
-<section id="section-12">
+<section id="section-11">
       <h2 id="name-references">
-<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-references" class="section-name selfRef">References</a>
       </h2>
 <div id="sec-normative-references">
-<section id="section-12.1">
+<section id="section-11.1">
         <h3 id="name-normative-references">
-<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
         </h3>
 <dl class="references">
 <dt id="RFC6749">[RFC6749]</dt>
@@ -2108,6 +2431,10 @@ and the CIA token type by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span
 <dt id="RFC7519">[RFC7519]</dt>
         <dd>
 <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7521">[RFC7521]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Mortimore, C.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">Y. Goland</span>, <span class="refTitle">"Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants"</span>, <span class="seriesInfo">RFC 7521</span>, <span class="seriesInfo">DOI 10.17487/RFC7521</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7521">https://www.rfc-editor.org/rfc/rfc7521</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7523">[RFC7523]</dt>
         <dd>
@@ -2161,9 +2488,9 @@ and the CIA token type by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span
 </section>
 </div>
 <div id="sec-informative-references">
-<section id="section-12.2">
+<section id="section-11.2">
         <h3 id="name-informative-references">
-<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
 <dt id="ID-JAG">[ID-JAG]</dt>
@@ -2179,130 +2506,20 @@ and the CIA token type by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span
 </div>
 </section>
 </div>
-<div id="example">
+<div id="wag-coordination">
 <section id="appendix-A">
-      <h2 id="name-example">
-<a href="#name-example" class="section-name selfRef">Example</a>
+      <h2 id="name-open-issues">
+<a href="#name-open-issues" class="section-name selfRef">Open Issues</a>
       </h2>
-<p id="appendix-A-1">The IdP <code>https://idp.example/tenants/acme</code> has approved client
-<code>https://platform.example/client</code>, whose instance issuer is
-<code>https://runtime.platform.example</code>. An active registry entry
-maps that issuer, client, and platform agent ID
-<code>urn:platform:agent:support</code> to <code>urn:acme:agent:42</code>. The entry
-permits <code>issues.read</code> at resource <code>https://support.example/api</code>
-through RAS <code>https://as.support.example</code>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<p id="appendix-A-2">The platform authenticates runtime <code>run-7</code>, verifies its agent
-membership, and issues this CIA. Signature and key values are
-abbreviated throughout; line breaks in forms are for display.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="appendix-A-3">
-<pre>
-{
-  "iss": "https://runtime.platform.example",
-  "sub": "https://runtime.platform.example/instances/run-7",
-  "aud": "https://idp.example/tenants/acme",
-  "client_id": "https://platform.example/client",
-  "agent_id": "urn:platform:agent:support",
-  "agent_instance_id":
-    "https://runtime.platform.example/instances/run-7",
-  "agent_platform": "urn:example:orchestrator:v5",
-  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1789135200,
-  "exp": 1789135500,
-  "jti": "cia-run-7-1"
-}
-</pre><a href="#appendix-A-3" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-4">The client is registered for instance-assertion authentication,
-so the CIA and DPoP proof also authenticate the client at the IdP:<a href="#appendix-A-4" class="pilcrow">¶</a></p>
-<div class="lang-http-message sourcecode" id="appendix-A-5">
-<pre>
-POST /tenants/acme/token HTTP/1.1
-Host: idp.example
-Content-Type: application/x-www-form-urlencoded
-DPoP: &lt;proof for the IdP endpoint signed by the instance key&gt;
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
-&amp;requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Awag
-&amp;subject_token=eyJ...agent-profiled-cia...
-&amp;subject_token_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
-&amp;client_id=https%3A%2F%2Fplatform.example%2Fclient
-&amp;audience=https%3A%2F%2Fas.support.example
-&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
-&amp;scope=issues.read
-</pre><a href="#appendix-A-5" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-6">After registry and authorization checks, the IdP returns:<a href="#appendix-A-6" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="appendix-A-7">
-<pre>
-{
-  "access_token": "eyJ...workload-authorization-grant...",
-  "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
-  "token_type": "N_A",
-  "expires_in": 290,
-  "scope": "issues.read"
-}
-</pre><a href="#appendix-A-7" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-8">The decoded WAG uses the IdP's canonical identities and a protected
-header with <code>typ: oauth-wag+jwt</code> and <code>alg: ES256</code>:<a href="#appendix-A-8" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="appendix-A-9">
-<pre>
-{
-  "iss": "https://idp.example/tenants/acme",
-  "sub": "urn:acme:agent:42",
-  "agent_id": "urn:acme:agent:42",
-  "agent_instance_id": "urn:acme:instance:run-7",
-  "aud": "https://as.support.example",
-  "resource": "https://support.example/api",
-  "scope": "issues.read",
-  "agent_platform": "urn:example:orchestrator:v5",
-  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1789135210,
-  "exp": 1789135500,
-  "jti": "wag-agent-42-1"
-}
-</pre><a href="#appendix-A-9" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-10">The instance redeems it at the RAS without a downstream client
-registration or another CIA:<a href="#appendix-A-10" class="pilcrow">¶</a></p>
-<div class="lang-http-message sourcecode" id="appendix-A-11">
-<pre>
-POST /token HTTP/1.1
-Host: as.support.example
-Content-Type: application/x-www-form-urlencoded
-DPoP: &lt;fresh proof for the RAS signed by the same instance key&gt;
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
-&amp;assertion=eyJ...workload-authorization-grant...
-&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
-&amp;scope=issues.read
-</pre><a href="#appendix-A-11" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-12">The RAS returns a DPoP access token. An illustrative active
-introspection response is below; the RAS's mapping gives the
-registered agent and runtime unambiguous local identifiers:<a href="#appendix-A-12" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="appendix-A-13">
-<pre>
-{
-  "active": true,
-  "sub": "acme-agent-42",
-  "sub_profile": "ai_agent",
-  "agent_instance_id": "acme-instance-run-7",
-  "aud": "https://support.example/api",
-  "scope": "issues.read",
-  "token_type": "DPoP",
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1789135220,
-  "exp": 1789135520
-}
-</pre><a href="#appendix-A-13" class="pilcrow">¶</a>
-</div>
-<p id="appendix-A-14">There is no <code>act</code>: the registered agent is acting as itself through
-one authenticated runtime. A second runtime maps to the same
-registered subject with a different instance identifier and key.<a href="#appendix-A-14" class="pilcrow">¶</a></p>
+<p id="appendix-A-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">The token type <code>urn:ietf:params:oauth:token-type:wag</code> and JWT type
+<code>oauth-wag+jwt</code> are proposed identifiers pending coordination with
+<span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. Their generic definitions and OAuth URI and media type
+registrations are expected to be specified there. The IdP issuer
+role and the audience restrictions in this profile also need to
+be aligned with that specification before publication. The agent
+claims are defined and registered by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>; the CIA token type
+is defined by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="document-history">
@@ -2310,7 +2527,7 @@ registered subject with a different instance identifier and key.<a href="#append
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
-<p id="appendix-B-1"><em>RFC EDITOR: please remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
 <div id="section">
 <section id="appendix-B.1">
         <h3 id="name-00">
