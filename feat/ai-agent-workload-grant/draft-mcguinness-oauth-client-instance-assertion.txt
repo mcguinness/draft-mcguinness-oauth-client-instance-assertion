@@ -97,6 +97,7 @@ Table of Contents
    4.  Client Instance Assertion Request Parameter
      4.1.  Permitted Grant Types
      4.2.  Token-Exchange Presentation
+       4.2.1.  Subject Evidence in Grant-Issuance Profiles
    5.  Client Instance Model
      5.1.  Architecture
      5.2.  Client Registration Models
@@ -493,9 +494,9 @@ Table of Contents
 
 4.2.  Token-Exchange Presentation
 
-   When the grant is token-exchange ([RFC8693]), the Client Instance
-   Assertion is presented as the actor_token parameter with
-   actor_token_type set to urn:ietf:params:oauth:token-type:client-
+   For access-token issuance using token-exchange ([RFC8693]), the
+   Client Instance Assertion is presented as the actor_token parameter
+   with actor_token_type set to urn:ietf:params:oauth:token-type:client-
    instance-jwt.  This is the conventional [RFC8693] path; the AS
    validates the assertion under the same rules as for the
    client_instance_assertion parameter (Section 8.2).
@@ -509,8 +510,31 @@ Table of Contents
    In the delegation case under token-exchange, the assertion represents
    the actor distinct from the subject named in subject_token, which is
    the conventional [RFC8693] use of actor_token.  The self-acting case
-   (Section 8.6.3) does not arise on token-exchange, where [RFC8693]
-   requires a distinct subject.
+   (Section 8.6.3) does not arise in this profile's delegated access-
+   token exchange.  RFC 8693 requires a subject_token, but does not
+   require its subject to be a different principal in every application
+   of token exchange.
+
+4.2.1.  Subject Evidence in Grant-Issuance Profiles
+
+   A companion profile MAY specify use of a Client Instance Assertion as
+   subject_token to obtain an authorization grant rather than an access
+   token.  It MUST define the requested output token type, subject-token
+   presentation, identity and authorization processing, and returned
+   grant semantics.  [AGENT-FEDERATION] defines such a profile for IdP-
+   issued Workload Authorization Grants.
+
+   The AS MUST explicitly enable that profile and select it by the
+   requested output type and approved client configuration before
+   applying its presentation rules.  The profile MUST retain CIA
+   signature, issuer trust, audience, client binding, claim, replay, and
+   proof-of-possession validation.  When instance-assertion client
+   authentication is registered, the same checks apply to the CIA in the
+   profile's subject slot.  This exception does not permit moving a CIA
+   to subject_token in an ordinary access-token exchange, or choosing a
+   different representation by matching subject strings.  Authorization-
+   grant contents are governed by the companion profile; Section 8.6
+   governs access tokens issued under this document.
 
 5.  Client Instance Model
 
@@ -1173,6 +1197,12 @@ Table of Contents
    to urn:ietf:params:oauth:token-type:client-instance-jwt) on the
    token-exchange grant (Section 4.2).  Processing is identical
    regardless of which parameter carried the assertion.
+
+   Requests selected for an explicitly enabled grant-issuance profile
+   under Section 4.2.1 use that profile's presentation and output rules
+   while retaining the validation requirements specified there.  The
+   pre-conditions below apply to the normal presentation paths defined
+   by this document.
 
    Before the steps below, the AS MUST reject the request with
    invalid_request if any of the following pre-conditions hold:
@@ -2915,6 +2945,14 @@ Table of Contents
               spiffe-client-auth-02>.
 
 14.2.  Informative References
+
+   [AGENT-FEDERATION]
+              McGuinness, K., "OAuth 2.0 Workload Agent Federation",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              workload-agent-federation, 11 September 2026,
+              <https://mcguinness.github.io/draft-mcguinness-oauth-
+              client-instance-assertion/draft-mcguinness-oauth-workload-
+              agent-federation.html>.
 
    [AI-AGENT] McGuinness, K., "OAuth 2.0 AI Agent Instance Profile",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-

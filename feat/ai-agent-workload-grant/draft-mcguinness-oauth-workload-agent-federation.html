@@ -1,0 +1,2361 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>OAuth 2.0 Workload Agent Federation</title>
+<meta content="Karl McGuinness" name="author">
+<meta content="
+       This specification profiles OAuth 2.0 Token Exchange to let an
+agent instance obtain a Workload Authorization Grant from an
+identity provider and redeem it at a resource authorization
+server. The identity provider maintains an agent registry,
+federates instance evidence from agent platforms, and authorizes
+access for agents acting as themselves. The resource authorization
+server trusts the identity provider as grant issuer and retains
+control over resource access. The profile defines a mandatory
+instance-evidence input, registry resolution, discovery, grant
+issuance and redemption, and proof-of-possession requirements. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="OAuth" name="keyword">
+<meta content="agent federation" name="keyword">
+<meta content="workload identity" name="keyword">
+<meta content="agent registry" name="keyword">
+<meta content="token exchange" name="keyword">
+<meta content="draft-mcguinness-oauth-workload-agent-federation-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.14.7
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.1.1
+    natsort 8.4.0
+    platformdirs 4.11.7
+    pycountry 24.6.1
+    PyYAML 6.0.3
+    requests 2.33.1
+    wcwidth 0.8.3
+-->
+<link href="draft-mcguinness-oauth-workload-agent-federation.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: italic;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-greek.woff2') format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Sofia Sans Semi Condensed';
+  font-style: normal;
+  font-weight: 1 1000;
+  src: url('https://martinthomson.github.io/rfc-css/fonts/sofiasanssemicondensed-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  --font-title: "Sofia Sans Semi Condensed", sans-serif;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+section {
+  clear: both;
+}
+.section-number {
+  padding-right: 0.5em;
+}
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+  font-weight: 680;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1 {
+  &#title {
+    font-size: 32px;
+    line-height: 40px;
+    clear: both;
+    margin: 1.5em 0 0.2em;
+  }
+  &#rfcnum {
+    margin: 1.5em 0 0.2em;
+    & + h1#title {
+      margin: 0.2em 0;
+    }
+  }
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+  vertical-align: top;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+  & code, & samp, & tt {
+    font-size: 16px;
+    line-height: 0;
+  }
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    margin: 0;
+    float: right;
+    clear: both;
+  }
+  & > *:nth-child(2) {
+    clear: both;
+    display: block;
+    border: none;
+  }
+}
+svg {
+  display: block;
+  /* font-family isn't space-separated, but =~ will have to do */
+  &[font-family~="monospace" i], & [font-family~="monospace" i] {
+    font-family: var(--font-mono);
+  }
+}
+.alignCenter {
+  margin: 1em 0;
+  &.art-text {
+    background-color: var(--highlight-color);
+    border: 1px solid var(--line-color);
+    border-radius: 3px;
+    padding: 0.5em 1em 0;
+    margin-bottom: 0.5em;
+    & pre {
+      padding: 0;
+      width: auto;
+    }
+  }
+  & > *:first-child {
+    border: none;
+    /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+       support flexbox yet.
+    */
+    display: table;
+    margin: 0 auto;
+  }
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+  & :is(ol, ul) {
+    margin-left: 1em;
+  }
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+  & li {
+    margin-top: 0.5em;
+  }
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  margin: 0 0 0 2em;
+  & li {
+    margin: 0;
+    & :first-child { margin-top: 0; }
+    & :last-child { margin-bottom: 0; }
+  }
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+  &.olPercent {
+    --indent: 5ch;
+    & > dt {
+      min-width: calc(var(--indent) - 2ch);
+      float: none;
+    }
+  }
+
+  dl > dd > & {
+    margin-top: 0.5em;
+    margin-bottom: 0;
+  }
+
+  &:not(.dlNewline) > dt {
+    float: left;
+    margin-right: 2ch;
+    min-width: 8ch;
+  }
+  & > dd {
+    margin-bottom: .8em;
+    margin-left: var(--indent) !important; /* stupid element overrides */
+    min-height: 2ex;
+  }
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+  & > :is(:first-child, .break:first-child + *) {
+    margin-top: 0;
+  }
+  & > :is(:last-child) {
+    margin-bottom: 0;
+  }
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a {
+  text-decoration: none;
+  &[href] {
+    color: var(--link-color);
+    &:hover { text-decoration: underline; }
+    &.selfRef {
+      color: var(--text-color);
+      &:hover {
+        text-decoration: none;
+        background-color: var(--highlight-color);
+      }
+    }
+  }
+}
+.iref + a[href].internal {
+  color: var(--text-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+  & blockquote {
+    margin: 0.8em 0.4em 0.4em;
+  }
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+  caption-side: bottom;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) {
+    & p {
+      margin: -2px 0;
+      max-height: 0;
+      transition: max-height 2s ease, margin 0.5s ease 0.5s;
+      overflow: hidden;
+    }
+    &:hover p,
+    & h2:target ~ p {
+      margin: 0.5em 0;
+      max-height: 500px;
+      overflow: auto;
+    }
+  }
+  pre, svg {
+    display: inline-block;
+    /* In the horizontal direction, sometimes people make over-sized figures.
+       Scrollbars for those is therefore necessary: auto adds them as necessary..
+       In the vertical direction, the line-height can combine with the font
+       asender/descender height to produce scrollbars: hidden avoids that. */
+    overflow: auto hidden;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+  border-left: 2px var(--pilcrow-strong) solid;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  width: auto;
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  &.right { margin-left: auto; }
+  &.center { margin-left: auto; margin-right: auto; }
+  &.left { margin-right: auto; }
+  & .text-left { text-align: left; }
+  & .text-center { text-align: center; }
+  & .text-right { text-align: right; }
+  & caption {
+    margin: 0;
+    padding: 3px 0 3px 1em;
+  }
+  & p { margin: 0; }
+}
+
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+  &[href] {
+    color: var(--pilcrow-weak);
+    &:hover { text-decoration: none; }
+  }
+  @media not print {
+    :hover > &, &:focus {
+      opacity: 1;
+    }
+    &[href]:hover {
+      color: var(--pilcrow-strong);
+      background-color: transparent;
+    }
+  }
+  @media print {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+  & dt {
+    width: var(--identifier-width);
+    min-width: var(--identifier-width);
+    clear: left;
+    float: left;
+    text-align: right;
+    margin-right: 1ch;
+  }
+  & dd {
+    margin: 0;
+    margin-left: calc(1em + var(--identifier-width)) !important;
+    min-width: 5em;
+  }
+  & .authors {
+    & .author {
+      display: inline-block;
+      margin-right: 1.5em;
+    }
+    & .org {
+      font-style: italic;
+    }
+  }
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+  & .prepared {
+    float: right;
+  }
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+
+  & nav {
+    & ul {
+      margin: 0 0.5em 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    & li {
+      line-height: 1.3em;
+      margin: 2px 0;
+      padding-left: 1.2em;
+      text-indent: -1.2em;
+    }
+  }
+  & a.xref {
+    white-space: normal;
+  }
+}
+
+.references {
+  & > dt {
+    text-align: right;
+    font-weight: bold;
+    min-width: 10ch;
+    margin-right: 1.5ch;
+    &:target::before {
+      content: "⇒";
+      margin: 0 10px 0 -25px;
+    }
+  }
+  & > dd {
+    margin-left: 12ch !important;
+    overflow: visible;
+    & .refInstance {
+      margin-bottom: 0.8em;
+    }
+    & .ascii {
+      margin-bottom: 0.25em;
+    }
+  }
+}
+
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  max-width: 20em;
+  margin: 1em auto 1em 0;
+
+  & .nameRole {
+    font-weight: 700;
+    margin-left: 0;
+  }
+  & .label {
+    margin: 0.5em 0;
+  }
+  & .type {
+    display: none;
+  }
+  & .alternative-contact {
+    margin: 0.5em 0 0.25em 0;
+  }
+  & .non-ascii {
+    margin: 0 0 0 2em;
+  }
+  & div.left {
+    text-align: left;
+  }
+  & div.right {
+    text-align: right;
+  }
+}
+
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses {
+    & > section {
+      column-count: 2;
+      column-gap: 20px;
+    }
+    & > section > h2 {
+      column-span: all;
+    }
+    /* hack for break-inside: avoid-column */
+    & address {
+      display: inline-block;
+      break-inside: avoid-column;
+    }
+  }
+}
+
+/* Comments */
+.rfcEditorRemove {
+  & p:first-of-type {
+    font-style: italic;
+  }
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+
+@media screen {
+  #toc {
+    & nav {
+      font-family: var(--font-title);
+      font-weight: 360;
+      & > ul { margin-bottom: 2em; }
+      & ul {
+        margin: 0 0 0 4px;
+        & :is(p, li) {
+          margin: 2px 0;
+        }
+      }
+    }
+    & a.toplink {
+      float: right;
+    }
+  }
+}
+@media not screen {
+  #toc a.toplink {
+    display: none;
+  }
+}
+
+
+/* TOC layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+    & h2 {
+      margin: 0;
+      padding: 2px 0 2px 6px;
+      padding-right: 1em;
+      font-size: 18px;
+      line-height: 24px;
+      min-width: 190px;
+      text-align: right;
+      background-color: #444;
+      color: white;
+      cursor: pointer;
+      &::before { /* css hamburger */
+        float: right;
+        position: relative;
+        width: 1em;
+        height: 1px;
+        left: -164px;
+        margin: 8px 0 0 0;
+        background: white none repeat scroll 0 0;
+        box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+        content: "";
+      }
+    }
+    & nav {
+      display: none;
+      background-color: var(--background-color);
+      padding: 0.5em 1em 1em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      height: calc(100vh - 48px);
+      border-left: 1px solid #ddd;
+    }
+    &.active {
+      opacity: 1;
+      & nav { display: block; }
+    }
+    /* Make the collapsed ToC header render white on gray also when it's a link */
+    & h2 a,
+    & h2 a:is(:link, :focus, :hover),
+    & a.toplink,
+    & a.toplink:hover {
+      color: white;
+      background-color: #444;
+      text-decoration: none;
+    }
+    & a.toplink {
+      margin: 2px 0.5em 0;
+    }
+  }
+}
+
+/* TOC layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+    & h2 {
+      margin: 0;
+      padding: 0.25em 1em 1em 0;
+    }
+    & nav {
+      display: block;
+      height: calc(90vh - 84px);
+      bottom: 0;
+      padding: 0.5em 0 2em;
+      overflow: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+    }
+    & a.toplink {
+      margin: 8px 0.5em 0;
+    }
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc {
+    page-break-before: always;
+    border-top: none;
+    padding-top: 0;
+  }
+  #n-introduction {
+    page-break-before: always;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg {
+  & :is([stroke="black"], [stroke^="#000"]) {
+    stroke: var(--text-color);
+  }
+  & :is([stroke="white"], [stroke^="#fff"]) {
+    stroke: var(--background-color);
+  }
+  & :is([fill="black"], [fill^="#000"], :not([fill])) {
+    fill: var(--text-color);
+  }
+  & :is([fill="white"], [fill^="#fff"]) {
+    fill: var(--background-color);
+  }
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">Workload Agent Federation</td>
+<td class="right">September 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">McGuinness</td>
+<td class="center">Expires 15 March 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Web Authorization Protocol</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-mcguinness-oauth-workload-agent-federation-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-09-11" class="published">11 September 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Standards Track</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-03-15">15 March 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">K. McGuinness</div>
+<div class="org">Independent</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">OAuth 2.0 Workload Agent Federation</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This specification profiles OAuth 2.0 Token Exchange to let an
+agent instance obtain a Workload Authorization Grant from an
+identity provider and redeem it at a resource authorization
+server. The identity provider maintains an agent registry,
+federates instance evidence from agent platforms, and authorizes
+access for agents acting as themselves. The resource authorization
+server trusts the identity provider as grant issuer and retains
+control over resource access. The profile defines a mandatory
+instance-evidence input, registry resolution, discovery, grant
+issuance and redemption, and proof-of-possession requirements.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-workload-agent-federation.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-workload-agent-federation.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-mcguinness-oauth-workload-agent-federation/">https://datatracker.ietf.org/doc/draft-mcguinness-oauth-workload-agent-federation/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Web Authorization Protocol Working Group mailing list (<span><a href="mailto:oauth@ietf.org">mailto:oauth@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/oauth/">https://mailarchive.ietf.org/arch/browse/oauth/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/oauth/">https://www.ietf.org/mailman/listinfo/oauth/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion">https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-assertion</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 15 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-roles" class="internal xref">Conventions and Roles</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-deployment-and-trust" class="internal xref">Deployment and Trust</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-agent-registry-binding" class="internal xref">Agent Registry Binding</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-discovery-and-client-config" class="internal xref">Discovery and Client Configuration</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-obtaining-a-wag" class="internal xref">Obtaining a WAG</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-request" class="internal xref">Request</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-idp-processing" class="internal xref">IdP Processing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-wag-contents" class="internal xref">WAG Contents</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.4">
+                <p id="section-toc.1-1.6.2.4.1"><a href="#section-6.4" class="auto internal xref">6.4</a>.  <a href="#name-response" class="internal xref">Response</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-redeeming-a-wag" class="internal xref">Redeeming a WAG</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-resource-token-representati" class="internal xref">Resource Token Representation</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-lifecycle-and-errors" class="internal xref">Lifecycle and Errors</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-and-privacy-consid" class="internal xref">Security and Privacy Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-conformance" class="internal xref">Conformance</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-authorization-server-metada" class="internal xref">Authorization Server Metadata</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-coordination-with-wag" class="internal xref">Coordination with WAG</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#section-12.1" class="auto internal xref">12.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#section-12.2" class="auto internal xref">12.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-example" class="internal xref">Example</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.1">
+                <p id="section-toc.1-1.14.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-00" class="internal xref">-00</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">An enterprise can use an identity provider (IdP) to manage agents
+from multiple platforms and authorize their access to applications.
+Platforms supply authenticated runtime evidence; the IdP resolves
+that evidence to a registered agent and issues an application-bound
+Workload Authorization Grant (WAG). Downstream applications need
+trust in the IdP rather than a separate federation integration with
+every agent platform.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">This document defines the complete exchange for an agent acting as
+itself. Access on behalf of a user remains a distinct authorization
+case, addressed by <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span> and applicable delegation profiles.
+A user who owns or administers an agent is not thereby the subject
+on whose behalf it acts.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3"><span>[<a href="#CIA" class="cite xref">CIA</a>]</span> supplies instance evidence and client binding. <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>
+defines agent and runtime identity and provenance claims. <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>
+supplies the authorization grant. This document selects a common
+input and binding mechanism and defines the registry and policy
+processing that connects them. It does not define a registry API,
+agent discovery protocol, or permission language.<a href="#section-1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conventions-and-roles">
+<section id="section-2">
+      <h2 id="name-conventions-and-roles">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-roles" class="section-name selfRef">Conventions and Roles</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-2">
+        <dt id="section-2-2.1">Registered Agent:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.2">
+          <p id="section-2-2.2.1">An agent principal with an IdP-managed identifier, administrative
+status, federation bindings, and application assignments. It may
+have several concurrent or successive Agent Instances.<a href="#section-2-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.3">Agent Instance:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.4">
+          <p id="section-2-2.4.1">A concrete execution of an agent, as defined by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. Each
+instance holds its own proof-of-possession key.<a href="#section-2-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.5">Agent Platform:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.6">
+          <p id="section-2-2.6.1">The system operating agent instances and provisioning or
+synchronizing their registered identities. Its trusted Agent
+Attester issues instance evidence, possibly using a separate
+workload identity service.<a href="#section-2-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.7">IdP:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.8">
+          <p id="section-2-2.8.1">The authorization server that maintains the agent registry,
+validates federated evidence, and issues WAGs. It acts as WAG
+issuer for one tenancy under each issuer identifier.<a href="#section-2-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-2.9">Resource Authorization Server (RAS):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-2.10">
+          <p id="section-2-2.10.1">The authorization server that accepts WAGs from trusted IdPs and
+issues access tokens for its Resource Servers (RSes).<a href="#section-2-2.10.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="deployment">
+<section id="section-3">
+      <h2 id="name-deployment-and-trust">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-deployment-and-trust" class="section-name selfRef">Deployment and Trust</a>
+      </h2>
+<div class="alignLeft art-ascii-art art-text artwork" id="section-3-1">
+<pre>
+ Agent Platform       Agent Instance        IdP              RAS
+       |                     |               |                |
+       |-- registry synchronization --------&gt;|                |
+       |-- CIA -------------&gt;|               |                |
+       |                     |               |                |
+       |                     |-- exchange --&gt;|                |
+       |                     |   CIA + DPoP  |                |
+       |                     |&lt;-- WAG -------|                |
+       |                     |               |                |
+       |                     |-- WAG + DPoP ------------------&gt;|
+       |                     |&lt;-- resource access token ------|
+</pre><a href="#section-3-1" class="pilcrow">¶</a>
+</div>
+<p id="section-3-2">The client integration at the IdP represents a logical platform
+application, not a separate OAuth registration for every agent.
+The IdP <span class="bcp14">MUST</span> approve its client metadata and acceptable instance
+issuers under administrative policy. A client-published
+<code>instance_issuers</code> entry alone <span class="bcp14">MUST NOT</span> authorize federation into
+an enterprise agent or application assignment.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-3">The RAS <span class="bcp14">MUST</span> establish an explicit trust relationship authorizing
+the IdP issuer to issue workload grants for a particular local
+tenancy and set of resources. Existing user SSO trust does not
+implicitly grant that authority. The IdP <span class="bcp14">MUST</span> maintain a distinct
+issuer identifier for each tenancy, following <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>; keys and
+subject resolution <span class="bcp14">MUST</span> be scoped to that issuer. This profile
+does not define a shared-issuer tenant-claim alternative.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">Metadata and key locations <span class="bcp14">MUST</span> be obtained from trusted
+configuration or authenticated discovery for the approved issuer.
+A token's untrusted key-location headers <span class="bcp14">MUST NOT</span> establish trust.
+Discovery advertises capability; registry and RAS configuration
+establish authorization.<a href="#section-3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="registry">
+<section id="section-4">
+      <h2 id="name-agent-registry-binding">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-agent-registry-binding" class="section-name selfRef">Agent Registry Binding</a>
+      </h2>
+<p id="section-4-1">The registry <span class="bcp14">MUST</span> maintain the following logical information; this
+list defines processing requirements, not a provisioning schema:<a href="#section-4-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Information</th>
+            <th class="text-left" rowspan="1" colspan="1">Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Canonical agent identifier</td>
+            <td class="text-left" rowspan="1" colspan="1">Immutable IdP-scoped principal identifier, never reassigned</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Administrative status</td>
+            <td class="text-left" rowspan="1" colspan="1">Whether the agent is enabled for new grants</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Federation bindings</td>
+            <td class="text-left" rowspan="1" colspan="1">Approved input issuer, IdP client identifier, and platform agent identifier</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Application assignments</td>
+            <td class="text-left" rowspan="1" colspan="1">Permitted RAS issuers, resources, and maximum scopes</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Attribute authority</td>
+            <td class="text-left" rowspan="1" colspan="1">Which provisioning or attestation sources may supply each authorization or provenance attribute</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-4-3">The IdP resolves the exact tuple <code>(CIA.iss, CIA.client_id,
+CIA.agent_id)</code> through an approved federation binding to one
+Registered Agent. This tuple <span class="bcp14">MUST NOT</span> resolve to multiple agents.
+The IdP <span class="bcp14">MUST</span> reject unknown, ambiguous, or disabled identities.
+It <span class="bcp14">MUST NOT</span> resolve agents by display name, model, platform
+product name, key thumbprint, or an unqualified <code>externalId</code>.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">The CIA's <code>sub</code> / <code>agent_instance_id</code> identifies the runtime;
+its <code>agent_id</code> identifies the platform's logical agent. The
+Attester <span class="bcp14">MUST</span> authenticate the runtime's relationship to that
+agent before asserting those claims, per <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The IdP <span class="bcp14">MUST</span>
+validate that relationship under the approved binding and record
+which canonical agent the runtime represents. Conflicting runtime
+assignments <span class="bcp14">MUST</span> be rejected.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">Provisioning <span class="bcp14">MAY</span> use <span>[<a href="#SCIM-AGENT" class="cite xref">SCIM-AGENT</a>]</span>, another trusted connector, or
+administrative configuration. When SCIM is used, the connector's
+identity and issuer context qualify <code>externalId</code>; copying a SCIM
+record does not by itself create a federation binding. Only
+administratively authorized sources may establish or change
+bindings and assignments. Just-in-time creation <span class="bcp14">MAY</span> occur under
+such a policy before issuance; a valid signature alone does not
+authorize creation, reactivation, or new application assignments.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-6">The IdP <span class="bcp14">MUST</span> maintain an issuer-scoped, non-reassigned runtime
+identifier derived from the authenticated <code>(CIA.iss, CIA.sub)</code>
+identity, independently of its key. It <span class="bcp14">MAY</span> preserve the incoming
+identifier when its namespace is trusted and collision-free.
+The WAG uses the IdP's canonical agent and runtime identifiers;
+the IdP retains the original identifiers and their mappings for
+audit. Both identifiers <span class="bcp14">SHOULD</span> be URIs within controlled
+namespaces. Neither is inferred from URI structure at the RS.<a href="#section-4-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="metadata">
+<section id="section-5">
+      <h2 id="name-discovery-and-client-config">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-discovery-and-client-config" class="section-name selfRef">Discovery and Client Configuration</a>
+      </h2>
+<p id="section-5-1">An IdP or RAS implementing this profile <span class="bcp14">MUST</span> publish the
+<code>workload_agent_federation</code> member in its OAuth authorization
+server metadata (<span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span>). The member is a JSON object:<a href="#section-5-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-5-2">
+        <dt id="section-5-2.1">
+<code>roles</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.2">
+          <p id="section-5-2.2.1"><span class="bcp14">REQUIRED</span>. Nonempty array containing <code>issuer</code>,
+<code>resource_authorization_server</code>, or both.<a href="#section-5-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.3">
+<code>subject_token_types_supported</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.4">
+          <p id="section-5-2.4.1"><span class="bcp14">REQUIRED</span> for the <code>issuer</code> role. Array containing at least
+<code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>.
+Additional types require an explicitly defined input profile
+with equivalent identity, client, registry, and key validation.<a href="#section-5-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-5-2.5">
+<code>grant_signing_alg_values_supported</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-5-2.6">
+          <p id="section-5-2.6.1"><span class="bcp14">REQUIRED</span>. Nonempty array of JWS algorithms supported for issuing
+or validating WAGs, according to the advertised role. If both
+roles are advertised, listed algorithms apply to both. <code>ES256</code>
+            <span class="bcp14">MUST</span> be supported. Symmetric MAC algorithms and <code>none</code> <span class="bcp14">MUST NOT</span>
+be listed or accepted.<a href="#section-5-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-5-3">The IdP <span class="bcp14">MUST</span> advertise the RFC 8693 token-exchange grant and
+<code>client_instance_assertion</code> client authentication method. The RAS
+<span class="bcp14">MUST</span> advertise the RFC 7523 JWT bearer grant. Both <span class="bcp14">MUST</span> advertise
+DPoP support using <code>dpop_signing_alg_values_supported</code> and <span class="bcp14">MUST</span>
+support <code>ES256</code> DPoP proofs. Other asymmetric algorithms <span class="bcp14">MAY</span> be
+used by agreement through these metadata values.<a href="#section-5-3" class="pilcrow">¶</a></p>
+<p id="section-5-4">The instance <span class="bcp14">MUST</span> verify issuer-role support at the IdP and
+redemption-role support at the RAS before depending on this
+profile. Missing metadata means this profile is not advertised;
+a generic JWT or bearer fallback <span class="bcp14">MUST NOT</span> be attempted. Supported
+algorithms remain subject to issuer-specific trust configuration.<a href="#section-5-4" class="pilcrow">¶</a></p>
+<p id="section-5-5">The mandatory input uses approved CIA client metadata, including
+<code>instance_issuers</code>, <code>ai_agent_instance_profile: true</code>, and
+<code>token_endpoint_auth_method: client_instance_assertion</code>. Other
+client authentication methods <span class="bcp14">MAY</span> be supported; a CIA <span class="bcp14">MUST NOT</span>
+replace a separately registered method without agreement.
+A registration or grant-support flag does not confer application
+assignments. Client registration at the RAS is not required by
+this profile.<a href="#section-5-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="issuance">
+<section id="section-6">
+      <h2 id="name-obtaining-a-wag">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-obtaining-a-wag" class="section-name selfRef">Obtaining a WAG</a>
+      </h2>
+<div id="exchange-request">
+<section id="section-6.1">
+        <h3 id="name-request">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-request" class="section-name selfRef">Request</a>
+        </h3>
+<p id="section-6.1-1">The instance sends an RFC 8693 token request to the IdP with a
+resource indicator per <span>[<a href="#RFC8707" class="cite xref">RFC8707</a>]</span> and the following parameters:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Parameter</th>
+              <th class="text-left" rowspan="1" colspan="1">Required value or meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>grant_type</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>urn:ietf:params:oauth:grant-type:token-exchange</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>requested_token_type</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>urn:ietf:params:oauth:token-type:wag</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>subject_token</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Agent-profiled CIA issued for this IdP</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>subject_token_type</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client_id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Approved client integration at the IdP</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>audience</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Exactly one target RAS issuer identifier</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>resource</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Exactly one target API resource URI</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>scope</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Nonempty requested scope string for that resource</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-6.1-3">The request <span class="bcp14">MUST</span> contain a DPoP proof made with the key in the
+CIA's <code>cnf.jkt</code>. The CIA <span class="bcp14">MUST</span> contain <code>client_id</code>, <code>agent_id</code>,
+<code>agent_instance_id</code>, and <code>cnf.jkt</code>, and its <code>sub</code> <span class="bcp14">MUST</span> equal
+<code>agent_instance_id</code>. Its <code>aud</code> <span class="bcp14">MUST</span> be the IdP issuer identifier.
+The CIA lifetime <span class="bcp14">MUST NOT</span> exceed 300 seconds. Raw bearer workload
+credentials without the required agent claims and key binding
+are not a conforming input; a trusted workload identity adapter
+can issue the required CIA after authenticating the workload.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">For this specifically requested output profile, CIA is subject
+identity evidence in <code>subject_token</code>. This document profiles its
+validation and, where configured, client authentication, without
+using CIA's delegated access-token representation. The request
+<span class="bcp14">MUST NOT</span> contain <code>actor_token</code>, <code>actor_token_type</code>, or
+<code>client_instance_assertion</code>. The CIA is not a user authorization
+grant and the request does not require a preliminary IdP access
+token. Ordinary CIA token exchanges retain their actor-token
+presentation and delegation rules.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="idp-processing">
+<section id="section-6.2">
+        <h3 id="name-idp-processing">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-idp-processing" class="section-name selfRef">IdP Processing</a>
+        </h3>
+<p id="section-6.2-1">The IdP <span class="bcp14">MUST</span> perform the following checks before issuing a WAG:<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6.2-2">
+<li id="section-6.2-2.1">
+            <p id="section-6.2-2.1.1">Validate request syntax, supported types, and approved client
+configuration. Validate the CIA's signature, issuer descriptor,
+JWT type, time claims, exact audience and <code>client_id</code> binding,
+and agent claims per <span>[<a href="#CIA" class="cite xref">CIA</a>]</span> and <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. Reject an <code>act</code>
+claim in the CIA; this profile does not accept delegated input.<a href="#section-6.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.2">
+            <p id="section-6.2-2.2.1">Validate the DPoP proof for this token endpoint per <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>
+and match its JWK thumbprint to <code>cnf.jkt</code>. Use the CIA
+instance-assertion authentication procedure when that method
+is registered, substituting <code>subject_token</code> for its normal
+presentation slot. All authentication checks still apply.
+Otherwise, independently authenticate the registered client.<a href="#section-6.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.3">
+            <p id="section-6.2-2.3.1">Resolve the Registered Agent and runtime under <a href="#registry" class="auto internal xref">Section 4</a>.
+Evaluate current administrative status, attestation freshness,
+and authorization to execute as that agent. Resolve requested
+RAS and resource against approved application assignments.<a href="#section-6.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.4">
+            <p id="section-6.2-2.4.1">Compute granted scope as a nonempty subset of the requested
+scopes permitted by IdP policy for that agent and resource.
+The IdP <span class="bcp14">MUST NOT</span> import requester-supplied roles or groups as
+authority. Attribute sources follow the registry's policy.<a href="#section-6.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.5">
+            <p id="section-6.2-2.5.1">Atomically reject reuse of an accepted CIA <code>(iss, jti)</code> through
+its expiry, including accepted clock skew. Perform this replay
+check once for a successful request, even when the same CIA
+authenticates the client and supplies subject evidence.<a href="#section-6.2-2.5.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.2-2.6">
+            <p id="section-6.2-2.6.1">Issue a WAG per <a href="#grant" class="auto internal xref">Section 6.3</a> and record the canonical agent,
+originating runtime identity, key, target, authorization
+decision, and grant <code>jti</code> for audit.<a href="#section-6.2-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-6.2-3">A DPoP proof establishes key possession, not the key's authority
+to represent an agent. That authority comes from validated
+instance evidence and registry binding. The IdP <span class="bcp14">MUST NOT</span> bind a
+WAG to an arbitrary requester-selected key.<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="grant">
+<section id="section-6.3">
+        <h3 id="name-wag-contents">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-wag-contents" class="section-name selfRef">WAG Contents</a>
+        </h3>
+<p id="section-6.3-1">The WAG is a signed JWT (<span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>) conforming to <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> and
+the following additional requirements. JWS signing follows
+<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> and <span>[<a href="#RFC7518" class="cite xref">RFC7518</a>]</span>. The IdP <span class="bcp14">MUST</span> sign it with an approved
+asymmetric key published for its tenancy issuer. Its protected
+<code>typ</code> header <span class="bcp14">MUST</span> be <code>oauth-wag+jwt</code>.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-3">
+          <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Claim</th>
+              <th class="text-left" rowspan="1" colspan="1">Requirement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>iss</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Exact trusted IdP tenancy issuer</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sub</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Canonical Registered Agent identifier</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent_id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Equal to <code>sub</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>agent_instance_id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Canonical identifier of the validated runtime</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>aud</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Single string equal to the approved RAS issuer identifier</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>resource</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Single string equal to the approved target API URI</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>scope</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Nonempty scope string approved by the IdP</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>cnf</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Contains <code>jkt</code> equal to the validated instance key thumbprint</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>iat</code>, <code>exp</code>, <code>jti</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Issuance time, expiration time, and fresh unique grant identifier</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-6.3-3">The WAG <span class="bcp14">MUST NOT</span> contain <code>act</code>. A runtime implementing a
+Registered Agent does not create delegation from that agent to
+itself. The identifiers and provenance semantics are defined by
+<span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>; <code>sub</code> need not equal <code>agent_instance_id</code>.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+<p id="section-6.3-4">The time claims are NumericDate values; <code>exp</code> <span class="bcp14">MUST</span> be later than
+<code>iat</code> and no more than 300 seconds after it. The grant's expiration
+<span class="bcp14">MUST NOT</span> exceed the CIA expiration. The IdP <span class="bcp14">MUST</span> include only
+validated, sufficiently fresh provenance it is authorized to
+reassert. Optional WAG properties retain their issuer-scoped
+meaning and cannot expand the scope ceiling. Raw <code>agent_runtime</code>
+evidence <span class="bcp14">MUST NOT</span> be included in this profile's WAG; the IdP
+consumes it when evaluating issuance policy.<a href="#section-6.3-4" class="pilcrow">¶</a></p>
+<p id="section-6.3-5">The IdP <span class="bcp14">MUST</span> retain authority over canonical identity, status,
+and assignments even when another system attests runtime facts.
+Issuer trust does not imply that the IdP independently measured
+the runtime or model.<a href="#section-6.3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="exchange-response">
+<section id="section-6.4">
+        <h3 id="name-response">
+<a href="#section-6.4" class="section-number selfRef">6.4. </a><a href="#name-response" class="section-name selfRef">Response</a>
+        </h3>
+<p id="section-6.4-1">The successful RFC 8693 response <span class="bcp14">MUST</span> include:<a href="#section-6.4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.4-2.1">
+            <p id="section-6.4-2.1.1"><code>access_token</code>: the WAG JWT;<a href="#section-6.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.2">
+            <p id="section-6.4-2.2.1"><code>issued_token_type</code>: <code>urn:ietf:params:oauth:token-type:wag</code>;<a href="#section-6.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.3">
+            <p id="section-6.4-2.3.1"><code>token_type</code>: <code>N_A</code>;<a href="#section-6.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.4">
+            <p id="section-6.4-2.4.1"><code>expires_in</code>: the WAG's remaining lifetime in seconds; and<a href="#section-6.4-2.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.4-2.5">
+            <p id="section-6.4-2.5.1"><code>scope</code>: the scope approved in the WAG.<a href="#section-6.4-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.4-3">The IdP <span class="bcp14">MUST NOT</span> issue a refresh token in this response. The
+instance <span class="bcp14">MUST</span> verify that the returned token type is WAG and that
+the grant's target and binding agree with its request and key.
+A mismatch or absent binding is an error, not permission to retry
+without proof. Further WAGs require fresh evidence and another
+policy evaluation.<a href="#section-6.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="redemption">
+<section id="section-7">
+      <h2 id="name-redeeming-a-wag">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-redeeming-a-wag" class="section-name selfRef">Redeeming a WAG</a>
+      </h2>
+<p id="section-7-1">The instance presents the WAG in <code>assertion</code> with
+<code>grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer</code>, exactly
+one <code>resource</code>, and a fresh DPoP proof for the RAS token endpoint
+made with the same instance key. <code>scope</code> <span class="bcp14">MAY</span> request a subset of
+the WAG's scopes; omission requests the WAG's granted scopes.
+The request <span class="bcp14">MUST NOT</span> include <code>client_instance_assertion</code>,
+<code>actor_token</code>, or <code>actor_token_type</code>. Client authentication is
+not required at the RAS by this profile: the IdP grant and bound
+instance key establish the presenting principal. Separate client
+authentication, if required
+by deployment policy, <span class="bcp14">MUST NOT</span> alter that identity or relax the
+grant's restrictions.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">The RAS <span class="bcp14">MUST</span>:<a href="#section-7-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-7-3">
+<li id="section-7-3.1">
+          <p id="section-7-3.1.1">Validate the JWT signature, protected <code>typ</code>, allowed algorithm,
+exact trusted issuer, required claim types, and time claims.
+Enforce the lifetime bound in <a href="#grant" class="auto internal xref">Section 6.3</a> and reject future <code>iat</code>
+values beyond the configured clock-skew allowance.
+Resolve signing keys only within that issuer's trust record.<a href="#section-7-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-7-3.2">
+          <p id="section-7-3.2.1">Require <code>aud</code> to equal its issuer identifier and verify the
+issuer-to-local-tenancy authorization. Require the requested
+<code>resource</code> to equal the grant's resource and belong to that
+configured tenancy and RAS. Comparisons are exact strings;
+URI normalization <span class="bcp14">MUST NOT</span> establish identity or authorization.<a href="#section-7-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-7-3.3">
+          <p id="section-7-3.3.1">Resolve <code>(iss, sub)</code> to the registered workload principal under
+local policy. A local account <span class="bcp14">MAY</span> be created just in time under
+the trusted assignment policy; a grant <span class="bcp14">MUST NOT</span> create or
+reactivate a disabled account contrary to local policy.<a href="#section-7-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-7-3.4">
+          <p id="section-7-3.4.1">Require <code>agent_id == sub</code>, a valid runtime identifier, no <code>act</code>,
+and an instance <code>cnf.jkt</code>. Validate the DPoP proof per
+<span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> and require its key thumbprint to equal that value.<a href="#section-7-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-7-3.5">
+          <p id="section-7-3.5.1">Require any requested scope to be a subset of the WAG scope.
+Apply local authorization policy, issuing only a nonempty
+subset of both that request and the IdP-approved scope.<a href="#section-7-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-7-3.6">
+          <p id="section-7-3.6.1">Atomically reject reuse of an accepted <code>(iss, jti)</code> through the
+grant's expiration, including accepted clock skew, and issue
+a DPoP-bound access token for the approved resource and key.<a href="#section-7-3.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-7-4">The RAS <span class="bcp14">MUST NOT</span> issue a bearer access token or refresh token.
+The access-token response uses <code>token_type: DPoP</code> and reports its
+actual scope and lifetime. Access tokens <span class="bcp14">MUST</span> expire within 300
+seconds of issuance. They can outlive the redeemed WAG; expiry of
+a consumed grant is not access-token revocation.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<div id="resource-token">
+<section id="section-7.1">
+        <h3 id="name-resource-token-representati">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-resource-token-representati" class="section-name selfRef">Resource Token Representation</a>
+        </h3>
+<p id="section-7.1-1">Access tokens and active introspection responses <span class="bcp14">MUST</span> identify
+the Registered Agent as <code>sub</code>, include <code>sub_profile</code> containing
+<code>ai_agent</code>, and convey <code>agent_instance_id</code> and <code>cnf.jkt</code>. The RAS
+<span class="bcp14">MUST</span> use issuer-qualified subject and runtime mappings wherever
+accepted IdP namespaces could collide. It <span class="bcp14">MUST</span> retain the original
+IdP issuer, agent and runtime identifiers with token state. It
+<span class="bcp14">MUST NOT</span> label the registered principal <code>client_instance</code> merely
+because CIA authenticated one of its runtimes, or introduce <code>act</code>
+for that runtime. Provenance disclosure follows <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-2">This profile does not require a <code>client_id</code> at the RAS or in its
+access tokens. An implementation <span class="bcp14">MUST NOT</span> manufacture one by
+copying the grant issuer or subject. A token format that requires
+a client identifier needs a separate client identity arrangement.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
+<p id="section-7.1-3">The RAS <span class="bcp14">MUST</span> support authenticated <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> introspection for
+opaque tokens issued under this profile. JWT access tokens <span class="bcp14">MAY</span>
+also be supported under an agreed token format. The RS <span class="bcp14">MUST</span>
+validate token authenticity, audience, expiry, and DPoP binding
+before authorizing access. It applies its own permissions to the
+validated subject and scope; neither registry ownership nor a
+platform property is a portable permission assignment.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="lifecycle">
+<section id="section-8">
+      <h2 id="name-lifecycle-and-errors">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-lifecycle-and-errors" class="section-name selfRef">Lifecycle and Errors</a>
+      </h2>
+<p id="section-8-1">Disabling an agent, removing an assignment, or revoking platform
+issuer trust <span class="bcp14">MUST</span> prevent new WAG issuance once that change is
+applied at the IdP. Registry connectors <span class="bcp14">MUST</span> have an agreed
+maximum synchronization delay; exceeding it <span class="bcp14">MUST</span> prevent issuance
+that depends on the stale data. Local RAS disabling <span class="bcp14">MUST</span> prevent
+new access-token issuance for that principal.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">These changes do not automatically invalidate an already issued
+WAG or access token. With the lifetime limits above, an
+outstanding grant can produce at most another 300 seconds of
+access after its last valid redemption; deployments <span class="bcp14">MUST</span> account
+for clock skew and synchronization delay as well. Earlier
+termination requires deployment-supported revocation or status
+propagation. A runtime restart receives a new instance identifier;
+key rotation within the same instance retains its identifier and
+requires fresh attested key binding. Retired agent identifiers
+<span class="bcp14">MUST NOT</span> be reassigned.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3">Errors use <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>, <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>:<a href="#section-8-3" class="pilcrow">¶</a></p>
+<table class="center" id="table-4">
+        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Condition</th>
+            <th class="text-left" rowspan="1" colspan="1">Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Malformed request or forbidden actor/instance parameter</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_request</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">CIA validation fails when CIA is the registered client credential</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_client</code>, per CIA</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Invalid subject evidence with independent client authentication; unknown, disabled, or ambiguously bound agent</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_request</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Unapproved target RAS, resource, or tenancy at the IdP</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_target</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Invalid or wholly unauthorized requested scope</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_scope</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Invalid, expired, replayed, mistargeted, or incorrectly bound WAG at the RAS</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_grant</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Malformed DPoP proof or nonce challenge</td>
+            <td class="text-left" rowspan="1" colspan="1">DPoP error/challenge per RFC 9449, subject to CIA authentication error handling</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="section-8-5">The IdP and RAS <span class="bcp14">MUST NOT</span> fall back to a different grant profile
+or bearer processing after a profile validation failure. Error
+responses <span class="bcp14">SHOULD</span> avoid exposing whether unrelated agents exist.<a href="#section-8-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security">
+<section id="section-9">
+      <h2 id="name-security-and-privacy-consid">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-and-privacy-consid" class="section-name selfRef">Security and Privacy Considerations</a>
+      </h2>
+<p id="section-9-1">The security considerations of <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>, <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>, <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>,
+<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>, <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span>, and <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span> apply. Registry writers
+and federation-binding administrators control who can obtain
+authority as an agent. The IdP <span class="bcp14">MUST</span> authenticate these operations,
+limit each source to its approved namespace and attributes, and
+audit changes. Syncing an agent from another platform <span class="bcp14">MUST NOT</span>
+merge identities based on names or overwrite enterprise policy.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">Keys <span class="bcp14">MUST</span> be instance-specific. Sharing a platform credential
+cannot substitute for runtime proof. Replay caches must cover all
+accepting nodes for each issuer and endpoint service. DPoP proofs
+are fresh for each endpoint; proof for the IdP cannot be reused at
+the RAS or RS. Logs <span class="bcp14">MUST NOT</span> record raw grants, credentials, or
+private keys. Audits should retain issuer-qualified identities and
+policy decisions while minimizing model and runtime disclosure.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-3">The IdP <span class="bcp14">MUST</span> evaluate current registry state at each issuance.
+Valid signatures alone do not establish current model state,
+platform membership, or application assignment. Registry polling,
+evidence lifetime, WAG lifetime, and access-token lifetime each
+contribute separately to the stale-authorization window.<a href="#section-9-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="conformance">
+<section id="section-10">
+      <h2 id="name-conformance">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-conformance" class="section-name selfRef">Conformance</a>
+      </h2>
+<p id="section-10-1">An IdP conforms by implementing the CIA subject-token input and
+DPoP baseline, registry checks, discovery, WAG issuance, errors,
+and lifecycle rules above. A RAS conforms by implementing the
+advertised WAG validation, DPoP token issuance, subject resolution,
+and resource-token rules. An instance conforms by implementing
+the baseline exchange and redemption, verifying the output type
+and key binding, and supporting DPoP nonce challenges.<a href="#section-10-1" class="pilcrow">¶</a></p>
+<p id="section-10-2">Implementations <span class="bcp14">MUST</span> pass at least these interoperability cases:<a href="#section-10-2" class="pilcrow">¶</a></p>
+<table class="center" id="table-5">
+        <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Case</th>
+            <th class="text-left" rowspan="1" colspan="1">Required result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Trusted CIA, active bound agent, approved target, matching key</td>
+            <td class="text-left" rowspan="1" colspan="1">WAG, then DPoP-bound resource token</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Two runtimes for one registered agent</td>
+            <td class="text-left" rowspan="1" colspan="1">Same grant subject, distinct runtime identifiers and keys</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Key rotation with fresh evidence</td>
+            <td class="text-left" rowspan="1" colspan="1">Same agent/runtime identifiers, new key binding</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Same platform agent ID from a different unapproved issuer</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject registry resolution</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Disabled agent or removed application assignment</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject new WAG issuance</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Requester tries to substitute another agent or binding key</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">CIA or WAG replay</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject second accepted use</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Wrong RAS, resource, local tenancy, or broadened scope</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">User/delegated evidence or actor-token request</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Missing profile capability or grant confirmation</td>
+            <td class="text-left" rowspan="1" colspan="1">No bearer or generic-JWT fallback</td>
+          </tr>
+        </tbody>
+      </table>
+</section>
+</div>
+<div id="iana">
+<section id="section-11">
+      <h2 id="name-iana-considerations">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<div id="authorization-server-metadata">
+<section id="section-11.1">
+        <h3 id="name-authorization-server-metada">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-authorization-server-metada" class="section-name selfRef">Authorization Server Metadata</a>
+        </h3>
+<p id="section-11.1-1">IANA is requested to register <code>workload_agent_federation</code> in the
+"OAuth Authorization Server Metadata" registry:<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-11.1-2">
+          <dt id="section-11.1-2.1">Metadata Name:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.1-2.2">
+            <p id="section-11.1-2.2.1"><code>workload_agent_federation</code><a href="#section-11.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.1-2.3">Metadata Description:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.1-2.4">
+            <p id="section-11.1-2.4.1">Workload Agent Federation roles, input token types, and WAG
+signing algorithms supported by an authorization server<a href="#section-11.1-2.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.1-2.5">Change Controller:</dt>
+          <dd style="margin-left: 1.5em" id="section-11.1-2.6">
+            <p id="section-11.1-2.6.1">IETF<a href="#section-11.1-2.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-11.1-2.7">Specification Document(s):</dt>
+          <dd style="margin-left: 1.5em" id="section-11.1-2.8">
+            <p id="section-11.1-2.8.1"><a href="#metadata" class="auto internal xref">Section 5</a> of this document<a href="#section-11.1-2.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="wag-coordination">
+<section id="section-11.2">
+        <h3 id="name-coordination-with-wag">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-coordination-with-wag" class="section-name selfRef">Coordination with WAG</a>
+        </h3>
+<p id="section-11.2-1"><strong>Editor's note:</strong> <code>urn:ietf:params:oauth:token-type:wag</code> and
+<code>oauth-wag+jwt</code> are proposed, unassigned identifiers used here to
+make the draft exchange precise. Their generic definitions and
+OAuth URI and media-type registrations belong in <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> and
+must be coordinated there before publication. This document does
+not claim that those registrations already exist. The required
+<code>resource</code> and <code>scope</code> processing is a constraint of this
+federation profile. The agent claims are registered by <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>,
+and the CIA token type by <span>[<a href="#CIA" class="cite xref">CIA</a>]</span>.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-12">
+      <h2 id="name-references">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-12.1">
+        <h3 id="name-normative-references">
+<a href="#section-12.1" class="section-number selfRef">12.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="RFC6749">[RFC6749]</dt>
+        <dd>
+<span class="refAuthor">Hardt, D., Ed.</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework"</span>, <span class="seriesInfo">RFC 6749</span>, <span class="seriesInfo">DOI 10.17487/RFC6749</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7515">https://www.rfc-editor.org/rfc/rfc7515</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7518">[RFC7518]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refTitle">"JSON Web Algorithms (JWA)"</span>, <span class="seriesInfo">RFC 7518</span>, <span class="seriesInfo">DOI 10.17487/RFC7518</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7518">https://www.rfc-editor.org/rfc/rfc7518</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7519">[RFC7519]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7523">[RFC7523]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Campbell, B.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants"</span>, <span class="seriesInfo">RFC 7523</span>, <span class="seriesInfo">DOI 10.17487/RFC7523</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7523">https://www.rfc-editor.org/rfc/rfc7523</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7662">[RFC7662]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8414">[RFC8414]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Sakimura, N.</span>, and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 Authorization Server Metadata"</span>, <span class="seriesInfo">RFC 8414</span>, <span class="seriesInfo">DOI 10.17487/RFC8414</span>, <time datetime="2018-06" class="refDate">June 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8414">https://www.rfc-editor.org/rfc/rfc8414</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8693">[RFC8693]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Nadalin, A.</span>, <span class="refAuthor">Campbell, B., Ed.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"OAuth 2.0 Token Exchange"</span>, <span class="seriesInfo">RFC 8693</span>, <span class="seriesInfo">DOI 10.17487/RFC8693</span>, <time datetime="2020-01" class="refDate">January 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8693">https://www.rfc-editor.org/rfc/rfc8693</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8707">[RFC8707]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">H. Tschofenig</span>, <span class="refTitle">"Resource Indicators for OAuth 2.0"</span>, <span class="seriesInfo">RFC 8707</span>, <span class="seriesInfo">DOI 10.17487/RFC8707</span>, <time datetime="2020-02" class="refDate">February 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8707">https://www.rfc-editor.org/rfc/rfc8707</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8725">[RFC8725]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span>, <span class="refAuthor">Hardt, D.</span>, and <span class="refAuthor">M. Jones</span>, <span class="refTitle">"JSON Web Token Best Current Practices"</span>, <span class="seriesInfo">BCP 225</span>, <span class="seriesInfo">RFC 8725</span>, <span class="seriesInfo">DOI 10.17487/RFC8725</span>, <time datetime="2020-02" class="refDate">February 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8725">https://www.rfc-editor.org/rfc/rfc8725</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9449">[RFC9449]</dt>
+        <dd>
+<span class="refAuthor">Fett, D.</span>, <span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Lodderstedt, T.</span>, <span class="refAuthor">Jones, M.</span>, and <span class="refAuthor">D. Waite</span>, <span class="refTitle">"OAuth 2.0 Demonstrating Proof of Possession (DPoP)"</span>, <span class="seriesInfo">RFC 9449</span>, <span class="seriesInfo">DOI 10.17487/RFC9449</span>, <time datetime="2023-09" class="refDate">September 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9449">https://www.rfc-editor.org/rfc/rfc9449</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="CIA">[CIA]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Instance Assertion"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-client-instance-assertion-01</span>, <time datetime="2026-06-24" class="refDate">24 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion-01">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion-01</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="AGENT">[AGENT]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 AI Agent Instance Profile"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-ai-agent-instance-00</span>, <time datetime="2026-07-04" class="refDate">4 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WAG">[WAG]</dt>
+        <dd>
+<span class="refAuthor">Carleton, P.</span>, <span class="refTitle">"Workload Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-carleton-workload-authz-grant-00</span>, <time datetime="2026-08-03" class="refDate">3 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-00">https://datatracker.ietf.org/doc/html/draft-carleton-workload-authz-grant-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-12.2">
+        <h3 id="name-informative-references">
+<a href="#section-12.2" class="section-number selfRef">12.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="ID-JAG">[ID-JAG]</dt>
+        <dd>
+<span class="refAuthor">Parecki, A.</span>, <span class="refAuthor">McGuinness, K.</span>, and <span class="refAuthor">B. Campbell</span>, <span class="refTitle">"Identity Assertion JWT Authorization Grant"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-identity-assertion-authz-grant-04</span>, <time datetime="2026-05-21" class="refDate">21 May 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SCIM-AGENT">[SCIM-AGENT]</dt>
+      <dd>
+<span class="refAuthor">Wahl, M.</span>, <span class="refAuthor">Zollner, D.</span>, <span class="refAuthor">Dingle, P.</span>, and <span class="refAuthor">I. Kazzouzi</span>, <span class="refTitle">"AI Agent Resource Extension for the System for Cross-domain Identity Management (SCIM)"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-wzdk-scim-agent-resource-00</span>, <time datetime="2026-06-05" class="refDate">5 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00">https://datatracker.ietf.org/doc/html/draft-wzdk-scim-agent-resource-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="example">
+<section id="appendix-A">
+      <h2 id="name-example">
+<a href="#name-example" class="section-name selfRef">Example</a>
+      </h2>
+<p id="appendix-A-1">The IdP <code>https://idp.example/tenants/acme</code> has approved client
+<code>https://platform.example/client</code>, whose instance issuer is
+<code>https://runtime.platform.example</code>. An active registry entry
+maps that issuer, client, and platform agent ID
+<code>urn:platform:agent:support</code> to <code>urn:acme:agent:42</code>. The entry
+permits <code>issues.read</code> at resource <code>https://support.example/api</code>
+through RAS <code>https://as.support.example</code>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">The platform authenticates runtime <code>run-7</code>, verifies its agent
+membership, and issues this CIA. Signature and key values are
+abbreviated throughout; line breaks in forms are for display.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-3">
+<pre>
+{
+  "iss": "https://runtime.platform.example",
+  "sub": "https://runtime.platform.example/instances/run-7",
+  "aud": "https://idp.example/tenants/acme",
+  "client_id": "https://platform.example/client",
+  "agent_id": "urn:platform:agent:support",
+  "agent_instance_id":
+    "https://runtime.platform.example/instances/run-7",
+  "agent_platform": "urn:example:orchestrator:v5",
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135200,
+  "exp": 1789135500,
+  "jti": "cia-run-7-1"
+}
+</pre><a href="#appendix-A-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-4">The client is registered for instance-assertion authentication,
+so the CIA and DPoP proof also authenticate the client at the IdP:<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-5">
+<pre>
+POST /tenants/acme/token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: &lt;proof for the IdP endpoint signed by the instance key&gt;
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
+&amp;requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Awag
+&amp;subject_token=eyJ...agent-profiled-cia...
+&amp;subject_token_type=
+  urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aclient-instance-jwt
+&amp;client_id=https%3A%2F%2Fplatform.example%2Fclient
+&amp;audience=https%3A%2F%2Fas.support.example
+&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
+&amp;scope=issues.read
+</pre><a href="#appendix-A-5" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-6">After registry and authorization checks, the IdP returns:<a href="#appendix-A-6" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-7">
+<pre>
+{
+  "access_token": "eyJ...workload-authorization-grant...",
+  "issued_token_type": "urn:ietf:params:oauth:token-type:wag",
+  "token_type": "N_A",
+  "expires_in": 290,
+  "scope": "issues.read"
+}
+</pre><a href="#appendix-A-7" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-8">The decoded WAG uses the IdP's canonical identities and a protected
+header with <code>typ: oauth-wag+jwt</code> and <code>alg: ES256</code>:<a href="#appendix-A-8" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-9">
+<pre>
+{
+  "iss": "https://idp.example/tenants/acme",
+  "sub": "urn:acme:agent:42",
+  "agent_id": "urn:acme:agent:42",
+  "agent_instance_id": "urn:acme:instance:run-7",
+  "aud": "https://as.support.example",
+  "resource": "https://support.example/api",
+  "scope": "issues.read",
+  "agent_platform": "urn:example:orchestrator:v5",
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135210,
+  "exp": 1789135500,
+  "jti": "wag-agent-42-1"
+}
+</pre><a href="#appendix-A-9" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-10">The instance redeems it at the RAS without a downstream client
+registration or another CIA:<a href="#appendix-A-10" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-11">
+<pre>
+POST /token HTTP/1.1
+Host: as.support.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: &lt;fresh proof for the RAS signed by the same instance key&gt;
+
+grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
+&amp;assertion=eyJ...workload-authorization-grant...
+&amp;resource=https%3A%2F%2Fsupport.example%2Fapi
+&amp;scope=issues.read
+</pre><a href="#appendix-A-11" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-12">The RAS returns a DPoP access token. An illustrative active
+introspection response is below; the RAS's mapping gives the
+registered agent and runtime unambiguous local identifiers:<a href="#appendix-A-12" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-13">
+<pre>
+{
+  "active": true,
+  "sub": "acme-agent-42",
+  "sub_profile": "ai_agent",
+  "agent_instance_id": "acme-instance-run-7",
+  "aud": "https://support.example/api",
+  "scope": "issues.read",
+  "token_type": "DPoP",
+  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
+  "iat": 1789135220,
+  "exp": 1789135520
+}
+</pre><a href="#appendix-A-13" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-14">There is no <code>act</code>: the registered agent is acting as itself through
+one authenticated runtime. A second runtime maps to the same
+registered subject with a different instance identifier and key.<a href="#appendix-A-14" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="document-history">
+<section id="appendix-B">
+      <h2 id="name-document-history">
+<a href="#name-document-history" class="section-name selfRef">Document History</a>
+      </h2>
+<p id="appendix-B-1"><em>RFC EDITOR: please remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<div id="section">
+<section id="appendix-B.1">
+        <h3 id="name-00">
+<a href="#name-00" class="section-name selfRef">-00</a>
+        </h3>
+<ul class="normal">
+<li class="normal" id="appendix-B.1-1.1">
+            <p id="appendix-B.1-1.1.1">Initial version.<a href="#appendix-B.1-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-C">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-C-1">The author thanks participants in the OAuth, WIMSE, and SCIM
+communities for work on agent identity and workload federation.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-D">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Karl McGuinness</span></div>
+<div dir="auto" class="left"><span class="org">Independent</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:public@karlmcguinness.com" class="email">public@karlmcguinness.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
