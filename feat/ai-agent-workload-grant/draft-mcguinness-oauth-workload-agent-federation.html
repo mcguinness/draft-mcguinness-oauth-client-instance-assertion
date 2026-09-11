@@ -1238,16 +1238,33 @@ acting for a user through the OAuth Actor Profile.<a href="#section-abstract-1" 
             <p id="section-toc.1-1.11.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-deployment-and-compatibilit" class="internal xref">Deployment and Compatibility</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-interoperability-cases" class="internal xref">Interoperability Cases</a></p>
+            <p id="section-toc.1-1.12.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-end-to-end-deployment-examp" class="internal xref">End-to-End Deployment Examples</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-spiffe-workload-to-idp" class="internal xref">SPIFFE Workload to IdP</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-B.2" class="auto internal xref"></a><a href="#name-harness-on-a-managed-device" class="internal xref">Harness on a Managed Device</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
+                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-B.3" class="auto internal xref"></a><a href="#name-harness-in-a-managed-platfo" class="internal xref">Harness in a Managed Platform</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
+                <p id="section-toc.1-1.12.2.4.1"><a href="#appendix-B.4" class="auto internal xref"></a><a href="#name-downstream-application-proc" class="internal xref">Downstream Application Processing</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-coordination-with-related-w" class="internal xref">Coordination with Related Work</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-interoperability-cases" class="internal xref">Interoperability Cases</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.14.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-coordination-with-related-w" class="internal xref">Coordination with Related Work</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.15.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -1284,7 +1301,8 @@ and their downstream processing come from WAG, ID-JAG, and
 This document does not define another downstream grant profile.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">Existing client-based delegation, including MCP Enterprise-Managed
 Authorization, does not require this flow. Model selection is described in
-<a href="#models" class="auto internal xref">Section 1.2</a> and compatibility guidance in <a href="#deployment" class="auto internal xref">Appendix "Deployment and Compatibility"</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<a href="#models" class="auto internal xref">Section 1.2</a> and compatibility guidance in <a href="#deployment" class="auto internal xref">Appendix "Deployment and Compatibility"</a>.
+End-to-end deployment examples appear in <a href="#flows" class="auto internal xref">Appendix "End-to-End Deployment Examples"</a>.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <div id="relationship-to-client-attestation-and-actor-profile">
 <section id="section-1.1">
         <h3 id="name-relationship-to-client-atte">
@@ -2078,6 +2096,14 @@ registered. WAG identifiers are addressed in <a href="#coordination" class="auto
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC8252">[RFC8252]</dt>
+        <dd>
+<span class="refAuthor">Denniss, W.</span> and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 for Native Apps"</span>, <span class="seriesInfo">BCP 212</span>, <span class="seriesInfo">RFC 8252</span>, <span class="seriesInfo">DOI 10.17487/RFC8252</span>, <time datetime="2017-10" class="refDate">October 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8252">https://www.rfc-editor.org/rfc/rfc8252</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SPIFFE-CONCEPTS">[SPIFFE-CONCEPTS]</dt>
+        <dd>
+<span class="refAuthor">SPIFFE</span>, <span class="refTitle">"SPIFFE Concepts"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/">https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="EMA">[EMA]</dt>
         <dd>
 <span class="refAuthor">Model Context Protocol</span>, <span class="refTitle">"MCP Enterprise-Managed Authorization"</span>, <time datetime="2026" class="refDate">2026</time>, <span>&lt;<a href="https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx">https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx</a>&gt;</span>. </dd>
@@ -2140,17 +2166,390 @@ synchronization, policy engines, access-token formats, and introspection
 <p id="appendix-A-5">Native workload mechanisms such as <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> can support
 additional input profiles. Those profiles need their own credential
 validation, client and agent mapping, and proof rules. They are not
-interchangeable with the Client Attestation input specified here.<a href="#appendix-A-5" class="pilcrow">¶</a></p>
+interchangeable with the Client Attestation input specified here.
+The direct SPIFFE example in <a href="#spiffe-flow" class="auto internal xref">Appendix "SPIFFE Workload to IdP"</a> illustrates this boundary.<a href="#appendix-A-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="flows">
+<section id="appendix-B">
+      <h2 id="name-end-to-end-deployment-examp">
+<a href="#name-end-to-end-deployment-examp" class="section-name selfRef">End-to-End Deployment Examples</a>
+      </h2>
+<p id="appendix-B-1">This appendix is informative. A harness is the software executing
+the agent and making OAuth requests. These examples separate its
+hosting environment, authentication evidence, and acting relationship:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-4">
+        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Deployment</th>
+            <th class="text-left" rowspan="1" colspan="1">Evidence accepted by IdP</th>
+            <th class="text-left" rowspan="1" colspan="1">Identity model</th>
+            <th class="text-left" rowspan="1" colspan="1">Example output</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SPIFFE workload</td>
+            <td class="text-left" rowspan="1" colspan="1">X.509-SVID and DPoP</td>
+            <td class="text-left" rowspan="1" colspan="1">Agent is the client</td>
+            <td class="text-left" rowspan="1" colspan="1">Self-acting WAG; proposed native input extension</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Harness on managed device</td>
+            <td class="text-left" rowspan="1" colspan="1">Enterprise Client Attestation and DPoP</td>
+            <td class="text-left" rowspan="1" colspan="1">Agent is the client</td>
+            <td class="text-left" rowspan="1" colspan="1">User-delegated ID-JAG</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Harness in managed platform</td>
+            <td class="text-left" rowspan="1" colspan="1">Platform Client Attestation and DPoP</td>
+            <td class="text-left" rowspan="1" colspan="1">Agents share a client</td>
+            <td class="text-left" rowspan="1" colspan="1">Self-acting WAG, with delegated variant</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="appendix-B-3">In each example, the IdP maintains the agent's status, owner, groups,
+and application assignments. Before issuance, it establishes the
+external identity binding and trusts the relevant credential issuer.
+The RAS trusts the IdP at <code>https://idp.example/tenant/acme</code> as grant
+issuer. Administrative configuration, JIT, or SCIM can establish
+the downstream agent record, correlated by IdP issuer and agent
+identifier. Receiving a grant does not by itself provision a record
+or authorize every scope.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
+<p id="appendix-B-4">The examples request <code>tickets.read</code> at <code>https://api.app.example</code>
+through the RAS <code>https://as.app.example</code>. Each harness controls its
+own key, denoted <code>K</code>; <code>JKT(K)</code> denotes its thumbprint. JWKs sent to
+attesters contain only public keys. IdP requests use the authentication
+described in each example, with fresh proofs for the respective
+endpoints. The illustrated RAS
+issues DPoP access tokens bound to that key, an explicit deployment
+choice under <a href="#consumption" class="auto internal xref">Section 6</a>. WAG issuance and redemption remain
+subject to <a href="#coordination" class="auto internal xref">Appendix "Coordination with Related Work"</a>.<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+<div id="spiffe-flow">
+<section id="appendix-B.1">
+        <h3 id="name-spiffe-workload-to-idp">
+<a href="#name-spiffe-workload-to-idp" class="section-name selfRef">SPIFFE Workload to IdP</a>
+        </h3>
+<p id="appendix-B.1-1">Use this model when the workload already has a SPIFFE identity
+representing the agent. This example uses X.509-SVID client
+authentication under <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>. Its integration with agent
+acquisition and exchange is a proposed input extension, not an
+alternative conformance path defined by this document.<a href="#appendix-B.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-B.1-2">
+<pre>
+ Workload           Harness            IdP          RAS         API
+    API
+     |                 |                |            |           |
+     |&lt;-- get SVID ----|                |            |           |
+     |-- X.509-SVID --&gt;|                |            |           |
+     |                 |- credentials -&gt;|            |           |
+     |                 |&lt;--- IdP AT ----|            |           |
+     |                 |--- exchange --&gt;|            |           |
+     |                 |&lt;---- WAG ------|            |           |
+     |                 |-------- WAG + DPoP --------&gt;|           |
+     |                 |&lt;--------- app AT -----------|           |
+     |                 |------------- app AT + DPoP ------------&gt;|
+     |                 |&lt;--------------- tickets ----------------|
+</pre><a href="#appendix-B.1-2" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-B.1-3">
+<li id="appendix-B.1-3.1">
+            <p id="appendix-B.1-3.1.1">The harness obtains an X.509-SVID for
+<code>spiffe://workloads.example/agents/support</code> from its Workload API.
+The IdP has approved that exact identity and trust domain for
+Registered Agent <code>agent-42</code>; trusting the domain alone does not
+admit every workload as that agent.<a href="#appendix-B.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.1-3.2">
+            <p id="appendix-B.1-3.2.1">The harness sends a client credentials request to the IdP over
+mutually authenticated TLS, with that SPIFFE ID as <code>client_id</code>
+and the IdP issuer as <code>resource</code>. A DPoP proof establishes a
+separate application key <code>K</code>. The IdP validates the SVID using
+the configured SPIFFE trust bundle and resolves the agent binding.<a href="#appendix-B.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.1-3.3">
+            <p id="appendix-B.1-3.3.1">Under the proposed input extension, the IdP issues an access
+token with <code>sub=agent-42</code>, the SPIFFE ID as <code>client_id</code>, its own
+issuer as <code>aud</code>, and <code>cnf.jkt=JKT(K)</code>. The TLS credential
+authenticates the workload; <code>K</code> binds the issued token.<a href="#appendix-B.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.1-3.4">
+            <p id="appendix-B.1-3.4.1">The harness requests WAG using that access token as
+<code>subject_token</code>, the target RAS as <code>audience</code>, and the API and
+scope above. It again authenticates with its SVID and proves
+possession of <code>K</code>. The IdP checks the current binding and policy
+before issuing WAG with <code>sub=agent-42</code> and no <code>act</code>.<a href="#appendix-B.1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.1-3.5">
+            <p id="appendix-B.1-3.5.1">The harness redeems WAG at the RAS with a fresh proof from <code>K</code>,
+receives the application access token, and calls the API. The
+downstream processing is described in <a href="#app-consumption" class="auto internal xref">Appendix "Downstream Application Processing"</a>.<a href="#appendix-B.1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-B.1-4">The illustrative bootstrap request is sent over the mutually
+authenticated TLS connection established with the X.509-SVID:<a href="#appendix-B.1-4" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="appendix-B.1-5">
+<pre>
+POST /token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: eyJ...workload-key-proof...
+
+grant_type=client_credentials
+&amp;client_id=spiffe%3A%2F%2Fworkloads.example%2Fagents%2Fsupport
+&amp;resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
+</pre><a href="#appendix-B.1-5" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B.1-6">The missing input profile needs to replace the ATTEST-specific
+checks in <a href="#bootstrap" class="auto internal xref">Section 4</a> and <a href="#idp-processing" class="auto internal xref">Section 5.3</a>, define native
+credential renewal and exchange eligibility, and settle runtime
+correlation. A SPIFFE workload can have several instances
+<span>[<a href="#SPIFFE-CONCEPTS" class="cite xref">SPIFFE-CONCEPTS</a>]</span>; neither its SPIFFE ID nor a rotating certificate
+fingerprint supplies the stable instance identifier required here.
+The example therefore does not invent <code>client_instance_id</code> from
+either value. A SPIFFE-backed attester could instead issue a
+conforming Client Attestation after validating runtime and key
+evidence, but that is a separate attestation step.<a href="#appendix-B.1-6" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="device-flow">
+<section id="appendix-B.2">
+        <h3 id="name-harness-on-a-managed-device">
+<a href="#name-harness-on-a-managed-device" class="section-name selfRef">Harness on a Managed Device</a>
+        </h3>
+<p id="appendix-B.2-1">Use this model when an enterprise governs a desktop agent as a
+Registered Agent with its own client identity. The example binds
+<code>client_id=https://desktop.example/agents/dev-17</code> to <code>agent-17</code>.
+The IdP trusts <code>https://devices.example/attester</code> to attest this client.
+The managed device, the agent, and the running harness are different
+entities; device enrollment does not itself authorize user delegation.<a href="#appendix-B.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-B.2-2">
+<pre>
+Enterprise         Harness      User/browser     IdP      RAS     API
+attester
+    |                 |               |           |        |       |
+    |&lt; evidence, JWK -|               |           |        |       |
+    |-- attestation -&gt;|               |           |        |       |
+    |                 |-- credentials + ATTEST --&gt;|        |       |
+    |                 |&lt;-------- IdP AT ----------|        |       |
+    |                 |--- sign-in --&gt;|           |        |       |
+    |                 |               |- sign-in &gt;|        |       |
+    |                 |               |&lt;- code ---|        |       |
+    |                 |&lt;--- code -----|           |        |       |
+    |                 |------- code + PKCE ------&gt;|        |       |
+    |                 |&lt;------- ID Token ---------|        |       |
+    |                 |-- user + actor exchange -&gt;|        |       |
+    |                 |&lt;-------- ID-JAG ----------|        |       |
+    |                 |---------- ID-JAG + DPoP ----------&gt;|       |
+    |                 |&lt;------------- app AT --------------|       |
+    |                 |-------------- app AT + DPoP --------------&gt;|
+    |                 |&lt;---------------- tickets ------------------|
+</pre><a href="#appendix-B.2-2" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-B.2-3">
+<li id="appendix-B.2-3.1">
+            <p id="appendix-B.2-3.1.1">The harness generates <code>K</code>. The enterprise attester validates
+the managed-device evidence, permitted harness, agent assignment,
+and key possession. It issues a Client Attestation with the
+agent's client identifier as <code>sub</code>, <code>client_instance_id=run-d17</code>,
+and <code>cnf.jwk</code> containing <code>K</code>'s public key. There is no <code>agent_id</code>.
+Device identifiers stay in enterprise records. Evidence formats
+and the attestation issuance API are deployment-specific, as
+in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>.<a href="#appendix-B.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.2-3.2">
+            <p id="appendix-B.2-3.2.1">The harness follows <a href="#bootstrap" class="auto internal xref">Section 4</a> with ATTEST DPoP combined-mode
+authentication. The returned IdP access token identifies
+<code>agent-17</code>, its client and instance, and <code>JKT(K)</code>.<a href="#appendix-B.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.2-3.3">
+            <p id="appendix-B.2-3.3.1">The user signs in through an external browser using an
+authorization code flow with PKCE, following <span>[<a href="#RFC8252" class="cite xref">RFC8252</a>]</span>.
+Code redemption also uses the client's configured authentication.
+The resulting user ID Token is intended for this client. The
+enterprise records user or administrator approval for this agent
+to read tickets for that user; sign-in alone is not that approval.<a href="#appendix-B.2-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.2-3.4">
+            <p id="appendix-B.2-3.4.1">The harness follows <a href="#delegated-exchange" class="auto internal xref">Section 5.2</a>, sending the user
+ID Token as <code>subject_token</code> and the IdP access token as
+<code>actor_token</code>, with fresh ATTEST authentication. The IdP validates
+both identities and the delegation, then issues ID-JAG with
+<code>sub=user-17</code>, <code>act={iss: IdP, sub: agent-17, sub_profile: ai_agent}</code>,
+and the downstream client identifier <code>dev-agent-at-app</code>.<a href="#appendix-B.2-3.4.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.2-3.5">
+            <p id="appendix-B.2-3.5.1">The harness redeems ID-JAG and accesses the API as described in
+<a href="#app-consumption" class="auto internal xref">Appendix "Downstream Application Processing"</a>. The device attester and device record do not
+become actors in that request.<a href="#appendix-B.2-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-B.2-4">If the enterprise only needs existing client-based delegation, the
+harness can use the ID-JAG/EMA path in <a href="#deployment" class="auto internal xref">Appendix "Deployment and Compatibility"</a> without the
+agent bootstrap and actor token. A desktop harness shared by several
+separately governed agents instead uses the shared-client binding
+illustrated in <a href="#platform-flow" class="auto internal xref">Appendix "Harness in a Managed Platform"</a>. Device hosting does not select
+the identity model automatically.<a href="#appendix-B.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="platform-flow">
+<section id="appendix-B.3">
+        <h3 id="name-harness-in-a-managed-platfo">
+<a href="#name-harness-in-a-managed-platfo" class="section-name selfRef">Harness in a Managed Platform</a>
+        </h3>
+<p id="appendix-B.3-1">Use this model when a hosting platform runs separately governed
+agents through one OAuth client. The IdP approves the platform
+attester <code>https://attester.example/tenant/acme</code> for shared client
+<code>https://platform.example/oauth-client</code>, mapping its
+<code>agent_id=support-agent-7</code> to Registered Agent <code>agent-42</code>.<a href="#appendix-B.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-B.3-2">
+<pre>
+ Platform           Harness            IdP          RAS         API
+ attester
+     |                 |                |            |           |
+     |-- start agent -&gt;|                |            |           |
+     |&lt; runtime, JWK --|                |            |           |
+     |-- attestation -&gt;|                |            |           |
+     |                 |- credentials -&gt;|            |           |
+     |                 |&lt;--- IdP AT ----|            |           |
+     |                 |--- exchange --&gt;|            |           |
+     |                 |&lt;---- WAG ------|            |           |
+     |                 |-------- WAG + DPoP --------&gt;|           |
+     |                 |&lt;--------- app AT -----------|           |
+     |                 |------------- app AT + DPoP ------------&gt;|
+     |                 |&lt;--------------- tickets ----------------|
+</pre><a href="#appendix-B.3-2" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-B.3-3">
+<li id="appendix-B.3-3.1">
+            <p id="appendix-B.3-3.1.1">The control plane launches <code>support-agent-7</code>. Its harness
+generates <code>K</code>. The attester verifies the launch assignment,
+runtime isolation, and key possession, then issues an attestation
+with <code>sub</code> equal to the shared client, <code>agent_id=support-agent-7</code>,
+<code>client_instance_id=run-p42</code>, and <code>cnf.jwk</code> containing the public
+key. The harness cannot select another agent merely by naming it.<a href="#appendix-B.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.3-3.2">
+            <p id="appendix-B.3-3.2.1">The harness follows <a href="#bootstrap" class="auto internal xref">Section 4</a>, sending the shared <code>client_id</code>.
+The IdP resolves <code>(iss, sub, agent_id)</code> and returns an access token
+with <code>sub=agent-42</code>, the shared <code>client_id</code>, validated instance
+context, and <code>cnf.jkt=JKT(K)</code>.<a href="#appendix-B.3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.3-3.3">
+            <p id="appendix-B.3-3.3.1">For unattended ticket processing, the harness follows
+<a href="#self-exchange" class="auto internal xref">Section 5.1</a>. The IdP authorizes access using <code>agent-42</code>'s
+assignments and issues WAG with <code>sub=agent-42</code>, no <code>act</code>, and the
+same key binding. The harness redeems it and calls the API as
+described in <a href="#app-consumption" class="auto internal xref">Appendix "Downstream Application Processing"</a>.<a href="#appendix-B.3-3.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.3-3.4">
+            <p id="appendix-B.3-3.4.1">For user-delegated work, the harness instead follows
+<a href="#delegated-exchange" class="auto internal xref">Section 5.2</a> with an accepted user credential and the
+agent access token. After checking delegation approval, the IdP
+issues ID-JAG with the user as <code>sub</code> and <code>agent-42</code> as <code>act</code>.
+The hosting platform is client context, not an additional actor.<a href="#appendix-B.3-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-B.3-4">A second runtime for this agent gets a different instance identifier
+and key, but the same <code>agent-42</code> principal. A different agent behind
+the shared client has its own binding and permissions. The IdP
+does not infer equivalent authority from the common client identity.<a href="#appendix-B.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="app-consumption">
+<section id="appendix-B.4">
+        <h3 id="name-downstream-application-proc">
+<a href="#name-downstream-application-proc" class="section-name selfRef">Downstream Application Processing</a>
+        </h3>
+<p id="appendix-B.4-1">All three examples finish at the same application trust boundary:<a href="#appendix-B.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-B.4-2">
+<li id="appendix-B.4-2.1">
+            <p id="appendix-B.4-2.1.1">The harness presents the IdP-issued grant to the RAS using the
+selected grant's redemption procedure and configured client
+authentication, including ID-JAG's downstream client binding.
+Its DPoP proof uses the key named by the grant's <code>cnf.jkt</code>.<a href="#appendix-B.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.4-2.2">
+            <p id="appendix-B.4-2.2.1">The RAS validates the trusted IdP signature, issuer, audience,
+lifetime, replay state, target resource, scopes, and key proof.
+It resolves the subject and any actor, applies local assignments,
+and issues an API access token. In these examples it retains
+the IdP's principal identifiers and uses a JWT access token.<a href="#appendix-B.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-B.4-2.3">
+            <p id="appendix-B.4-2.3.1">The API receives only its access token and a fresh DPoP proof,
+including the access-token hash under <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. It validates
+the token and proof, then evaluates resource policy for the agent
+or the user and agent actor. It does not consume the upstream
+SVID, device evidence, Client Attestation, WAG, or ID-JAG.<a href="#appendix-B.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<table class="center" id="table-5">
+          <caption><a href="#table-5" class="selfRef">Table 5</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Example</th>
+              <th class="text-left" rowspan="1" colspan="1">Application access-token identity</th>
+              <th class="text-left" rowspan="1" colspan="1">Key binding</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">SPIFFE workload, self-acting</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sub=agent-42</code>, no <code>act</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>cnf.jkt=JKT(K)</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Managed device, delegated</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sub=user-17</code>, <code>act.sub=agent-17</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>cnf.jkt=JKT(K)</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Managed platform, self-acting</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>sub=agent-42</code>, no <code>act</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>cnf.jkt=JKT(K)</code>
+</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Managed platform, delegated variant</td>
+              <td class="text-left" rowspan="1" colspan="1">User <code>sub</code>, <code>act.sub=agent-42</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>cnf.jkt=JKT(K)</code>
+</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="appendix-B.4-4">For delegated tokens, the actor also retains its IdP <code>iss</code> and
+<code>sub_profile=ai_agent</code> under Actor Profile. The RAS is the access-token
+issuer and the API is its audience. Groups and owner relationships
+can come from provisioned records or approved claims; user groups
+do not supply an agent actor's memberships. Optional instance context
+supports audit and risk without changing those principal identities.<a href="#appendix-B.4-4" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="interoperability-cases">
-<section id="appendix-B">
+<section id="appendix-C">
       <h2 id="name-interoperability-cases">
 <a href="#name-interoperability-cases" class="section-name selfRef">Interoperability Cases</a>
       </h2>
-<p id="appendix-B-1">Independent platform, client, and IdP implementations can exercise:<a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-4">
-        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
+<p id="appendix-C-1">Independent platform, client, and IdP implementations can exercise:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-6">
+        <caption><a href="#table-6" class="selfRef">Table 6</a></caption>
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Case</th>
@@ -2220,59 +2619,63 @@ interchangeable with the Client Attestation input specified here.<a href="#appen
           </tr>
         </tbody>
       </table>
-<p id="appendix-B-3">Only cases for the implemented output are applicable. Existing
+<p id="appendix-C-3">Only cases for the implemented output are applicable. Existing
 client-based deployments are compatibility context, not an additional
-conformance path for this specification.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
+conformance path for this specification.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="coordination">
-<section id="appendix-C">
+<section id="appendix-D">
       <h2 id="name-coordination-with-related-w">
 <a href="#name-coordination-with-related-w" class="section-name selfRef">Coordination with Related Work</a>
       </h2>
-<p id="appendix-C-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2">The proposed WAG token type <code>urn:ietf:params:oauth:token-type:wag</code>
+<p id="appendix-D-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<p id="appendix-D-2">The proposed WAG token type <code>urn:ietf:params:oauth:token-type:wag</code>
 and JWT type <code>oauth-wag+jwt</code> await definition and registration in
 <span>[<a href="#WAG" class="cite xref">WAG</a>]</span>. WAG's issuer model, advance-projection restrictions, and
 audience rules need alignment with this IdP-issued use. WAG currently
 leaves proof of possession open; the bound-grant checks selected in
 <a href="#consumption" class="auto internal xref">Section 6</a> need alignment there before publication. They are
-not an assertion that unextended WAG implementations support them.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3">Actor Profile's generic JWT-grant audience guidance uses a token
+not an assertion that unextended WAG implementations support them.<a href="#appendix-D-2" class="pilcrow">¶</a></p>
+<p id="appendix-D-3">Actor Profile's generic JWT-grant audience guidance uses a token
 endpoint, while ID-JAG uses the RAS issuer. This document selects
 ID-JAG's audience and needs grant-profile precedence clarified in
 Actor Profile. Redemption details for sender-bound JWT grants also
 need coordination with <span>[<a href="#JWT-DPOP" class="cite xref">JWT-DPOP</a>]</span> and ID-JAG. This document does
-not register a competing redemption mechanism.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+not register a competing redemption mechanism.<a href="#appendix-D-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="document-history">
-<section id="appendix-D">
+<section id="appendix-E">
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
-<p id="appendix-D-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<p id="appendix-E-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-E-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-D-2.1">
-          <p id="appendix-D-2.1.1">Focused the standards-track profile on platform-to-IdP agent
-identity binding, access-token acquisition, and grant issuance.<a href="#appendix-D-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-E-2.1">
+          <p id="appendix-E-2.1.1">Focused the standards-track profile on platform-to-IdP agent
+identity binding, access-token acquisition, and grant issuance.<a href="#appendix-E-2.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-D-2.2">
-          <p id="appendix-D-2.2.1">Reused ATTEST instance identification and Actor Profile delegation.<a href="#appendix-D-2.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-E-2.2">
+          <p id="appendix-E-2.2.1">Reused ATTEST instance identification and Actor Profile delegation.<a href="#appendix-E-2.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-D-2.3">
-          <p id="appendix-D-2.3.1">Used <code>client_id</code> as agent identity when the agent is the client;
-required <code>agent_id</code> only for agents represented by a shared client.<a href="#appendix-D-2.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-E-2.3">
+          <p id="appendix-E-2.3.1">Used <code>client_id</code> as agent identity when the agent is the client;
+required <code>agent_id</code> only for agents represented by a shared client.<a href="#appendix-E-2.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-D-2.4">
-          <p id="appendix-D-2.4.1">Moved existing client flows and deployment choices to informative
-guidance and inherited downstream grant processing.<a href="#appendix-D-2.4.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-E-2.4">
+          <p id="appendix-E-2.4.1">Illustrated SPIFFE, managed-device, and managed-platform flows,
+including the missing native SPIFFE input integration.<a href="#appendix-E-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-E-2.5">
+          <p id="appendix-E-2.5.1">Moved existing client flows and deployment choices to informative
+guidance and inherited downstream grant processing.<a href="#appendix-E-2.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-E">
+<section id="appendix-F">
       <h2 id="name-authors-address">
 <a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
       </h2>
