@@ -21,7 +21,9 @@ It does not determine authorization subjects or delegated actors.
 A standards-track profile for binding platform-authenticated agents
 to IdP identities, obtaining IdP-issued access tokens, and exchanging
 them for self-acting WAG or user-delegated ID-JAG. It reuses ATTEST
-instance identification and OAuth Actor Profile. Existing CIMD/EMA
+instance identification and OAuth Actor Profile. An agent with its
+own client identity uses `client_id`; only shared clients require
+an additional `agent_id`. Existing CIMD/EMA
 flows and provisioning choices are informative deployment guidance;
 downstream processing follows the underlying grant specifications.
 
