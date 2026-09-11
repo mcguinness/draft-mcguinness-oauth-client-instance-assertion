@@ -51,6 +51,14 @@ normative:
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
 
 informative:
+  AGENT-FEDERATION:
+    title: "OAuth 2.0 Workload Agent Federation"
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-workload-agent-federation.html
+    author:
+      - fullname: Karl McGuinness
+    date: 2026-09-11
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-workload-agent-federation-latest
   RFC7636:
   RFC9396:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
@@ -123,9 +131,8 @@ The identity and provenance claims have the same meaning across
 carriers; grant semantics determine whether the instance is the
 subject or a delegated actor ({{surfacing}}).
 
-An instance with an access token issued under this profile can
-obtain a WAG through token exchange at its issuing AS, then redeem
-that WAG at a downstream AS ({{wag-interop}}).
+An instance can present agent evidence to an IdP to obtain a WAG
+under the Workload Agent Federation profile ({{wag-interop}}).
 
 This profile does not define agent capability or tool-permission
 semantics; deployments expressing fine-grained agent permissions
@@ -145,6 +152,12 @@ Agent:
 : An autonomous or semi-autonomous software actor, typically driven
   by a machine-learning model, that performs tasks by calling APIs,
   optionally on behalf of a user or another principal.
+
+Agent Principal:
+: An identified agent that may have multiple concurrent or
+  successive Agent Instances. Its identity can persist across
+  runtime restarts and key changes. A Registered Agent is an
+  Agent Principal managed in an identity provider's registry.
 
 Agent Platform:
 : The platform that creates, operates, or supervises Agent
@@ -257,71 +270,14 @@ description composes via Rich Authorization Requests
 ({{RFC9396}}), and hardware-rooted runtime evidence composes via
 Entity Attestation Token formats ({{RFC9711}}).
 
-## Interoperability with WAG {#wag-interop}
+## Workload Agent Federation {#wag-interop}
 
-An Agent Instance can exchange its own instance-bound access token
-for a WAG at its issuing AS, then redeem that WAG at a downstream
-AS. The issuing AS acts as the WAG issuer and Agent Attester;
-issuer trust and redemption follow {{carrier-wag}}.
-
-~~~ ascii-art
- Instance access token -- RFC 8693 --> WAG
- WAG -- RFC 7523 at downstream AS --> Resource access token
-~~~
-
-### Requesting a WAG {#wag-exchange-request}
-
-The instance sends an RFC 8693 token-exchange request with:
-
-* `subject_token`: its own access token previously issued under
-  this profile by the issuing AS.
-* `subject_token_type`:
-  `urn:ietf:params:oauth:token-type:access_token`.
-* `requested_token_type`: `urn:ietf:params:oauth:token-type:jwt`.
-* `audience`: the downstream AS identifier, not the resource API.
-
-The AS MUST select WAG issuance through configured agreement for
-that client, target AS, and tenancy; requesting a JWT alone is
-insufficient. It MUST authenticate the client according to its
-registration and validate the source token's validity, exchange
-eligibility, originating instance state, and client binding. The
-instance MUST prove possession of the source token's binding key
-using DPoP or mutual TLS per {{wag-binding}}.
-
-The AS uses the source token's recorded identity and provenance;
-no fresh instance assertion is required. The request MUST NOT
-include `actor_token`, `actor_token_type`, or
-`client_instance_assertion`. The AS MUST reject a source token
-with an `act` chain or whose originating state does not establish
-the presenting instance as its subject. A delegated token cannot
-be converted into authority held by its agent actor.
-
-### WAG Issuance and Response {#wag-exchange-response}
-
-The AS MUST issue a WAG conforming to {{carrier-wag}}, with the
-same instance as `sub` and `agent_instance_id`, the verified
-source-token key in `cnf`, the approved downstream AS in `aud`,
-and no `act`. Namespace differences follow the issuer-qualified
-mapping rules of {{carrier-composition}}; mappings MUST remain
-stable across exchanges and key rotation. The AS MUST retain
-the source identity, binding, and mapping for audit.
-
-The AS MUST derive provenance from validated originating state
-and authorization properties from approved issuer policy per
-{{wag-properties}}, without exceeding the authority approved for
-the exchange. Freshness follows {{security-freshness}}; stale
-state requires a new source token or current attested evidence.
-The WAG MUST have a fresh `jti` and MUST expire no later than the
-source token. A new binding key requires a new source token.
-
-The RFC 8693 response MUST carry the WAG in `access_token`, set
-`issued_token_type` to `urn:ietf:params:oauth:token-type:jwt` and
-`token_type` to `N_A`, include `expires_in`, and omit a refresh
-token. The instance redeems this authorization grant downstream
-per {{carrier-wag}}, using the same instance key. Resource access
-token representation follows {{surfacing-wag}}. The exchange does
-not require the client to register at the downstream AS.
-{{appendix-example-wag}} shows the requests and response.
+{{AGENT-FEDERATION}} defines the IdP-mediated deployment in which
+an instance presents agent-profiled evidence, the IdP resolves a
+Registered Agent and issues a WAG, and a downstream AS redeems
+that grant. It owns the exchange, registry binding, discovery,
+and lifecycle requirements. This document owns the shared agent
+and runtime identity claims used in that flow.
 
 # Agent Instance Claims {#agent-claims}
 
@@ -331,6 +287,19 @@ Token Claims registry ({{iana-claims}}). The claims are validated
 by the AS as part of carrier validation ({{carriers}}); unknown
 members within object-valued claims MUST be ignored unless a
 profile of this document defines their processing.
+
+`agent_id` (OPTIONAL):
+: A StringOrURI identifying the Agent Principal whose execution
+  this instance represents, scoped to the authority issuing the
+  evidence. The identifier MUST be stable across that principal's
+  runtime and key changes and MUST NOT be reassigned to another
+  principal. The Attester MUST authenticate the instance's
+  relationship to the principal before asserting it. A platform
+  issuer may use its own agent namespace; an IdP may map that
+  identity to its registry namespace under an explicit federation
+  binding. This claim does not identify the OAuth client and does
+  not itself confer an application assignment or permission.
+  A deployment profile MAY require this claim.
 
 `agent_instance_id` (REQUIRED):
 : A StringOrURI ({{RFC7519}}) identifying this agent instance,
@@ -388,9 +357,10 @@ profile of this document defines their processing.
 
 An AS processing Agent Instance Evidence under this profile
 ({{metadata}}) MUST reject evidence
-that omits `agent_instance_id` ({{errors}}). Evidence whose
-object-valued claims are malformed (for example, `agent_model`
-without an `id` member) MUST be rejected the same way.
+that omits `agent_instance_id` ({{errors}}). Evidence whose agent
+claims have incorrect types or malformed values (for example,
+`agent_id` with a non-string value or `agent_model` without an
+`id` member) MUST be rejected the same way.
 
 # Evidence Carriers {#carriers}
 
@@ -449,10 +419,10 @@ per {{CIA-CORE}}. Because this carrier presents no request
 parameter, its activation (per the client's profile registration)
 substitutes for {{CIA-CORE}}'s parameter-presence trigger: on
 token-exchange in particular, it applies even when no
-`actor_token` is present. For an exchange requesting a WAG under
-{{wag-interop}}, client authentication still follows
-{{ATTEST-CLIENT-AUTH}}, but the WAG issuance rules govern the
-output instead of the delegated access-token representation.
+`actor_token` is present. A companion grant-issuance profile
+such as {{AGENT-FEDERATION}} defines its own accepted evidence
+and output processing; support for this carrier does not imply
+support for that profile's exchange.
 
 The {{CIA-CORE}} validation steps that depend on a presented
 assertion (token-type matching, descriptor lookup, signature
@@ -481,10 +451,14 @@ it.
 
 An Agent Instance MAY be represented by a Workload Authorization
 Grant ({{WAG}}). The grant issuer acts as the Agent Attester and
-includes the claims of {{agent-claims}} in the signed grant. The
-grant's `sub` MUST equal `agent_instance_id`, using exact string
-comparison. Its `iss` identifies the trusted authorization-grant
-issuer, not the OAuth client. The WAG non-reassignment requirement
+includes the claims of {{agent-claims}} in the signed grant.
+When `agent_id` is present, `sub` MUST equal `agent_id`: the
+Agent Principal is the authorized subject and `agent_instance_id`
+identifies its runtime. When `agent_id` is absent, `sub` MUST
+equal `agent_instance_id`, identifying the instance itself as
+principal. These comparisons are exact strings. The grant's
+`iss` identifies the trusted authorization-grant issuer, not the
+OAuth client. The WAG non-reassignment requirement
 continues to apply even after an instance ceases to be
 audit-relevant.
 
@@ -524,8 +498,8 @@ shared credentials do not satisfy instance binding.
 
 ### Identity and Authorization Properties {#wag-properties}
 
-`agent_instance_id`, `agent_platform`, `agent_model`, and
-`agent_runtime` describe identity and provenance. WAG properties
+`agent_id`, `agent_instance_id`, `agent_platform`, `agent_model`,
+and `agent_runtime` describe identity and provenance. WAG properties
 such as `name`, `namespace`, `groups`, `roles`, and `ctx` describe
 issuer-asserted attributes for authorization. They retain their
 {{WAG}} semantics and issuer-scoped permission mapping; this
@@ -536,9 +510,12 @@ on forwarding raw `agent_runtime` evidence.
 
 ## WAG with Separate Instance Evidence {#carrier-composition}
 
-A deployment MAY combine a WAG from an authorization authority
-with a Client Instance Assertion from a runtime authority, or with
-Client Attestation authentication. The AS MUST validate each
+When the WAG subject directly identifies the instance, a
+deployment MAY combine it with a Client Instance Assertion from a
+runtime authority, or with Client Attestation authentication.
+A WAG whose `sub` names an Agent Principal distinct from its
+runtime needs a companion profile to define any such composition;
+these same-instance rules do not establish that relationship. The AS MUST validate each
 artifact independently under its carrier's trust and processing
 rules. CIA composition therefore still requires an OAuth client
 and the CIA `client_id` binding; WAG alone does not.
@@ -614,9 +591,10 @@ per {{RFC7591}}, applicable to any registration model supported by
   registered for this profile. The AS MUST require Agent Instance
   Evidence on every token request from the client on the grants
   covered by {{CIA-CORE}}'s access-token classification, except
-  `refresh_token` requests, which follow {{refresh}}, and the WAG
-  issuance exchange in {{wag-exchange-request}}, which validates
-  the subject token and its originating instance state instead.
+  `refresh_token` requests, which follow {{refresh}}. An explicitly
+  enabled companion grant-issuance profile defines its own
+  evidence validation and output processing, as in
+  {{AGENT-FEDERATION}}.
   A covered request not satisfying its applicable evidence rules
   MUST be rejected ({{errors}}).
   Without this requirement, an instance could omit evidence and
@@ -651,10 +629,13 @@ per {{RFC7591}}, applicable to any registration model supported by
 
 # Instance Subject Derivation {#subject}
 
-The instance subject used for access-token surfacing is the
+The runtime identity used for instance surfacing is the
 `agent_instance_id` value, scoped to the Agent Attester that
-minted it. The AS MUST NOT derive the instance subject from a
-proof-of-possession key thumbprint: keys are binding material, not
+minted it. When a WAG names an Agent Principal separately, its
+`sub` identifies that principal and its `agent_instance_id`
+identifies the execution, per {{surfacing-wag}}. The AS MUST NOT
+derive the instance subject from a proof-of-possession key
+thumbprint: keys are binding material, not
 identity, and key rotation MUST NOT change the agent instance's
 identity. Consumers needing key-level correlation can use the
 access token's `cnf` confirmation claim directly.
@@ -690,13 +671,14 @@ This profile additionally specifies:
 * The surfaced `sub_profile` (top-level when the instance is the
   subject, `act.sub_profile` in delegation cases) MUST include
   `ai_agent` ({{ENTITY-PROFILES}}). It MUST additionally include
-  `client_instance` ({{CIA-CORE}}) when validated Client Instance
-  Assertion or Client Attestation evidence establishes that
-  relationship. WAG-only evidence MUST NOT imply that
-  classification. Values use the underlying registry's list
-  syntax; other applicable registered values MAY be included.
-* The AS MAY surface `agent_platform` and `agent_model` subject to
-  local policy and the privacy considerations of
+  `client_instance` ({{CIA-CORE}}) when the surfaced subject is
+  itself a validated client instance. Evidence authenticating a
+  runtime MUST NOT label a distinct Agent Principal as a client
+  instance. WAG-only evidence does not imply that classification.
+  Values use the underlying registry's list syntax; other
+  applicable registered values MAY be included.
+* The AS MAY surface `agent_id`, `agent_platform`, and
+  `agent_model` subject to local policy and the privacy considerations of
   {{security-privacy}}. Surfaced provenance claims appear within
   the `act` object in delegation cases (they describe the actor)
   and at top level in self-acting and subject-instance cases. An AS
@@ -714,15 +696,19 @@ introspection requirements.
 
 ## Workload-Principal Tokens {#surfacing-wag}
 
-This profile explicitly defines a conforming WAG's grant subject
-as the presenting Agent Instance. It is the subject-instance case
-of {{CIA-CORE}} when a CIA is also presented, and represents an
-agent acting as itself whether or not separate evidence is used.
-The AS MUST set the access token's `sub` to the WAG's
-`agent_instance_id`, subject to issuer-aware AS namespacing below,
-and MUST omit `act`. Separate evidence about that same instance
-MUST NOT introduce an actor entry. Top-level `sub_profile` and selective provenance follow
-{{surfacing}}, and top-level `cnf` follows {{wag-binding}}.
+The AS MUST preserve the WAG's authorized principal as the
+access token's `sub`, subject to issuer-aware AS namespacing
+below, and MUST omit `act`. When the WAG names a distinct Agent
+Principal, the token MUST also carry `agent_instance_id` to
+identify the runtime; it MAY carry that claim in the one-to-one
+case. Runtime execution of the principal is not delegation.
+
+When the WAG subject directly identifies the instance and a CIA
+is also presented per {{carrier-composition}}, CIA's subject-instance
+case applies. Top-level `sub_profile` and selective provenance
+follow {{surfacing}}, and top-level `cnf` follows {{wag-binding}}.
+Runtime identifiers need the same issuer-aware collision handling
+as principal identifiers.
 
 The access token's `iss` identifies the AS. The AS MUST retain the
 WAG issuer with token state for audit, revocation, introspection,
@@ -756,8 +742,8 @@ validated subject and issuer context for instance attribution;
 # Attested Delegation Chains {#chains}
 
 This section covers token exchange that issues delegated access
-tokens. The exchange that issues a WAG from the instance's own
-access token is specified separately in {{wag-interop}}.
+tokens. WAG issuance through federation is specified separately
+in {{AGENT-FEDERATION}}.
 
 When an agent instance spawns a sub-agent that requires its own
 access token, the sub-agent obtains it via token exchange
@@ -802,10 +788,6 @@ federation policy of the domains involved; this profile defines
 no additional cross-domain rules.
 
 # Refresh Tokens {#refresh}
-
-The WAG issuance exchange in {{wag-exchange-response}} returns no
-refresh token. Obtaining another WAG requires another authorized
-exchange with a valid instance-bound source token.
 
 The WAG carrier MUST NOT result in refresh-token issuance, per
 {{WAG}}, including when combined with separate instance evidence.
@@ -908,15 +890,8 @@ error taxonomy of the selected carrier: {{CIA-CORE}},
 validation are `invalid_grant`; DPoP protocol errors retain the
 codes specified by {{RFC9449}}.
 
-For WAG issuance through token exchange, invalid or unacceptable
-subject tokens and prohibited request parameters
-produce `invalid_request` per {{RFC8693}}; an unsupported or
-unauthorized downstream target produces `invalid_target`.
-Client authentication and DPoP errors retain their applicable
-protocol error codes.
-
-For the other token requests covered by this profile, the
-additional `invalid_grant` cases below are returned as
+A companion grant-issuance profile defines its exchange errors.
+The additional `invalid_grant` cases below are returned as
 `invalid_client` when, per {{CIA-CORE}}, the evidence is the
 client authentication credential:
 
@@ -926,10 +901,11 @@ client authentication credential:
 * the Agent Instance Evidence omits `agent_instance_id` when this
   profile is required by client or issuer configuration
   ({{metadata}});
-* an object-valued agent claim is malformed
+* an agent claim has an incorrect type or malformed value
   ({{agent-claims}});
-* on the CIA or WAG carrier, `sub` does not equal
-  `agent_instance_id` ({{carrier-cia}}, {{carrier-wag}});
+* on the CIA carrier, `sub` does not equal `agent_instance_id`,
+  or on the WAG carrier the applicable `sub` equality rule fails
+  ({{carrier-cia}}, {{carrier-wag}});
 * a WAG lacks an authenticated instance key binding, is replayed,
   or fails agent claim validation ({{carrier-wag}});
 * combined evidence fails issuer-qualified identity consistency,
@@ -960,10 +936,9 @@ supporting the Client Instance Assertion carrier conforms to
 conforms to {{ATTEST-CLIENT-AUTH}} and to the activation-policy
 requirement of {{carrier-attest}}. An AS supporting the WAG
 carrier conforms to {{WAG}} and {{RFC7523}}, and applies
-{{carrier-wag}} and {{surfacing-wag}}. An AS offering WAG issuance
-through token exchange additionally implements {{wag-interop}};
-this capability is established by the agreement in
-{{wag-exchange-request}}, not by the general profile-support flag.
+{{carrier-wag}} and {{surfacing-wag}}. WAG issuance through
+federation has separate conformance requirements in
+{{AGENT-FEDERATION}}.
 
 An Agent Attester conforms by meeting the minting requirements of
 {{agent-claims}} (in particular the uniqueness, stability,
@@ -1197,6 +1172,21 @@ that accompany it.
 IANA is requested to register the following claims in the "JSON
 Web Token Claims" registry established by {{RFC7519}}.
 
+### agent_id
+
+Claim Name:
+: `agent_id`
+
+Claim Description:
+: Issuer-scoped identifier of an agent principal represented by an
+  agent instance
+
+Change Controller:
+: IETF
+
+Specification Document(s):
+: {{agent-claims}} of this document
+
 ### agent_instance_id
 
 Claim Name:
@@ -1383,17 +1373,18 @@ container whose other members they ignore. The two object-valued
 claims (`agent_model`, `agent_runtime`) group members that are
 only meaningful together.
 
-## Why both `sub` and `agent_instance_id` on CIA and WAG carriers
+## Why distinguish agent and runtime identifiers
 {:numbered="false"}
 
-On the Client Instance Assertion and WAG carriers, `sub` must
-equal `agent_instance_id`, which is deliberately redundant.
-Carrying the claim on all carriers gives implementations a single
-code path for subject derivation regardless of carrier, and the
-equality check on these two carriers is a cheap integrity
-cross-check. Making the claim optional where `sub` already carries
-the value was considered and rejected as an invitation to
-carrier-conditional bugs.
+An agent principal can survive runtime restarts or execute in
+several instances concurrently. `agent_id` names that principal;
+`agent_instance_id` names one execution. CIA's `sub` names the
+runtime. WAG's `sub` names its authorized principal, which is the
+agent when `agent_id` is present and the instance otherwise.
+Keeping these meanings explicit avoids either recreating the
+agent at every restart or representing its runtime as a delegated
+actor. The issuer-scoped mappings between these identities are
+part of federation policy, not string equivalence.
 
 ## Why no standardized assurance-tier claim
 {:numbered="false"}
@@ -1414,7 +1405,7 @@ later document without disturbing anything defined here.
 {:numbered="false"}
 
 Agent identity claims are being invented independently across the
-industry. Registering `agent_instance_id`, `agent_platform`,
+industry. Registering `agent_id`, `agent_instance_id`, `agent_platform`,
 `agent_model`, and `agent_runtime` early is intended to converge
 that activity on one vocabulary before divergence hardens, not to
 claim the namespace for this document; the semantics here are
@@ -1647,88 +1638,6 @@ identity, orphaning the audit trail. (Refresh tokens remain bound
 to the key present at their issuance per {{CIA-CORE}} and
 {{refresh}}; the migrated instance obtains new tokens through a
 fresh grant or exchange under its unchanged identity.)
-
-# Example: Exchanging an Agent Token for a WAG {#appendix-example-wag}
-{:numbered="false"}
-
-The agent client `https://agents.example/assistant` has obtained a
-self-acting, DPoP-bound access token from
-`https://acme.agents.example` using CIA or Client Attestation.
-Its subject is `wimse://acme.agents.example/agent/7f3d9a2e`.
-The issuing AS permits its exchange for a WAG targeting
-`https://as.example`, which trusts the tenancy's WAG issuer.
-Cryptographic values are abbreviated and line breaks are for
-display only.
-
-The instance requests the WAG, authenticating its client with
-`private_key_jwt` and proving possession of the source-token key:
-
-~~~ http-message
-POST /token HTTP/1.1
-Host: acme.agents.example
-Content-Type: application/x-www-form-urlencoded
-DPoP: <fresh proof for this endpoint signed by the instance key>
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
-&subject_token=eyJ...source-access-token...
-&subject_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Aaccess_token
-&requested_token_type=urn%3Aietf%3Aparams%3Aoauth%3Atoken-type%3Ajwt
-&audience=https%3A%2F%2Fas.example
-&client_id=https%3A%2F%2Fagents.example%2Fassistant
-&client_assertion_type=
-  urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
-&client_assertion=eyJ...client-authentication...
-~~~
-
-The exchange response contains the WAG in `access_token`:
-
-~~~ json
-{
-  "access_token": "eyJ...workload-authorization-grant...",
-  "issued_token_type": "urn:ietf:params:oauth:token-type:jwt",
-  "token_type": "N_A",
-  "expires_in": 300
-}
-~~~
-
-The decoded WAG carries the same instance and binding key:
-
-~~~ json
-{
-  "iss": "https://acme.agents.example",
-  "sub": "wimse://acme.agents.example/agent/7f3d9a2e",
-  "agent_instance_id":
-    "wimse://acme.agents.example/agent/7f3d9a2e",
-  "agent_platform": "urn:example:claude-code",
-  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
-  "roles": ["responder"],
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "aud": ["https://as.example", "https://as.example/token"],
-  "iat": 1785271680,
-  "exp": 1785271980,
-  "jti": "wag-7d0f5a2b"
-}
-~~~
-
-The instance then redeems the WAG at the downstream AS, naming
-the support API in `resource` and using a fresh DPoP proof from
-the same key:
-
-~~~ http-message
-POST /token HTTP/1.1
-Host: as.example
-Content-Type: application/x-www-form-urlencoded
-DPoP: <fresh proof for this endpoint signed by the instance key>
-
-grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
-&assertion=eyJ...workload-authorization-grant...
-&resource=https%3A%2F%2Fsupport.example%2F
-~~~
-
-The downstream AS issues a resource access token with the agent
-as `sub`, `sub_profile` containing `ai_agent`, and the same key in
-`cnf`, without an `act` claim or a refresh token. The instance
-uses that access token to call the support API.
 
 # Document History
 {:numbered="false"}

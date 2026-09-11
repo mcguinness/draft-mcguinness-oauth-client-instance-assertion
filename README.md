@@ -1,4 +1,4 @@
-<!-- regenerate: on (set to off if you edit this file) -->
+<!-- regenerate: off -->
 
 # OAUTH Drafts
 
@@ -18,6 +18,15 @@ This is the working area for individual Internet-Drafts.
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.diff)
 
+
+## OAuth 2.0 Workload Agent Federation
+
+* [Draft source](draft-mcguinness-oauth-workload-agent-federation.md)
+* [Local HTML preview](draft-mcguinness-oauth-workload-agent-federation.html) (build with `make`)
+
+An initial draft of IdP-mediated agent federation, connecting
+agent instance evidence, registry resolution, and WAG issuance
+and redemption. This draft has not yet been submitted to the IETF.
 
 ## Contributing
 

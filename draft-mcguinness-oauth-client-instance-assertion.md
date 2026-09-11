@@ -54,6 +54,14 @@ normative:
   SPIFFE-CLIENT-AUTH: I-D.ietf-oauth-spiffe-client-auth
 
 informative:
+  AGENT-FEDERATION:
+    title: "OAuth 2.0 Workload Agent Federation"
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-workload-agent-federation.html
+    author:
+      - fullname: Karl McGuinness
+    date: 2026-09-11
+    seriesinfo:
+      Internet-Draft: draft-mcguinness-oauth-workload-agent-federation-latest
   RFC6755:
   RFC7009:
   RFC8037:
@@ -358,8 +366,8 @@ future work.
 
 ## Token-Exchange Presentation {#token-exchange-presentation}
 
-When the grant is token-exchange ({{RFC8693}}), the Client Instance
-Assertion is presented as the `actor_token` parameter with
+For access-token issuance using token-exchange ({{RFC8693}}), the
+Client Instance Assertion is presented as the `actor_token` parameter with
 `actor_token_type` set to
 `urn:ietf:params:oauth:token-type:client-instance-jwt`. This is the
 conventional {{RFC8693}} path; the AS validates the assertion under
@@ -375,8 +383,32 @@ name carries the assertion.
 In the delegation case under token-exchange, the assertion represents
 the actor distinct from the subject named in `subject_token`, which
 is the conventional {{RFC8693}} use of `actor_token`. The
-self-acting case ({{access-token-self-acting}}) does not arise on
-token-exchange, where {{RFC8693}} requires a distinct subject.
+self-acting case ({{access-token-self-acting}}) does not arise in
+this profile's delegated access-token exchange. RFC 8693 requires
+a `subject_token`, but does not require its subject to be a
+different principal in every application of token exchange.
+
+### Subject Evidence in Grant-Issuance Profiles {#subject-evidence-profiles}
+
+A companion profile MAY specify use of a Client Instance Assertion
+as `subject_token` to obtain an authorization grant rather than an
+access token. It MUST define the requested output token type,
+subject-token presentation, identity and authorization processing,
+and returned grant semantics. {{AGENT-FEDERATION}} defines such a
+profile for IdP-issued Workload Authorization Grants.
+
+The AS MUST explicitly enable that profile and select it by the
+requested output type and approved client configuration before
+applying its presentation rules. The profile MUST retain CIA
+signature, issuer trust, audience, client binding, claim, replay,
+and proof-of-possession validation. When instance-assertion client
+authentication is registered, the same checks apply to the CIA
+in the profile's subject slot. This exception does not permit
+moving a CIA to `subject_token` in an ordinary access-token
+exchange, or choosing a different representation by matching
+subject strings. Authorization-grant contents are governed by the
+companion profile; {{access-token}} governs access tokens issued
+under this document.
 
 # Client Instance Model {#client-instance-model}
 
@@ -1066,6 +1098,12 @@ in {{permitted-grants}}, or the `actor_token` parameter (with
 `urn:ietf:params:oauth:token-type:client-instance-jwt`) on the
 token-exchange grant ({{token-exchange-presentation}}). Processing
 is identical regardless of which parameter carried the assertion.
+
+Requests selected for an explicitly enabled grant-issuance profile
+under {{subject-evidence-profiles}} use that profile's presentation
+and output rules while retaining the validation requirements
+specified there. The pre-conditions below apply to the normal
+presentation paths defined by this document.
 
 Before the steps below, the AS MUST reject the request with
 `invalid_request` if any of the following pre-conditions hold:
