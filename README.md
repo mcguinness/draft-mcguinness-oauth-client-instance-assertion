@@ -1,32 +1,32 @@
 <!-- regenerate: off -->
 
-# OAUTH Drafts
+# OAuth Agent Federation and Client Instance Identification
 
 This is the working area for individual Internet-Drafts.
 
-## OAuth 2.0 Client Instance Assertion
+## Client Instance Identification for Attestation-Based Client Authentication
 
-* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-assertion)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion)
-* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.diff)
+* [Draft source](draft-mcguinness-oauth-client-instance-identification.md)
+* [Local HTML preview](draft-mcguinness-oauth-client-instance-identification.html) (build with `make`)
 
-## OAuth 2.0 AI Agent Instance Profile
+A focused profile of ATTEST-CLIENT-AUTH defining stable runtime
+identifiers, attester trust, key continuity, and instance context.
+It does not determine authorization subjects or delegated actors.
 
-* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-ai-agent-instance)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance)
-* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.diff)
-
-
-## OAuth 2.0 Workload Agent Federation
+## OAuth 2.0 Profile for Agent Federation
 
 * [Draft source](draft-mcguinness-oauth-workload-agent-federation.md)
 * [Local HTML preview](draft-mcguinness-oauth-workload-agent-federation.html) (build with `make`)
 
-An initial draft of IdP-mediated agent federation, connecting
-agent instance evidence, registry resolution, and WAG issuance
-and redemption. This draft has not yet been submitted to the IETF.
+An IdP-mediated profile covering agent credential acquisition,
+self-acting WAG and user-delegated ID-JAG flows, provisioning,
+and lifecycle. Delegated mode normatively uses OAuth Actor Profile;
+runtime evidence remains separate from the durable agent actor.
+
+These two drafts replace the earlier Client Instance Assertion
+and standalone AI Agent Instance architecture. The earlier sources
+remain in Git history. The new instance-identification draft and
+the federation draft have not yet been submitted to the IETF.
 
 ## Contributing
 
@@ -46,4 +46,3 @@ $ make
 
 Command line usage requires that you have the necessary software installed.  See
 [the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
-
