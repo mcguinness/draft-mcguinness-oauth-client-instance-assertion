@@ -1256,10 +1256,7 @@ grant processing, provisioning correlation, and sender constraints.<a href="#sec
                 <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref">13.1</a>.  <a href="#name-jwt-claims" class="internal xref">JWT Claims</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
-                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-token-introspection-respons" class="internal xref">Token Introspection Response</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
-                <p id="section-toc.1-1.13.2.3.1"><a href="#section-13.3" class="auto internal xref">13.3</a>.  <a href="#name-oauth-uri" class="internal xref">OAuth URI</a></p>
+                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-oauth-uri" class="internal xref">OAuth URI</a></p>
 </li>
             </ul>
 </li>
@@ -1467,28 +1464,34 @@ resources, modes, subject mappings, signing keys, and policy.
 This profile uses one IdP issuer per enterprise tenancy in
 both modes. Discovery alone <span class="bcp14">MUST NOT</span> establish this trust;
 user SSO trust <span class="bcp14">MUST NOT</span> implicitly permit self-acting access.<a href="#section-3-5" class="pilcrow">¶</a></p>
-<p id="section-3-6">The IdP client registration represents the logical application
+<p id="section-3-6">The trust configuration <span class="bcp14">MUST</span> identify the request contexts
+requiring this profile, including issuer, tenant, resource, and
+client where applicable. A matching request <span class="bcp14">MUST</span> satisfy this
+profile even when required claims are missing. Ambiguous profile
+selection <span class="bcp14">MUST</span> cause rejection; missing claims <span class="bcp14">MUST NOT</span> select
+a less restrictive profile.<a href="#section-3-6" class="pilcrow">¶</a></p>
+<p id="section-3-7">The IdP client registration represents the logical application
 and <span class="bcp14">MUST</span> require <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> with
 <code>attest_jwt_client_auth_dpop</code>. Approved Federation Bindings
 determine which agents it can host. Individual agents and
-instances do not require separate client registrations.<a href="#section-3-6" class="pilcrow">¶</a></p>
-<p id="section-3-7">Delegated mode additionally requires client authentication at
+instances do not require separate client registrations.<a href="#section-3-7" class="pilcrow">¶</a></p>
+<p id="section-3-8">Delegated mode additionally requires client authentication at
 the RAS under <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>. The IdP <span class="bcp14">MUST</span> maintain an approved
 mapping from its authenticated client and target RAS/resource
 to that downstream client. Missing or ambiguous mappings <span class="bcp14">MUST</span>
 cause rejection. CIMD <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> can provide metadata but does
-not replace this approval or agent provisioning.<a href="#section-3-7" class="pilcrow">¶</a></p>
-<p id="section-3-8">Self-acting mode does not require a client registration at the
+not replace this approval or agent provisioning.<a href="#section-3-8" class="pilcrow">¶</a></p>
+<p id="section-3-9">Self-acting mode does not require a client registration at the
 RAS. A deployment <span class="bcp14">MAY</span> require client authentication by
 agreement, without changing the authorized subject. It <span class="bcp14">MUST NOT</span> manufacture a client identifier from the agent subject
-merely to satisfy a token-format requirement.<a href="#section-3-8" class="pilcrow">¶</a></p>
-<p id="section-3-9">The trust configuration <span class="bcp14">MUST</span> identify the IdP and RAS roles
+merely to satisfy a token-format requirement.<a href="#section-3-9" class="pilcrow">¶</a></p>
+<p id="section-3-10">The trust configuration <span class="bcp14">MUST</span> identify the IdP and RAS roles
 and the modes supported and permitted for that relationship.
 The client and IdP <span class="bcp14">MUST</span> verify applicable metadata under
 <a href="#metadata" class="auto internal xref">Section 10</a>. Missing support for the selected mode <span class="bcp14">MUST NOT</span>
 cause silent downgrade. The IdP owns enterprise
 identity and admission; the platform remains responsible for
-runtime evidence and the RAS for its resource policy.<a href="#section-3-9" class="pilcrow">¶</a></p>
+runtime evidence and the RAS for its resource policy.<a href="#section-3-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="bootstrap">
@@ -1596,7 +1599,7 @@ Its <code>aud</code> <span class="bcp14">MUST</span> equal the IdP issuer identi
 the IdP's exchange service; no separate resource identifier
 or endpoint is defined. The token <span class="bcp14">MUST</span> contain
 <code>sub_profile=ai_agent</code> as defined by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>,
-<code>agent_federation=1</code> as a string, <code>client_instance</code> identifying
+<code>client_instance</code> identifying
 the authenticated upstream instance, and <code>cnf.jkt</code> derived
 from the proven key under <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span>. It <span class="bcp14">MUST NOT</span> contain <code>act</code>.<a href="#section-4.3-2" class="pilcrow">¶</a></p>
 <p id="section-4.3-3">The IdP <span class="bcp14">MUST</span> associate the token with its approved Federation
@@ -1803,7 +1806,7 @@ its remaining lifetime, and <code>scope</code> lists the issued scopes.
 No refresh token is issued.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
 <p id="section-5.4-2">The client <span class="bcp14">MUST</span> check that the response's issued type matches
 the requested type and that the grant has the expected protected
-type, <code>agent_federation</code> version, audience, resource, scope subset,
+type, audience, resource, scope subset,
 and <code>cnf.jkt</code> for its proven key. Missing or inconsistent binding
 <span class="bcp14">MUST</span> cause failure. These checks do not replace the RAS's
 cryptographic grant validation.<a href="#section-5.4-2" class="pilcrow">¶</a></p>
@@ -1886,28 +1889,21 @@ approved scopes.<a href="#section-6-4.10.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-6-4.11">
-<code>agent_federation</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-6-4.12">
-          <p id="section-6-4.12.1">The string <code>1</code>, identifying this profile's processing rules.
-Other values are not defined here.<a href="#section-6-4.12.1" class="pilcrow">¶</a></p>
-</dd>
-        <dd class="break"></dd>
-<dt id="section-6-4.13">
 <code>client_instance</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-6-4.14">
-          <p id="section-6-4.14.1">The object defined by <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. In grants, its <code>iss</code>
+        <dd style="margin-left: 1.5em" id="section-6-4.12">
+          <p id="section-6-4.12.1">The object defined by <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>. In grants, its <code>iss</code>
             <span class="bcp14">MUST</span> equal the grant issuer and its <code>id</code> <span class="bcp14">MUST</span> be an
 IdP-assigned reference mapping to the authenticated upstream
 instance. The IdP <span class="bcp14">MUST</span> retain that mapping and <span class="bcp14">SHOULD</span> scope
-the reference to the downstream trust relationship.<a href="#section-6-4.14.1" class="pilcrow">¶</a></p>
+the reference to the downstream trust relationship.<a href="#section-6-4.12.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-6-4.15">
+<dt id="section-6-4.13">
 <code>cnf</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-6-4.16">
-          <p id="section-6-4.16.1">An object containing <code>jkt</code>, the JWK SHA-256 thumbprint of the
+        <dd style="margin-left: 1.5em" id="section-6-4.14">
+          <p id="section-6-4.14.1">An object containing <code>jkt</code>, the JWK SHA-256 thumbprint of the
 proven instance public key. The IdP <span class="bcp14">MUST</span> derive it from the
-validated key, not an unsigned request value.<a href="#section-6-4.16.1" class="pilcrow">¶</a></p>
+validated key, not an unsigned request value.<a href="#section-6-4.14.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1939,7 +1935,6 @@ subject and follow <a href="#attributes" class="auto internal xref">Section 9.2<
   "aud": "https://as.app.example",
   "resource": "https://api.app.example",
   "scope": "tickets.read",
-  "agent_federation": "1",
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
     "id": "runtime-93ab"
@@ -1966,7 +1961,6 @@ subject and follow <a href="#attributes" class="auto internal xref">Section 9.2<
   "aud": "https://as.app.example",
   "resource": "https://api.app.example",
   "scope": "tickets.read",
-  "agent_federation": "1",
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
     "id": "runtime-93ab"
@@ -2008,10 +2002,10 @@ grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
 <p id="section-7-3">The RAS <span class="bcp14">MUST</span>:<a href="#section-7-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-7-4">
 <li id="section-7-4.1">
-          <p id="section-7-4.1.1">Select the approved issuer/tenant relationship and validate
-signature, protected type, required claims, audience,
-lifetime, and <code>agent_federation=1</code>. Reject unsupported
-versions and mode/type mismatches.<a href="#section-7-4.1.1" class="pilcrow">¶</a></p>
+          <p id="section-7-4.1.1">Select this profile through the approved trust configuration
+in <a href="#identity" class="auto internal xref">Section 3</a> and validate signature, protected type,
+required claims, audience, and lifetime. Reject mode/type
+mismatches.<a href="#section-7-4.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-7-4.2">
           <p id="section-7-4.2.1">Validate the DPoP proof for its token endpoint under
@@ -2073,8 +2067,8 @@ permission to rewrite its namespace or add a runtime actor.<a href="#section-8-2
 <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> introspection. This uses the Actor Profile
 introspection compatibility path in delegated mode; an opaque
 token itself is not an Actor Profile JWT. Active results <span class="bcp14">MUST</span>
-include <code>sub</code>, <code>aud</code>, <code>exp</code>, <code>scope</code>, <code>cnf.jkt</code>,
-<code>agent_federation=1</code>, and the grant's unchanged <code>client_instance</code>.
+include <code>sub</code>, <code>aud</code>, <code>exp</code>, <code>scope</code>, <code>cnf.jkt</code>, and the grant's
+unchanged <code>client_instance</code>.
 Delegated results <span class="bcp14">MUST</span> also include the unchanged <code>act</code> and
 applicable subject classification under <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>.
 An established logical client, including the delegated client,
@@ -2244,9 +2238,12 @@ using JWT bearer presentation with additional mandatory binding
 checks. The separate grant type in <span>[<a href="#JWT-DPOP" class="cite xref">JWT-DPOP</a>]</span> is not
 implicitly selected.<a href="#section-11.1-2" class="pilcrow">¶</a></p>
 <p id="section-11.1-3">The IdP <span class="bcp14">MUST</span> issue grants only to a RAS configured to enforce
-this profile. A RAS receiving an unsupported <code>agent_federation</code>
-value <span class="bcp14">MUST</span> reject the grant, not retry as an ordinary ID-JAG
-or WAG. A gateway becoming the key holder requires explicitly
+this profile. A RAS <span class="bcp14">MUST</span> reject a request that fails the
+configured profile's checks, not retry as an ordinary ID-JAG
+or WAG. The RAS and RS <span class="bcp14">MUST</span> establish the access-token processing
+requirements for their protected resources through trusted
+configuration, not an optional token marker. A gateway becoming
+the key holder requires explicitly
 authorized credential and identity mapping; forwarding another
 runtime's identifier does not prove it sent the request.<a href="#section-11.1-3" class="pilcrow">¶</a></p>
 </section>
@@ -2360,47 +2357,23 @@ established by <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>; 
                 <a href="#agent-evidence" class="auto internal xref">Section 4.1</a>
 </td>
             </tr>
-            <tr>
-              <td class="text-left" rowspan="1" colspan="1">
-                <code>agent_federation</code>
-</td>
-              <td class="text-left" rowspan="1" colspan="1">Agent federation processing profile version</td>
-              <td class="text-left" rowspan="1" colspan="1">
-                <a href="#grant" class="auto internal xref">Section 6</a>
-</td>
-            </tr>
           </tbody>
         </table>
-<p id="section-13.1-3">The <code>agent_federation</code> marker also appears in the Agent Token
-defined in <a href="#agent-token" class="auto internal xref">Section 4.3</a>, where its processing is restricted
-to the IdP exchange service. It does not turn an access token
-into a WAG or ID-JAG.<a href="#section-13.1-3" class="pilcrow">¶</a></p>
-<p id="section-13.1-4"><code>client_instance</code> is defined by <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>; <code>act</code> uses
+<p id="section-13.1-3"><code>client_instance</code> is defined by <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span>; <code>act</code> uses
 <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>; <code>ai_agent</code> is defined by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>.
-No new actor format or Agent Token type is registered.<a href="#section-13.1-4" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="token-introspection-response">
-<section id="section-13.2">
-        <h3 id="name-token-introspection-respons">
-<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-token-introspection-respons" class="section-name selfRef">Token Introspection Response</a>
-        </h3>
-<p id="section-13.2-1">Register <code>agent_federation</code> in the registry established by
-<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>, with description "Agent federation processing
-profile version", reference <a href="#access-tokens" class="auto internal xref">Section 8</a>, and Change
-Controller IETF.<a href="#section-13.2-1" class="pilcrow">¶</a></p>
+No new actor format or Agent Token type is registered.<a href="#section-13.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="oauth-uri">
-<section id="section-13.3">
+<section id="section-13.2">
         <h3 id="name-oauth-uri">
-<a href="#section-13.3" class="section-number selfRef">13.3. </a><a href="#name-oauth-uri" class="section-name selfRef">OAuth URI</a>
+<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-oauth-uri" class="section-name selfRef">OAuth URI</a>
         </h3>
-<p id="section-13.3-1">Register <code>urn:ietf:params:oauth:grant-profile:agent-federation</code>
+<p id="section-13.2-1">Register <code>urn:ietf:params:oauth:grant-profile:agent-federation</code>
 in the registry established by <span>[<a href="#RFC6755" class="cite xref">RFC6755</a>]</span>, with Common Name
 "Agent Federation Grant Profile", Change Controller IETF,
 and reference <a href="#metadata" class="auto internal xref">Section 10</a>. WAG identifiers are addressed in
-<a href="#coordination" class="auto internal xref">Appendix "Coordination with Related Work"</a>.<a href="#section-13.3-1" class="pilcrow">¶</a></p>
+<a href="#coordination" class="auto internal xref">Appendix "Coordination with Related Work"</a>.<a href="#section-13.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>

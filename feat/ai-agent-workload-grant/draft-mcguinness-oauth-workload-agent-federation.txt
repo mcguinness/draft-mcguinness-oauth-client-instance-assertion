@@ -104,8 +104,7 @@ Table of Contents
    12. Privacy Considerations
    13. IANA Considerations
      13.1.  JWT Claims
-     13.2.  Token Introspection Response
-     13.3.  OAuth URI
+     13.2.  OAuth URI
    14. References
      14.1.  Normative References
      14.2.  Informative References
@@ -248,6 +247,12 @@ Table of Contents
    MUST NOT establish this trust; user SSO trust MUST NOT implicitly
    permit self-acting access.
 
+   The trust configuration MUST identify the request contexts requiring
+   this profile, including issuer, tenant, resource, and client where
+   applicable.  A matching request MUST satisfy this profile even when
+   required claims are missing.  Ambiguous profile selection MUST cause
+   rejection; missing claims MUST NOT select a less restrictive profile.
+
    The IdP client registration represents the logical application and
    MUST require [INSTANCE] with attest_jwt_client_auth_dpop.  Approved
    Federation Bindings determine which agents it can host.  Individual
@@ -349,9 +354,9 @@ Table of Contents
    This audience and scope identify the IdP's exchange service; no
    separate resource identifier or endpoint is defined.  The token MUST
    contain sub_profile=ai_agent as defined by [ENTITY-PROFILES],
-   agent_federation=1 as a string, client_instance identifying the
-   authenticated upstream instance, and cnf.jkt derived from the proven
-   key under [RFC7638].  It MUST NOT contain act.
+   client_instance identifying the authenticated upstream instance, and
+   cnf.jkt derived from the proven key under [RFC7638].  It MUST NOT
+   contain act.
 
    The IdP MUST associate the token with its approved Federation
    Binding.  The token MUST expire within 300 seconds and no later than
@@ -519,10 +524,9 @@ Table of Contents
 
    The client MUST check that the response's issued type matches the
    requested type and that the grant has the expected protected type,
-   agent_federation version, audience, resource, scope subset, and
-   cnf.jkt for its proven key.  Missing or inconsistent binding MUST
-   cause failure.  These checks do not replace the RAS's cryptographic
-   grant validation.
+   audience, resource, scope subset, and cnf.jkt for its proven key.
+   Missing or inconsistent binding MUST cause failure.  These checks do
+   not replace the RAS's cryptographic grant validation.
 
    {
      "access_token": "eyJ...workload-authorization-grant...",
@@ -574,9 +578,6 @@ Table of Contents
    resource, scope:  The single approved resource and nonempty, space-
       delimited approved scopes.
 
-   agent_federation:  The string 1, identifying this profile's
-      processing rules.  Other values are not defined here.
-
    client_instance:  The object defined by [INSTANCE].  In grants, its
       iss MUST equal the grant issuer and its id MUST be an IdP-assigned
       reference mapping to the authenticated upstream instance.  The IdP
@@ -617,7 +618,6 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "agent_federation": "1",
      "client_instance": {
        "iss": "https://idp.example/tenant/acme",
        "id": "runtime-93ab"
@@ -642,7 +642,6 @@ Table of Contents
      "aud": "https://as.app.example",
      "resource": "https://api.app.example",
      "scope": "tickets.read",
-     "agent_federation": "1",
      "client_instance": {
        "iss": "https://idp.example/tenant/acme",
        "id": "runtime-93ab"
@@ -675,10 +674,9 @@ Table of Contents
 
    The RAS MUST:
 
-   1.  Select the approved issuer/tenant relationship and validate
-       signature, protected type, required claims, audience, lifetime,
-       and agent_federation=1.  Reject unsupported versions and mode/
-       type mismatches.
+   1.  Select this profile through the approved trust configuration in
+       Section 3 and validate signature, protected type, required
+       claims, audience, and lifetime.  Reject mode/type mismatches.
 
    2.  Validate the DPoP proof for its token endpoint under [RFC9449].
        Compute its public-key thumbprint and compare it to cnf.jkt.
@@ -731,12 +729,11 @@ Table of Contents
    introspection.  This uses the Actor Profile introspection
    compatibility path in delegated mode; an opaque token itself is not
    an Actor Profile JWT.  Active results MUST include sub, aud, exp,
-   scope, cnf.jkt, agent_federation=1, and the grant's unchanged
-   client_instance.  Delegated results MUST also include the unchanged
-   act and applicable subject classification under [ACTOR-PROFILE].  An
-   established logical client, including the delegated client, MUST be
-   reported as client_id.  Inactive responses MUST NOT disclose this
-   context.
+   scope, cnf.jkt, and the grant's unchanged client_instance.  Delegated
+   results MUST also include the unchanged act and applicable subject
+   classification under [ACTOR-PROFILE].  An established logical client,
+   including the delegated client, MUST be reported as client_id.
+   Inactive responses MUST NOT disclose this context.
 
    JWT access tokens MAY carry equivalent information directly;
    delegated JWTs MUST follow Actor Profile's access-token output rules.
@@ -883,11 +880,13 @@ Table of Contents
    separate grant type in [JWT-DPOP] is not implicitly selected.
 
    The IdP MUST issue grants only to a RAS configured to enforce this
-   profile.  A RAS receiving an unsupported agent_federation value MUST
-   reject the grant, not retry as an ordinary ID-JAG or WAG.  A gateway
-   becoming the key holder requires explicitly authorized credential and
-   identity mapping; forwarding another runtime's identifier does not
-   prove it sent the request.
+   profile.  A RAS MUST reject a request that fails the configured
+   profile's checks, not retry as an ordinary ID-JAG or WAG.  The RAS
+   and RS MUST establish the access-token processing requirements for
+   their protected resources through trusted configuration, not an
+   optional token marker.  A gateway becoming the key holder requires
+   explicitly authorized credential and identity mapping; forwarding
+   another runtime's identifier does not prove it sent the request.
 
 11.2.  Lifecycle and Freshness
 
@@ -939,43 +938,29 @@ Table of Contents
    The following registrations are requested in the registry established
    by [RFC7519]; the Change Controller is IETF.
 
-       +==================+============================+===========+
-       | Claim Name       | Description                | Reference |
-       +==================+============================+===========+
-       | agent_id         | Attester-scoped agent      | Section   |
-       |                  | principal identifier       | 4.1       |
-       +------------------+----------------------------+-----------+
-       | agent_platform   | Agent platform             | Section   |
-       |                  | implementation identifier  | 4.1       |
-       +------------------+----------------------------+-----------+
-       | agent_model      | Agent model identifier and | Section   |
-       |                  | version                    | 4.1       |
-       +------------------+----------------------------+-----------+
-       | agent_runtime    | Runtime implementation     | Section   |
-       |                  | identifier and version     | 4.1       |
-       +------------------+----------------------------+-----------+
-       | agent_federation | Agent federation           | Section 6 |
-       |                  | processing profile version |           |
-       +------------------+----------------------------+-----------+
+        +================+===========================+===========+
+        | Claim Name     | Description               | Reference |
+        +================+===========================+===========+
+        | agent_id       | Attester-scoped agent     | Section   |
+        |                | principal identifier      | 4.1       |
+        +----------------+---------------------------+-----------+
+        | agent_platform | Agent platform            | Section   |
+        |                | implementation identifier | 4.1       |
+        +----------------+---------------------------+-----------+
+        | agent_model    | Agent model identifier    | Section   |
+        |                | and version               | 4.1       |
+        +----------------+---------------------------+-----------+
+        | agent_runtime  | Runtime implementation    | Section   |
+        |                | identifier and version    | 4.1       |
+        +----------------+---------------------------+-----------+
 
-                                  Table 2
-
-   The agent_federation marker also appears in the Agent Token defined
-   in Section 4.3, where its processing is restricted to the IdP
-   exchange service.  It does not turn an access token into a WAG or ID-
-   JAG.
+                                 Table 2
 
    client_instance is defined by [INSTANCE]; act uses [ACTOR-PROFILE];
    ai_agent is defined by [ENTITY-PROFILES].  No new actor format or
    Agent Token type is registered.
 
-13.2.  Token Introspection Response
-
-   Register agent_federation in the registry established by [RFC7662],
-   with description "Agent federation processing profile version",
-   reference Section 8, and Change Controller IETF.
-
-13.3.  OAuth URI
+13.2.  OAuth URI
 
    Register urn:ietf:params:oauth:grant-profile:agent-federation in the
    registry established by [RFC6755], with Common Name "Agent Federation
