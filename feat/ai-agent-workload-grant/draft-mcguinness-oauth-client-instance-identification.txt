@@ -1,0 +1,550 @@
+
+
+
+
+Web Authorization Protocol                                 K. McGuinness
+Internet-Draft                                               Independent
+Intended status: Standards Track                       11 September 2026
+Expires: 15 March 2027
+
+
+      Client Instance Identification for Attestation-Based Client
+                             Authentication
+      draft-mcguinness-oauth-client-instance-identification-latest
+
+Abstract
+
+   This specification profiles OAuth 2.0 Attestation-Based Client
+   Authentication to identify a particular runtime instance of a logical
+   OAuth client.  It defines an issuer-qualified instance identifier,
+   attester configuration, and processing requirements for instance
+   identity and key continuity.  It also defines a claim for conveying
+   validated instance context in issued tokens.  Instance identification
+   does not determine the authorization subject or establish delegation.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at
+   https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-
+   assertion/draft-mcguinness-oauth-client-instance-identification.html.
+   Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-
+   instance-identification/.
+
+   Discussion of this document takes place on the Web Authorization
+   Protocol Working Group mailing list (mailto:oauth@ietf.org), which is
+   archived at https://mailarchive.ietf.org/arch/browse/oauth/.
+   Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-
+   assertion.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 15 March 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction
+   2.  Conventions and Definitions
+   3.  Profile Selection and Trust
+   4.  Client Attestation Claims
+   5.  Request Processing
+   6.  Instance Lifetime and Key Continuity
+   7.  Conveying Instance Context
+   8.  Relationship to Workload Identity
+   9.  Security and Privacy Considerations
+   10. IANA Considerations
+     10.1.  JWT Claims and Introspection Response Parameters
+     10.2.  OAuth Metadata
+   11. References
+     11.1.  Normative References
+     11.2.  Informative References
+   Document History
+   Author's Address
+
+1.  Introduction
+
+   An OAuth client identifier can represent software executing in many
+   concurrent instances.  Attestation-Based Client Authentication
+   [ATTEST] authenticates a client instance through a key-bound Client
+   Attestation and proof of possession.  A stable identifier for that
+   instance additionally supports audit correlation, instance-specific
+   risk evaluation, and lifecycle response across attestation reissuance
+   and key rotation.
+
+   This document defines that identifier and its relationship to an
+   OAuth client [RFC6749].  It uses the Client Attestation JWT, HTTP
+   headers, and authentication methods of [ATTEST].  It does not define
+   an alternative assertion format or grant type.
+
+   The identity of a runtime is distinct from the identity of the
+   principal whose authority it exercises.  Authorization profiles, such
+   as [AGENT-FEDERATION], determine whether that principal is the token
+   subject or an actor.  Implementing this document does not require
+   implementing an actor profile or producing act.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   The terms Client Attestation, Client Attester, Client Instance, and
+   Client Instance Key are used as defined in [ATTEST].
+
+   Logical Client:  The OAuth client identified by client_id.  Several
+      Client Instances can authenticate as the same Logical Client.
+
+   Instance Identifier:  An opaque identifier assigned by a Client
+      Attester to one Client Instance.  Its identity is the ordered pair
+      of the attester's issuer identifier and the Instance Identifier.
+
+   Instance Context:  A validated reference to the runtime presenting a
+      request.  It is evidence about execution, not an authorization
+      grant.
+
+3.  Profile Selection and Trust
+
+   An authorization server implementing this profile MUST publish
+   client_instance_identification_supported with the JSON boolean value
+   true in its [RFC8414] metadata.  Absence means that support is not
+   advertised.
+
+   This profile applies when the client's effective configuration has
+   client_instance_identification_required set to true.  The server MUST
+   establish that configuration before processing a request.  A
+   deployment using this profile for an additional security signal at a
+   resource server MUST establish the equivalent requirement through
+   trusted configuration.  Merely receiving a JWT containing an instance
+   claim MUST NOT select this profile or alter a client's authentication
+   method.
+
+   The following client metadata is defined for use with [RFC7591],
+   [CIMD], or administrative configuration:
+
+   client_instance_identification_required:  OPTIONAL.  Boolean
+      indicating that this profile is required.  The default is false.
+
+   client_instance_attesters:  REQUIRED when this profile is required.
+      A nonempty array of objects.  Each object contains an issuer
+      string and a jwks_uri string, both HTTPS URLs without fragment
+      components. issuer identifies an authorized Client Attester;
+      jwks_uri locates its verification keys as a JWK Set [RFC7517].
+      Issuer values MUST be distinct within the array.
+
+   The authorization server MUST approve each attester's authority to
+   attest instances of the configured client.  Client-published metadata
+   is a proposal for this association; publication, HTTPS retrieval, or
+   possession of a signing key MUST NOT establish that authority without
+   the server's trust policy.  An effective attester configuration MUST
+   identify permitted asymmetric signature algorithms and limits on
+   attestation age and lifetime.
+
+   The receiver MUST resolve keys using the approved descriptor and the
+   JWT's kid.  It MUST NOT obtain authority or replacement keys from an
+   unapproved JWT-supplied URL or embedded public key.  Changes to
+   issuer authority and key configuration MUST be authenticated and
+   audited.  Issuer and client identifiers are compared as exact
+   strings, without URI normalization.
+
+   Example effective client configuration:
+
+   {
+     "client_id": "https://platform.example/oauth-client",
+     "token_endpoint_auth_method": "attest_jwt_client_auth_dpop",
+     "client_instance_identification_required": true,
+     "client_instance_attesters": [
+       {
+         "issuer": "https://attester.example/tenant/acme",
+         "jwks_uri": "https://attester.example/tenant/acme/jwks"
+       }
+     ]
+   }
+
+4.  Client Attestation Claims
+
+   All requirements of [ATTEST] apply.  This profile retains typ=oauth-
+   client-attestation+jwt and sub=client_id; it does not exercise the
+   base specification's subject override.
+
+   The following claims are additionally REQUIRED:
+
+   iss:  The exact issuer identifier of an approved Client Attester in
+      Section 3.
+
+   client_instance_id:  A nonempty StringOrURI [RFC7519] identifying the
+      Client Instance within the issuer's namespace.  The identifier
+      MUST be opaque to receivers and MUST NOT be reassigned to another
+      instance.  Receivers MUST NOT derive permissions by parsing it.
+
+   iat:  The time at which the attestation was issued, as a NumericDate.
+      It MUST precede exp.  Receivers MUST reject attestations outside
+      their configured age and lifetime limits, allowing only their
+      configured clock skew.
+
+   The protected header MUST contain kid.  Attestations MUST use an
+   asymmetric signature algorithm permitted by the trust configuration.
+   Implementations MUST support ES256 [RFC7518]; none and symmetric MAC
+   algorithms MUST NOT be used.
+
+   The base cnf claim contains the public instance key using the jwk
+   representation [RFC7800].  Private key members MUST NOT be included.
+   The attester MUST authenticate the instance and verify its possession
+   of that key before issuing an attestation.  Any additional identity
+   or provenance claims require processing rules in the profile that
+   uses them.
+
+   Example decoded attestation payload:
+
+   {
+     "iss": "https://attester.example/tenant/acme",
+     "sub": "https://platform.example/oauth-client",
+     "client_instance_id": "inst-7f3d9a2e",
+     "iat": 1789128000,
+     "exp": 1789128300,
+     "cnf": {
+       "jwk": {
+         "kty": "EC",
+         "crv": "P-256",
+         "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
+         "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
+       }
+     }
+   }
+
+5.  Request Processing
+
+   The client MUST present its attestation and proof through the
+   mechanisms of [ATTEST] and use its configured authentication method.
+   Implementations of this profile MUST support DPoP combined mode and
+   attest_jwt_client_auth_dpop.  Other base attestation proof methods
+   MAY be supported by agreement.
+
+   The receiver MUST:
+
+   1.  Determine that this profile applies from Section 3.
+
+   2.  Validate the Client Attestation and proof according to [ATTEST],
+       including JWT type, signature, expiration, client identity, key
+       possession, and applicable freshness checks.
+
+   3.  Validate the additional claims and attester association in
+       Section 4.  The attestation's sub MUST equal the authenticated or
+       expected Logical Client identifier.
+
+   4.  Establish the instance identity as (iss, client_instance_id) and
+       associate it with that Logical Client and the proven key.
+
+   5.  Apply any configured instance suspension or other risk policy
+       before accepting the request.
+
+   In DPoP combined mode, the proof key MUST match cnf.jwk.  Where an
+   issued artifact uses cnf.jkt, the receiver MUST compute the JWK
+   SHA-256 thumbprint according to [RFC7638] from the validated public
+   key; it MUST NOT accept an unrelated requester-selected thumbprint.
+   DPoP nonce and replay processing follow [RFC9449].  A fresh proof is
+   required for each request; the Client Attestation itself can be
+   reused within its validity.
+
+   A receiver MUST NOT substitute instance identification for grant
+   validation.  In particular, it MUST NOT set an access token's sub,
+   add an act claim, or extend a delegation chain solely because a
+   Client Attestation was accepted.  A calling profile MUST establish
+   any instance-to-principal relationship it needs.
+
+   Invalid or missing instance claims are reported using
+   invalid_client_attestation from [ATTEST].  Client authentication
+   failures and freshness challenges retain the base specification's
+   error processing.  A failed profile check MUST NOT trigger fallback
+   to authentication without the required instance evidence.
+
+6.  Instance Lifetime and Key Continuity
+
+   The attester MUST assign a new Instance Identifier when creating a
+   new runtime, including a restarted or cloned runtime.  It MUST NOT
+   issue the same identifier to independently executing copies.  A
+   suspend/resume operation MAY retain the identifier only when the
+   attester can establish continuity of the same instance and prevent
+   concurrent restored copies from using that identity.
+
+   Attestation renewal and key rotation within a continuing instance
+   MUST preserve its identifier.  A new key requires a new attestation
+   and authenticated proof of its binding to that instance.  Possession
+   of an instance identifier, an expired attestation, or a former public
+   key alone MUST NOT establish continuity.  A receiver MUST NOT use a
+   key thumbprint, certificate serial number, or JWT jti as a substitute
+   for the identifier.
+
+   This profile does not override refresh-token binding in [ATTEST].  In
+   particular, a stable identifier does not permit use of a key-bound
+   refresh token with a new key.  Transferring existing grants, tokens,
+   or sessions to a replacement key requires a separately specified
+   authorization procedure.
+
+7.  Conveying Instance Context
+
+   An issuer MAY include a client_instance claim in a token or
+   introspection response [RFC7662] when the recipient needs validated
+   instance context.  Its value is an object containing:
+
+   iss:  REQUIRED.  String identifying the authority for the instance
+      identifier.  It is not necessarily the enclosing token issuer.
+
+   id:  REQUIRED.  Nonempty StringOrURI identifying the instance in that
+      authority's namespace.
+
+   The object MUST identify the instance whose participation and key
+   possession were validated for issuance.  The tuple MUST either be
+   copied from validated evidence or assigned through an authenticated,
+   unambiguous mapping maintained by the issuer.  The issuer MUST NOT
+   copy unvalidated client-supplied context.  Both members MUST be
+   nonempty strings.  Additional members MAY be defined by other
+   profiles; unknown members are ignored unless the applicable profile
+   requires their processing.
+
+   {
+     "client_instance": {
+       "iss": "https://idp.example/tenant/acme",
+       "id": "runtime-93ab"
+     }
+   }
+
+   This object conveys identity only.  It MUST NOT be interpreted as an
+   actor, a separate token, or a grant of authority.  A profile using it
+   MUST define its association with the token's subject, current actor,
+   or other presenter, and how that association is preserved during
+   exchange.  Proof of possession is validated against the enclosing
+   token's binding, not this object.
+
+8.  Relationship to Workload Identity
+
+   A workload identity can identify several replicas.  An integration
+   MUST NOT assert that such an identity uniquely identifies an instance
+   without additional authenticated evidence.  SPIFFE OAuth
+   authentication and its client mappings are specified in
+   [SPIFFE-OAUTH]; this document does not redefine those bindings.
+
+   A workload attester can issue the Client Attestation defined here
+   after validating native workload evidence.  Direct use of a
+   credential with a different sub or typ requires a separate profile
+   defining replacement client-mapping checks as allowed by [ATTEST].
+   Such a credential is not implicitly conformant to this profile.
+
+9.  Security and Privacy Considerations
+
+   The considerations of [ATTEST], [RFC8725], and [RFC9449] apply.
+   Compromise of an attester can allow impersonation of any instance
+   within its approved client associations.  Receivers MUST scope those
+   associations and MUST enforce withdrawal of attester trust on
+   subsequent authentication.  Runtime isolation and key custody limit
+   the granularity of the identity that can be proven; a shared private
+   key does not distinguish its individual holders.
+
+   Instance identification supports targeted risk response, but does not
+   prove software behavior, authorization, or integrity beyond the
+   evidence the attester actually evaluated.  Instance revocation does
+   not automatically revoke previously issued tokens; consuming profiles
+   define those consequences.
+
+   Stable identifiers and keys can correlate activity.  Issuers SHOULD
+   use recipient-scoped instance mappings when broader correlation is
+   unnecessary, preserve their internal audit mapping, and disclose only
+   needed provenance.  Error responses SHOULD avoid revealing unrelated
+   instance identities.  Logs MUST NOT contain raw credentials or
+   private keys.
+
+10.  IANA Considerations
+
+10.1.  JWT Claims and Introspection Response Parameters
+
+   This specification requests registration of client_instance_id and
+   client_instance in the "JSON Web Token Claims" registry established
+   by [RFC7519].  The descriptions are, respectively, "Issuer-scoped
+   client runtime instance identifier" (Section 4) and "Validated client
+   runtime instance context" (Section 7).  The Change Controller is
+   IETF.
+
+   It also requests registration of client_instance, with the same
+   description and reference, in the "OAuth Token Introspection
+   Response" registry established by [RFC7662].  The Change Controller
+   is IETF.
+
+10.2.  OAuth Metadata
+
+   This specification requests the following registrations.  The Change
+   Controller is IETF and the specification reference for each entry is
+   Section 3.
+
+   +=============+========================================+==============+
+   |Registry     |Metadata Name                           |Description   |
+   +=============+========================================+==============+
+   |OAuth        |client_instance_identification_supported|Support for   |
+   |Authorization|                                        |this instance |
+   |Server       |                                        |identification|
+   |Metadata     |                                        |profile       |
+   +-------------+----------------------------------------+--------------+
+   |OAuth Dynamic|client_instance_identification_required |Requirement to|
+   |Client       |                                        |use this      |
+   |Registration |                                        |instance      |
+   |Metadata     |                                        |identification|
+   |             |                                        |profile       |
+   +-------------+----------------------------------------+--------------+
+   |OAuth Dynamic|client_instance_attesters               |Approved      |
+   |Client       |                                        |instance      |
+   |Registration |                                        |attester      |
+   |Metadata     |                                        |issuer and    |
+   |             |                                        |verification- |
+   |             |                                        |key           |
+   |             |                                        |descriptors   |
+   +-------------+----------------------------------------+--------------+
+
+                                  Table 1
+
+   The registries are established by [RFC8414] and [RFC7591],
+   respectively.
+
+11.  References
+
+11.1.  Normative References
+
+   [ATTEST]   Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
+              Attestation-Based Client Authentication", Work in
+              Progress, Internet-Draft, draft-ietf-oauth-attestation-
+              based-client-auth-11, 3 September 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              attestation-based-client-auth-11>.
+
+   [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
+              RFC 6749, DOI 10.17487/RFC6749, October 2012,
+              <https://www.rfc-editor.org/rfc/rfc6749>.
+
+   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
+              DOI 10.17487/RFC7517, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7517>.
+
+   [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
+              DOI 10.17487/RFC7518, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7518>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7519>.
+
+   [RFC7591]  Richer, J., Ed., Jones, M., Bradley, J., Machulak, M., and
+              P. Hunt, "OAuth 2.0 Dynamic Client Registration Protocol",
+              RFC 7591, DOI 10.17487/RFC7591, July 2015,
+              <https://www.rfc-editor.org/rfc/rfc7591>.
+
+   [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
+              Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
+              2015, <https://www.rfc-editor.org/rfc/rfc7638>.
+
+   [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
+              RFC 7662, DOI 10.17487/RFC7662, October 2015,
+              <https://www.rfc-editor.org/rfc/rfc7662>.
+
+   [RFC7800]  Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-
+              Possession Key Semantics for JSON Web Tokens (JWTs)",
+              RFC 7800, DOI 10.17487/RFC7800, April 2016,
+              <https://www.rfc-editor.org/rfc/rfc7800>.
+
+   [RFC8414]  Jones, M., Sakimura, N., and J. Bradley, "OAuth 2.0
+              Authorization Server Metadata", RFC 8414,
+              DOI 10.17487/RFC8414, June 2018,
+              <https://www.rfc-editor.org/rfc/rfc8414>.
+
+   [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
+              Current Practices", BCP 225, RFC 8725,
+              DOI 10.17487/RFC8725, February 2020,
+              <https://www.rfc-editor.org/rfc/rfc8725>.
+
+   [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
+              Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
+              Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
+              September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+11.2.  Informative References
+
+   [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
+              and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
+              DOI 10.17487/RFC8693, January 2020,
+              <https://www.rfc-editor.org/rfc/rfc8693>.
+
+   [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
+              Document", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-client-id-metadata-document-02, 6 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              client-id-metadata-document-02>.
+
+   [SPIFFE-OAUTH]
+              Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
+              S., and N. Cam-Winget, "OAuth SPIFFE Client
+              Authentication", Work in Progress, Internet-Draft, draft-
+              ietf-oauth-spiffe-client-auth-02, 15 June 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              spiffe-client-auth-02>.
+
+   [AGENT-FEDERATION]
+              McGuinness, K., "OAuth 2.0 Profile for Agent Federation",
+              Work in Progress, Internet-Draft, draft-mcguinness-oauth-
+              workload-agent-federation, 11 September 2026,
+              <https://mcguinness.github.io/draft-mcguinness-oauth-
+              client-instance-assertion/draft-mcguinness-oauth-workload-
+              agent-federation.html>.
+
+Document History
+
+   _RFC EDITOR: Remove this section before publication._
+
+   This document replaces the instance-authentication portions of draft-
+   mcguinness-oauth-client-instance-assertion.  It uses ATTEST as its
+   sole protocol foundation and separates instance evidence from agent
+   federation and actor semantics.
+
+Author's Address
+
+   Karl McGuinness
+   Independent
+   Email: public@karlmcguinness.com
