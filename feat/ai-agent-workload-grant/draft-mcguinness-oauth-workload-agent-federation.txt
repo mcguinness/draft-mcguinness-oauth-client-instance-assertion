@@ -143,7 +143,10 @@ Table of Contents
    Server independently determines whether to accept the grant and which
    permissions to include in an access token.  The registered agent is
    the subject of the grant and access token; the runtime instance is
-   identified separately.
+   identified separately.  An instance can perform multiple jobs or
+   tasks without changing either identity.  This specification does not
+   define task identifiers, task context, or task-specific authorization
+   and lifecycle rules; those can be specified by a separate profile.
 
    This profile applies to agents acting on their own behalf.
    Authorization on behalf of an end-user, including the identity
@@ -257,13 +260,23 @@ Table of Contents
       MUST be later than iat, no more than 300 seconds after iat, and no
       later than the expiration of the input assertion.
 
-   The WAG MUST NOT contain an act claim.  The instance represents an
-   execution of the registered agent.  Additional agent claims follow
-   [AGENT].  The IdP MUST include only claims obtained from validated
-   evidence or an authorized registry source, subject to its freshness
-   policy.  It MUST NOT include raw agent_runtime evidence in the WAG.
-   Additional authorization properties defined by [WAG] do not expand
-   the granted scope.
+   This profile models the instance as an execution of the registered
+   agent, rather than a separate principal receiving delegated
+   authority.  The WAG therefore MUST NOT contain act.  The
+   agent_instance_id claim identifies that execution; cnf identifies the
+   key it must prove it holds.  A separate runtime identifier does not
+   by itself establish delegation.
+
+   Delegation to a distinct principal uses the actor semantics in
+   Section 4.1 of [RFC8693] and is outside this profile.  Issuing a
+   grant during a job or task does not by itself create such a
+   relationship, nor make the task's initiator its subject or actor.
+
+   Additional agent claims follow [AGENT].  The IdP MUST include only
+   claims obtained from validated evidence or an authorized registry
+   source, subject to its freshness policy.  It MUST NOT include raw
+   agent_runtime evidence in the WAG.  Additional authorization
+   properties defined by [WAG] do not expand the granted scope.
 
 3.2.  Example
 
@@ -669,7 +682,10 @@ Table of Contents
    supply its attributes.  Only administratively authorized sources may
    create or modify bindings and assignments.  A client-published
    instance_issuers value does not by itself establish a federation
-   binding or authorize access to a resource.
+   binding or authorize access to a resource.  A registered agent can
+   represent a reusable workload identity.  Individual jobs or tasks
+   executed under that identity do not require separate agent entries or
+   OAuth client registrations in this profile.
 
    The IdP MUST map the authenticated (iss, sub) of the assertion to an
    issuer-scoped, non-reassigned instance identifier and retain the

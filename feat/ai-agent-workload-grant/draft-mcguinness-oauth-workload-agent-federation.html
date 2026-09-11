@@ -1338,7 +1338,11 @@ grant for the requested resource and scope. The Resource
 Authorization Server independently determines whether to accept
 the grant and which permissions to include in an access token.
 The registered agent is the subject of the grant and access token;
-the runtime instance is identified separately.<a href="#section-1-3" class="pilcrow">¶</a></p>
+the runtime instance is identified separately. An instance can
+perform multiple jobs or tasks without changing either identity.
+This specification does not define task identifiers, task context,
+or task-specific authorization and lifecycle rules; those can be
+specified by a separate profile.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">This profile applies to agents acting on their own behalf.
 Authorization on behalf of an end-user, including the identity
 assertion exchange defined by <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, is outside its scope.
@@ -1536,13 +1540,21 @@ no later than the expiration of the input assertion.<a href="#section-3.1-2.22.1
 </dd>
         <dd class="break"></dd>
 </dl>
-<p id="section-3.1-3">The WAG <span class="bcp14">MUST NOT</span> contain an <code>act</code> claim. The instance represents
-an execution of the registered agent.
-Additional agent claims follow <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The IdP <span class="bcp14">MUST</span> include only
+<p id="section-3.1-3">This profile models the instance as an execution of the registered
+agent, rather than a separate principal receiving delegated
+authority. The WAG therefore <span class="bcp14">MUST NOT</span> contain <code>act</code>. The
+<code>agent_instance_id</code> claim identifies that execution; <code>cnf</code>
+identifies the key it must prove it holds. A separate runtime
+identifier does not by itself establish delegation.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4">Delegation to a distinct principal uses the actor semantics in
+Section 4.1 of <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> and is outside this profile. Issuing a
+grant during a job or task does not by itself create such a
+relationship, nor make the task's initiator its subject or actor.<a href="#section-3.1-4" class="pilcrow">¶</a></p>
+<p id="section-3.1-5">Additional agent claims follow <span>[<a href="#AGENT" class="cite xref">AGENT</a>]</span>. The IdP <span class="bcp14">MUST</span> include only
 claims obtained from validated evidence or an authorized registry
 source, subject to its freshness policy. It <span class="bcp14">MUST NOT</span> include raw
 <code>agent_runtime</code> evidence in the WAG. Additional authorization
-properties defined by <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> do not expand the granted scope.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+properties defined by <span>[<a href="#WAG" class="cite xref">WAG</a>]</span> do not expand the granted scope.<a href="#section-3.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="example">
@@ -2123,7 +2135,11 @@ permitted RAS issuers, resources and scopes, and the sources
 authorized to supply its attributes. Only administratively
 authorized sources may create or modify bindings and assignments.
 A client-published <code>instance_issuers</code> value does not by itself
-establish a federation binding or authorize access to a resource.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+establish a federation binding or authorize access to a resource.
+A registered agent can represent a reusable workload identity.
+Individual jobs or tasks executed under that identity do not
+require separate agent entries or OAuth client registrations in
+this profile.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
 <p id="section-5.1-3">The IdP <span class="bcp14">MUST</span> map the authenticated <code>(iss, sub)</code> of the assertion
 to an issuer-scoped, non-reassigned instance identifier and retain
 the relationship to its registered agent. It <span class="bcp14">MUST</span> reject a

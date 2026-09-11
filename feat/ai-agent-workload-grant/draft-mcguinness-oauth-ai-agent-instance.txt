@@ -376,12 +376,14 @@ Table of Contents
       this agent instance, minted by the Agent Attester.  The value MUST
       be unique among all instances attested by this Attester (including
       across any OAuth clients the Attester serves) and MUST be stable
-      for the lifetime of the agent instance.  The value MUST NOT be
-      derived from a proof-of-possession key: keys are binding material,
-      not identity (Section 8).  The Attester MUST NOT reassign an
-      active or audit-relevant value to a different instance; see
-      Section 16.2.  Attesters SHOULD mint URI-shaped values within a
-      namespace they control (for example,
+      for the lifetime of the agent instance.  An instance can perform
+      multiple tasks; this identifier does not inherently identify a
+      task or establish a delegation relationship.  The value MUST NOT
+      be derived from a proof-of-possession key: keys are binding
+      material, not identity (Section 8).  The Attester MUST NOT
+      reassign an active or audit-relevant value to a different
+      instance; see Section 16.2.  Attesters SHOULD mint URI-shaped
+      values within a namespace they control (for example,
       https://attester.example.com/instances/sess-9f2c), which makes the
       minting authority evident to consumers of the identifier.
 

@@ -1669,7 +1669,9 @@ A deployment profile <span class="bcp14">MAY</span> require this claim.<a href="
 minted by the Agent Attester. The value <span class="bcp14">MUST</span> be unique among all
 instances attested by this Attester (including across any OAuth
 clients the Attester serves) and <span class="bcp14">MUST</span> be
-stable for the lifetime of the agent instance. The value
+stable for the lifetime of the agent instance. An instance can
+perform multiple tasks; this identifier does not inherently
+identify a task or establish a delegation relationship. The value
 <span class="bcp14">MUST NOT</span> be derived from a proof-of-possession key: keys are
 binding material, not identity (<a href="#subject" class="auto internal xref">Section 8</a>). The Attester <span class="bcp14">MUST NOT</span> reassign an active or audit-relevant value to a different
 instance; see <a href="#security-lifecycle" class="auto internal xref">Section 16.2</a>. Attesters <span class="bcp14">SHOULD</span> mint
