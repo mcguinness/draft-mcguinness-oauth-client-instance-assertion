@@ -54,6 +54,13 @@ normative:
 informative:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC7662:
+  RFC8252:
+  SPIFFE-CONCEPTS:
+    title: "SPIFFE Concepts"
+    target: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/
+    author:
+      - org: SPIFFE
+    date: 2026
   EMA:
     title: "MCP Enterprise-Managed Authorization"
     target: https://github.com/modelcontextprotocol/ext-auth/blob/main/specification/stable/enterprise-managed-authorization.mdx
@@ -105,6 +112,7 @@ This document does not define another downstream grant profile.
 Existing client-based delegation, including MCP Enterprise-Managed
 Authorization, does not require this flow. Model selection is described in
 {{models}} and compatibility guidance in {{deployment}}.
+End-to-end deployment examples appear in {{flows}}.
 
 ## Relationship to Client Attestation and Actor Profile
 
@@ -667,6 +675,264 @@ Native workload mechanisms such as {{SPIFFE-OAUTH}} can support
 additional input profiles. Those profiles need their own credential
 validation, client and agent mapping, and proof rules. They are not
 interchangeable with the Client Attestation input specified here.
+The direct SPIFFE example in {{spiffe-flow}} illustrates this boundary.
+
+# End-to-End Deployment Examples {#flows}
+{:numbered="false"}
+
+This appendix is informative. A harness is the software executing
+the agent and making OAuth requests. These examples separate its
+hosting environment, authentication evidence, and acting relationship:
+
+| Deployment | Evidence accepted by IdP | Identity model | Example output |
+|---|---|---|---|
+| SPIFFE workload | X.509-SVID and DPoP | Agent is the client | Self-acting WAG; proposed native input extension |
+| Harness on managed device | Enterprise Client Attestation and DPoP | Agent is the client | User-delegated ID-JAG |
+| Harness in managed platform | Platform Client Attestation and DPoP | Agents share a client | Self-acting WAG, with delegated variant |
+
+In each example, the IdP maintains the agent's status, owner, groups,
+and application assignments. Before issuance, it establishes the
+external identity binding and trusts the relevant credential issuer.
+The RAS trusts the IdP at `https://idp.example/tenant/acme` as grant
+issuer. Administrative configuration, JIT, or SCIM can establish
+the downstream agent record, correlated by IdP issuer and agent
+identifier. Receiving a grant does not by itself provision a record
+or authorize every scope.
+
+The examples request `tickets.read` at `https://api.app.example`
+through the RAS `https://as.app.example`. Each harness controls its
+own key, denoted `K`; `JKT(K)` denotes its thumbprint. JWKs sent to
+attesters contain only public keys. IdP requests use the authentication
+described in each example, with fresh proofs for the respective
+endpoints. The illustrated RAS
+issues DPoP access tokens bound to that key, an explicit deployment
+choice under {{consumption}}. WAG issuance and redemption remain
+subject to {{coordination}}.
+
+## SPIFFE Workload to IdP {#spiffe-flow}
+{:numbered="false"}
+
+Use this model when the workload already has a SPIFFE identity
+representing the agent. This example uses X.509-SVID client
+authentication under {{SPIFFE-OAUTH}}. Its integration with agent
+acquisition and exchange is a proposed input extension, not an
+alternative conformance path defined by this document.
+
+~~~
+ Workload           Harness            IdP          RAS         API
+    API
+     |                 |                |            |           |
+     |<-- get SVID ----|                |            |           |
+     |-- X.509-SVID -->|                |            |           |
+     |                 |- credentials ->|            |           |
+     |                 |<--- IdP AT ----|            |           |
+     |                 |--- exchange -->|            |           |
+     |                 |<---- WAG ------|            |           |
+     |                 |-------- WAG + DPoP -------->|           |
+     |                 |<--------- app AT -----------|           |
+     |                 |------------- app AT + DPoP ------------>|
+     |                 |<--------------- tickets ----------------|
+~~~
+
+1. The harness obtains an X.509-SVID for
+   `spiffe://workloads.example/agents/support` from its Workload API.
+   The IdP has approved that exact identity and trust domain for
+   Registered Agent `agent-42`; trusting the domain alone does not
+   admit every workload as that agent.
+2. The harness sends a client credentials request to the IdP over
+   mutually authenticated TLS, with that SPIFFE ID as `client_id`
+   and the IdP issuer as `resource`. A DPoP proof establishes a
+   separate application key `K`. The IdP validates the SVID using
+   the configured SPIFFE trust bundle and resolves the agent binding.
+3. Under the proposed input extension, the IdP issues an access
+   token with `sub=agent-42`, the SPIFFE ID as `client_id`, its own
+   issuer as `aud`, and `cnf.jkt=JKT(K)`. The TLS credential
+   authenticates the workload; `K` binds the issued token.
+4. The harness requests WAG using that access token as
+   `subject_token`, the target RAS as `audience`, and the API and
+   scope above. It again authenticates with its SVID and proves
+   possession of `K`. The IdP checks the current binding and policy
+   before issuing WAG with `sub=agent-42` and no `act`.
+5. The harness redeems WAG at the RAS with a fresh proof from `K`,
+   receives the application access token, and calls the API. The
+   downstream processing is described in {{app-consumption}}.
+
+The illustrative bootstrap request is sent over the mutually
+authenticated TLS connection established with the X.509-SVID:
+
+~~~ http
+POST /token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: eyJ...workload-key-proof...
+
+grant_type=client_credentials
+&client_id=spiffe%3A%2F%2Fworkloads.example%2Fagents%2Fsupport
+&resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
+~~~
+
+The missing input profile needs to replace the ATTEST-specific
+checks in {{bootstrap}} and {{idp-processing}}, define native
+credential renewal and exchange eligibility, and settle runtime
+correlation. A SPIFFE workload can have several instances
+{{SPIFFE-CONCEPTS}}; neither its SPIFFE ID nor a rotating certificate
+fingerprint supplies the stable instance identifier required here.
+The example therefore does not invent `client_instance_id` from
+either value. A SPIFFE-backed attester could instead issue a
+conforming Client Attestation after validating runtime and key
+evidence, but that is a separate attestation step.
+
+## Harness on a Managed Device {#device-flow}
+{:numbered="false"}
+
+Use this model when an enterprise governs a desktop agent as a
+Registered Agent with its own client identity. The example binds
+`client_id=https://desktop.example/agents/dev-17` to `agent-17`.
+The IdP trusts `https://devices.example/attester` to attest this client.
+The managed device, the agent, and the running harness are different
+entities; device enrollment does not itself authorize user delegation.
+
+~~~
+Enterprise         Harness      User/browser     IdP      RAS     API
+attester
+    |                 |               |           |        |       |
+    |< evidence, JWK -|               |           |        |       |
+    |-- attestation ->|               |           |        |       |
+    |                 |-- credentials + ATTEST -->|        |       |
+    |                 |<-------- IdP AT ----------|        |       |
+    |                 |--- sign-in -->|           |        |       |
+    |                 |               |- sign-in >|        |       |
+    |                 |               |<- code ---|        |       |
+    |                 |<--- code -----|           |        |       |
+    |                 |------- code + PKCE ------>|        |       |
+    |                 |<------- ID Token ---------|        |       |
+    |                 |-- user + actor exchange ->|        |       |
+    |                 |<-------- ID-JAG ----------|        |       |
+    |                 |---------- ID-JAG + DPoP ---------->|       |
+    |                 |<------------- app AT --------------|       |
+    |                 |-------------- app AT + DPoP -------------->|
+    |                 |<---------------- tickets ------------------|
+~~~
+
+1. The harness generates `K`. The enterprise attester validates
+   the managed-device evidence, permitted harness, agent assignment,
+   and key possession. It issues a Client Attestation with the
+   agent's client identifier as `sub`, `client_instance_id=run-d17`,
+   and `cnf.jwk` containing `K`'s public key. There is no `agent_id`.
+   Device identifiers stay in enterprise records. Evidence formats
+   and the attestation issuance API are deployment-specific, as
+   in {{ATTEST}}.
+2. The harness follows {{bootstrap}} with ATTEST DPoP combined-mode
+   authentication. The returned IdP access token identifies
+   `agent-17`, its client and instance, and `JKT(K)`.
+3. The user signs in through an external browser using an
+   authorization code flow with PKCE, following {{RFC8252}}.
+   Code redemption also uses the client's configured authentication.
+   The resulting user ID Token is intended for this client. The
+   enterprise records user or administrator approval for this agent
+   to read tickets for that user; sign-in alone is not that approval.
+4. The harness follows {{delegated-exchange}}, sending the user
+   ID Token as `subject_token` and the IdP access token as
+   `actor_token`, with fresh ATTEST authentication. The IdP validates
+   both identities and the delegation, then issues ID-JAG with
+   `sub=user-17`, `act={iss: IdP, sub: agent-17, sub_profile: ai_agent}`,
+   and the downstream client identifier `dev-agent-at-app`.
+5. The harness redeems ID-JAG and accesses the API as described in
+   {{app-consumption}}. The device attester and device record do not
+   become actors in that request.
+
+If the enterprise only needs existing client-based delegation, the
+harness can use the ID-JAG/EMA path in {{deployment}} without the
+agent bootstrap and actor token. A desktop harness shared by several
+separately governed agents instead uses the shared-client binding
+illustrated in {{platform-flow}}. Device hosting does not select
+the identity model automatically.
+
+## Harness in a Managed Platform {#platform-flow}
+{:numbered="false"}
+
+Use this model when a hosting platform runs separately governed
+agents through one OAuth client. The IdP approves the platform
+attester `https://attester.example/tenant/acme` for shared client
+`https://platform.example/oauth-client`, mapping its
+`agent_id=support-agent-7` to Registered Agent `agent-42`.
+
+~~~
+ Platform           Harness            IdP          RAS         API
+ attester
+     |                 |                |            |           |
+     |-- start agent ->|                |            |           |
+     |< runtime, JWK --|                |            |           |
+     |-- attestation ->|                |            |           |
+     |                 |- credentials ->|            |           |
+     |                 |<--- IdP AT ----|            |           |
+     |                 |--- exchange -->|            |           |
+     |                 |<---- WAG ------|            |           |
+     |                 |-------- WAG + DPoP -------->|           |
+     |                 |<--------- app AT -----------|           |
+     |                 |------------- app AT + DPoP ------------>|
+     |                 |<--------------- tickets ----------------|
+~~~
+
+1. The control plane launches `support-agent-7`. Its harness
+   generates `K`. The attester verifies the launch assignment,
+   runtime isolation, and key possession, then issues an attestation
+   with `sub` equal to the shared client, `agent_id=support-agent-7`,
+   `client_instance_id=run-p42`, and `cnf.jwk` containing the public
+   key. The harness cannot select another agent merely by naming it.
+2. The harness follows {{bootstrap}}, sending the shared `client_id`.
+   The IdP resolves `(iss, sub, agent_id)` and returns an access token
+   with `sub=agent-42`, the shared `client_id`, validated instance
+   context, and `cnf.jkt=JKT(K)`.
+3. For unattended ticket processing, the harness follows
+   {{self-exchange}}. The IdP authorizes access using `agent-42`'s
+   assignments and issues WAG with `sub=agent-42`, no `act`, and the
+   same key binding. The harness redeems it and calls the API as
+   described in {{app-consumption}}.
+4. For user-delegated work, the harness instead follows
+   {{delegated-exchange}} with an accepted user credential and the
+   agent access token. After checking delegation approval, the IdP
+   issues ID-JAG with the user as `sub` and `agent-42` as `act`.
+   The hosting platform is client context, not an additional actor.
+
+A second runtime for this agent gets a different instance identifier
+and key, but the same `agent-42` principal. A different agent behind
+the shared client has its own binding and permissions. The IdP
+does not infer equivalent authority from the common client identity.
+
+## Downstream Application Processing {#app-consumption}
+{:numbered="false"}
+
+All three examples finish at the same application trust boundary:
+
+1. The harness presents the IdP-issued grant to the RAS using the
+   selected grant's redemption procedure and configured client
+   authentication, including ID-JAG's downstream client binding.
+   Its DPoP proof uses the key named by the grant's `cnf.jkt`.
+2. The RAS validates the trusted IdP signature, issuer, audience,
+   lifetime, replay state, target resource, scopes, and key proof.
+   It resolves the subject and any actor, applies local assignments,
+   and issues an API access token. In these examples it retains
+   the IdP's principal identifiers and uses a JWT access token.
+3. The API receives only its access token and a fresh DPoP proof,
+   including the access-token hash under {{RFC9449}}. It validates
+   the token and proof, then evaluates resource policy for the agent
+   or the user and agent actor. It does not consume the upstream
+   SVID, device evidence, Client Attestation, WAG, or ID-JAG.
+
+| Example | Application access-token identity | Key binding |
+|---|---|---|
+| SPIFFE workload, self-acting | `sub=agent-42`, no `act` | `cnf.jkt=JKT(K)` |
+| Managed device, delegated | `sub=user-17`, `act.sub=agent-17` | `cnf.jkt=JKT(K)` |
+| Managed platform, self-acting | `sub=agent-42`, no `act` | `cnf.jkt=JKT(K)` |
+| Managed platform, delegated variant | User `sub`, `act.sub=agent-42` | `cnf.jkt=JKT(K)` |
+
+For delegated tokens, the actor also retains its IdP `iss` and
+`sub_profile=ai_agent` under Actor Profile. The RAS is the access-token
+issuer and the API is its audience. Groups and owner relationships
+can come from provisioned records or approved claims; user groups
+do not supply an agent actor's memberships. Optional instance context
+supports audit and risk without changing those principal identities.
 
 # Interoperability Cases
 {:numbered="false"}
@@ -723,5 +989,7 @@ not register a competing redemption mechanism.
 * Reused ATTEST instance identification and Actor Profile delegation.
 * Used `client_id` as agent identity when the agent is the client;
   required `agent_id` only for agents represented by a shared client.
+* Illustrated SPIFFE, managed-device, and managed-platform flows,
+  including the missing native SPIFFE input integration.
 * Moved existing client flows and deployment choices to informative
   guidance and inherited downstream grant processing.
