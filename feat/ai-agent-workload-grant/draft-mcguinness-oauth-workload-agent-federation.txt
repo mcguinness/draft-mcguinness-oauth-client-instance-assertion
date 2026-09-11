@@ -76,7 +76,8 @@ Copyright Notice
 Table of Contents
 
    1.  Introduction
-     1.1.  Relationship to the OAuth Actor Profile
+     1.1.  Relationship to Attestation-Based Client Authentication
+     1.2.  Relationship to the OAuth Actor Profile
    2.  Conventions and Definitions
    3.  Identity and Deployment
    4.  Client-Based Delegation
@@ -154,7 +155,38 @@ Table of Contents
    chains are outside this profile.  These cases are alternatives, not
    migration stages.
 
-1.1.  Relationship to the OAuth Actor Profile
+1.1.  Relationship to Attestation-Based Client Authentication
+
+   [ATTEST] authenticates a client instance using a Client Attestation
+   issued by a trusted Client Attester and proof of possession of the
+   instance key.  [INSTANCE] profiles that mechanism to add a stable
+   client_instance_id, retaining typ=oauth-client-attestation+jwt,
+   sub=client_id, and cnf.jwk.  This document adds the agent_id evidence
+   and IdP registry mapping in Section 5.1 for Registered Agents.
+   Client authentication alone does not authorize agent or user access.
+
+   The Registered Agent path uses ATTEST at the IdP for bootstrap and
+   subsequent exchange.  It selects DPoP combined mode, which proves
+   possession of the attested key and binds the issued access token and
+   grant to that key.  Client-based delegation can use ATTEST without
+   introducing an actor.  The explicit client actor input in
+   Section 6.2.2 uses private_key_jwt and does not require ATTEST.  No
+   new client authentication method is defined.
+
+   A Client Attestation is authentication evidence, not an IdP-issued
+   access token or a WAG or ID-JAG.  It is presented in the OAuth-
+   Client-Attestation header, not as subject_token or actor_token.  It
+   is also distinct from the client-signed JWT assertion used in
+   Section 6.2.2.  The IdP-issued access token's sub identifies the
+   Registered Agent after authorized mapping; the Client Attestation's
+   sub continues to identify the client.
+
+   The RAS validates the IdP-issued grant and required presenter proof.
+   It need not validate the upstream Client Attestation or trust the
+   platform's attester.  Its own client authentication requirements
+   remain those of the selected grant path.
+
+1.2.  Relationship to the OAuth Actor Profile
 
    Explicit actor delegation MUST implement [ACTOR-PROFILE] for actor
    construction, authorization, preservation, and resource processing.
@@ -338,11 +370,11 @@ Table of Contents
 5.2.  Request
 
    The client uses the client credentials grant, with resource equal to
-   the IdP issuer identifier and scope equal to agent-federation.  The
-   request MUST carry the attestation in OAuth-Client-Attestation and a
-   DPoP combined-mode proof using the instance key.  The attestation
-   MUST NOT be placed in subject_token, actor_token, or
-   client_assertion.
+   the IdP issuer identifier.  This profile defines no scope value for
+   this request.  The request MUST carry the attestation in OAuth-
+   Client-Attestation and a DPoP combined-mode proof using the instance
+   key.  The attestation MUST NOT be placed in subject_token,
+   actor_token, or client_assertion.
 
    Examples abbreviate cryptographic values and omit HTTP framing
    headers.  Line breaks in form bodies are for display only.
@@ -356,7 +388,6 @@ Table of Contents
    grant_type=client_credentials
    &client_id=https%3A%2F%2Fplatform.example%2Foauth-client
    &resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
-   &scope=agent-federation
 
 5.3.  Processing and Response
 
@@ -368,25 +399,26 @@ Table of Contents
    The IdP-issued access token MUST conform to [RFC9068] and use
    typ=at+jwt.  Its iss is the approved IdP issuer, sub is the
    Registered Agent identifier, and client_id is the actual IdP client.
-   Its aud MUST equal the IdP issuer identifier and scope MUST be agent-
-   federation.  This audience and scope identify the IdP's exchange
-   service; no separate resource identifier or endpoint is defined.  The
-   token MUST contain sub_profile=ai_agent as defined by
+   Its aud MUST equal the IdP issuer identifier, identifying the IdP's
+   exchange service; no separate resource identifier or endpoint is
+   defined.  The token MUST contain sub_profile=ai_agent as defined by
    [ENTITY-PROFILES], client_instance identifying the authenticated
    upstream instance, and cnf.jkt derived from the proven key under
    [RFC7638].  It MUST NOT contain act.
 
-   The IdP MUST associate the token with its approved Federation Binding
-   and source tenant.  The token MUST expire within 300 seconds and no
-   later than the attestation.  The response MUST have token_type=DPoP,
-   expires_in, and scope; it MUST NOT include a refresh token.  Clients
-   need not parse the token to use it.
+   The IdP MUST associate the token with its approved Federation
+   Binding, source tenant, and authorization to use the exchange service
+   through trusted issuance policy or token state.  Audience matching
+   alone MUST NOT authorize another IdP access token for this purpose.
+   The token MUST expire within 300 seconds and no later than the
+   attestation.  The response MUST have token_type=DPoP and expires_in;
+   it MUST NOT include a refresh token.  Clients need not parse the
+   token to use it.
 
    {
      "access_token": "eyJ...agent-access-token...",
      "token_type": "DPoP",
-     "expires_in": 300,
-     "scope": "agent-federation"
+     "expires_in": 300
    }
 
    This subject selection profiles a prearranged authorization
@@ -426,10 +458,10 @@ Table of Contents
    type:token-exchange, audience MUST contain exactly one target RAS
    issuer identifier, resource MUST contain exactly one resource
    [RFC8707] governed by that RAS, and scope MUST contain a nonempty set
-   of requested resource scopes.  The IdP MUST NOT infer resource
-   authority from the IdP-issued access token's exchange-service scope.
-   authorization_details is not supported by this profile and MUST cause
-   invalid_request rather than silent omission.
+   of requested resource scopes.  The IdP MUST NOT infer downstream
+   resource authority merely from eligibility to use the exchange
+   service. authorization_details is not supported by this profile and
+   MUST cause invalid_request rather than silent omission.
 
 6.1.  Self-Acting Mode
 
@@ -572,9 +604,8 @@ Table of Contents
    actor credential types and user subject inputs.  The grant lifetime
    MUST NOT exceed 300 seconds or the remaining validity of its actor or
    agent credential, accepted user credential, or applicable delegation.
-   An IdP-issued access token's bootstrap scope is not a downstream
-   scope ceiling.  User authorization-state inputs retain the scope
-   ceiling required by their input profile.
+   User authorization-state inputs retain the scope ceiling required by
+   their input profile.
 
 6.4.  Response and Errors
 

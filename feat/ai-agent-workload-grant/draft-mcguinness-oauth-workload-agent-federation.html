@@ -1164,12 +1164,15 @@ of their OAuth clients.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
-                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-relationship-to-the-oauth-a" class="internal xref">Relationship to the OAuth Actor Profile</a></p>
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-relationship-to-attestation" class="internal xref">Relationship to Attestation-Based Client Authentication</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-relationship-to-the-oauth-a" class="internal xref">Relationship to the OAuth Actor Profile</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
-            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
             <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-identity-and-deployment" class="internal xref">Identity and Deployment</a></p>
@@ -1351,24 +1354,57 @@ self-acting and explicit actor cases; they do not add bootstrap,
 actor, or sender-constraint requirements to client-based delegation.
 Task-specific authority and multi-agent chains are outside this
 profile. These cases are alternatives, not migration stages.<a href="#section-1-5" class="pilcrow">¶</a></p>
-<div id="actor-relationship">
+<div id="attestation-relationship">
 <section id="section-1.1">
-        <h3 id="name-relationship-to-the-oauth-a">
-<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-relationship-to-the-oauth-a" class="section-name selfRef">Relationship to the OAuth Actor Profile</a>
+        <h3 id="name-relationship-to-attestation">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-relationship-to-attestation" class="section-name selfRef">Relationship to Attestation-Based Client Authentication</a>
         </h3>
-<p id="section-1.1-1">Explicit actor delegation <span class="bcp14">MUST</span> implement <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> for actor
+<p id="section-1.1-1"><span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> authenticates a client instance using a Client
+Attestation issued by a trusted Client Attester and proof of
+possession of the instance key. <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> profiles that
+mechanism to add a stable <code>client_instance_id</code>, retaining
+<code>typ=oauth-client-attestation+jwt</code>, <code>sub=client_id</code>, and
+<code>cnf.jwk</code>. This document adds the <code>agent_id</code> evidence and IdP
+registry mapping in <a href="#agent-evidence" class="auto internal xref">Section 5.1</a> for Registered Agents.
+Client authentication alone does not authorize agent or user access.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">The Registered Agent path uses ATTEST at the IdP for bootstrap
+and subsequent exchange. It selects DPoP combined mode, which
+proves possession of the attested key and binds the issued access
+token and grant to that key. Client-based delegation can use
+ATTEST without introducing an actor. The explicit client actor
+input in <a href="#client-actor" class="auto internal xref">Section 6.2.2</a> uses <code>private_key_jwt</code> and does not
+require ATTEST. No new client authentication method is defined.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<p id="section-1.1-3">A Client Attestation is authentication evidence, not an IdP-issued
+access token or a WAG or ID-JAG. It is presented in the
+<code>OAuth-Client-Attestation</code> header, not as <code>subject_token</code> or
+<code>actor_token</code>. It is also distinct from the client-signed JWT
+assertion used in <a href="#client-actor" class="auto internal xref">Section 6.2.2</a>. The IdP-issued access token's
+<code>sub</code> identifies the Registered Agent after authorized mapping;
+the Client Attestation's <code>sub</code> continues to identify the client.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+<p id="section-1.1-4">The RAS validates the IdP-issued grant and required presenter
+proof. It need not validate the upstream Client Attestation or
+trust the platform's attester. Its own client authentication
+requirements remain those of the selected grant path.<a href="#section-1.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="actor-relationship">
+<section id="section-1.2">
+        <h3 id="name-relationship-to-the-oauth-a">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-relationship-to-the-oauth-a" class="section-name selfRef">Relationship to the OAuth Actor Profile</a>
+        </h3>
+<p id="section-1.2-1">Explicit actor delegation <span class="bcp14">MUST</span> implement <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> for actor
 construction, authorization, preservation, and resource processing.
 The actor is established from a JWT client assertion when the client
 itself acts, or from an IdP-issued access token when a Registered
 Agent acts. An instance identifier never supplies the actor
 identity. RAS redemption preserves the actor without adding another
 hop. Opaque-token introspection uses Actor Profile's compatibility
-path as specified in <a href="#access-tokens" class="auto internal xref">Section 9</a>.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
-<p id="section-1.1-2">ID-JAG's RAS issuer audience applies; see <a href="#coordination" class="auto internal xref">Appendix "Coordination with Related Work"</a>.
+path as specified in <a href="#access-tokens" class="auto internal xref">Section 9</a>.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">ID-JAG's RAS issuer audience applies; see <a href="#coordination" class="auto internal xref">Appendix "Coordination with Related Work"</a>.
 Client-based delegation, self-acting access, and instance
 identification alone do not require Actor Profile. Client
 Instance Identification <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> can provide audit or risk
-context in any case without requiring explicit actor representation.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+context in any case without requiring explicit actor representation.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1561,8 +1597,8 @@ policy explicitly authorizes them.<a href="#section-5.1-4" class="pilcrow">¶</a
 <a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-request" class="section-name selfRef">Request</a>
         </h3>
 <p id="section-5.2-1">The client uses the client credentials grant, with <code>resource</code>
-equal to the IdP issuer identifier and <code>scope</code>
-equal to <code>agent-federation</code>. The request <span class="bcp14">MUST</span> carry the
+equal to the IdP issuer identifier. This profile defines no
+scope value for this request. The request <span class="bcp14">MUST</span> carry the
 attestation in <code>OAuth-Client-Attestation</code> and a DPoP combined-mode
 proof using the instance key. The attestation <span class="bcp14">MUST NOT</span> be
 placed in <code>subject_token</code>, <code>actor_token</code>, or <code>client_assertion</code>.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
@@ -1579,7 +1615,6 @@ DPoP: eyJ...instance-proof...
 grant_type=client_credentials
 &amp;client_id=https%3A%2F%2Fplatform.example%2Foauth-client
 &amp;resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
-&amp;scope=agent-federation
 </pre><a href="#section-5.2-3" class="pilcrow">¶</a>
 </div>
 </section>
@@ -1597,26 +1632,26 @@ authorize an arbitrary agent identity.<a href="#section-5.3-1" class="pilcrow">�
 <p id="section-5.3-2">The IdP-issued access token <span class="bcp14">MUST</span> conform to <span>[<a href="#RFC9068" class="cite xref">RFC9068</a>]</span> and use
 <code>typ=at+jwt</code>. Its <code>iss</code> is the approved IdP issuer, <code>sub</code> is the
 Registered Agent identifier, and <code>client_id</code> is the actual IdP
-client. Its <code>aud</code> <span class="bcp14">MUST</span> equal the IdP issuer identifier and <code>scope</code>
-          <span class="bcp14">MUST</span> be <code>agent-federation</code>. This audience and scope identify the
-IdP's exchange service; no separate resource identifier or endpoint
-is defined. The token <span class="bcp14">MUST</span> contain <code>sub_profile=ai_agent</code> as defined
-by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>, <code>client_instance</code> identifying the
+client. Its <code>aud</code> <span class="bcp14">MUST</span> equal the IdP issuer identifier, identifying
+the IdP's exchange service; no separate resource identifier or
+endpoint is defined. The token <span class="bcp14">MUST</span> contain <code>sub_profile=ai_agent</code>
+as defined by <span>[<a href="#ENTITY-PROFILES" class="cite xref">ENTITY-PROFILES</a>]</span>, <code>client_instance</code> identifying the
 authenticated upstream instance, and <code>cnf.jkt</code> derived from the
 proven key under <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span>. It <span class="bcp14">MUST NOT</span> contain <code>act</code>.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
 <p id="section-5.3-3">The IdP <span class="bcp14">MUST</span> associate the token with its approved Federation
-Binding and source tenant. The token <span class="bcp14">MUST</span> expire within
-300 seconds and no later than the attestation. The response
-<span class="bcp14">MUST</span> have <code>token_type=DPoP</code>, <code>expires_in</code>, and <code>scope</code>;
-it <span class="bcp14">MUST NOT</span> include a refresh token.
-Clients need not parse the token to use it.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+Binding, source tenant, and authorization to use the exchange
+service through trusted issuance policy or token state. Audience
+matching alone <span class="bcp14">MUST NOT</span> authorize another IdP access token for
+this purpose. The token <span class="bcp14">MUST</span> expire within 300 seconds and no
+later than the attestation. The response <span class="bcp14">MUST</span> have
+<code>token_type=DPoP</code> and <code>expires_in</code>; it <span class="bcp14">MUST NOT</span> include a refresh
+token. Clients need not parse the token to use it.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="section-5.3-4">
 <pre>
 {
   "access_token": "eyJ...agent-access-token...",
   "token_type": "DPoP",
-  "expires_in": 300,
-  "scope": "agent-federation"
+  "expires_in": 300
 }
 </pre><a href="#section-5.3-4" class="pilcrow">¶</a>
 </div>
@@ -1666,10 +1701,10 @@ client actor uses <a href="#client-actor" class="auto internal xref">Section 6.2
 contain exactly one target RAS issuer identifier, <code>resource</code> <span class="bcp14">MUST</span>
 contain exactly one resource <span>[<a href="#RFC8707" class="cite xref">RFC8707</a>]</span> governed by that RAS, and
 <code>scope</code> <span class="bcp14">MUST</span> contain a nonempty set of requested resource scopes.
-The IdP <span class="bcp14">MUST NOT</span> infer resource authority from the IdP-issued access
-token's exchange-service scope. <code>authorization_details</code> is not
-supported by this profile and <span class="bcp14">MUST</span> cause <code>invalid_request</code> rather
-than silent omission.<a href="#section-6-2" class="pilcrow">¶</a></p>
+The IdP <span class="bcp14">MUST NOT</span> infer downstream resource authority merely from
+eligibility to use the exchange service. <code>authorization_details</code>
+is not supported by this profile and <span class="bcp14">MUST</span> cause <code>invalid_request</code>
+rather than silent omission.<a href="#section-6-2" class="pilcrow">¶</a></p>
 <div id="self-exchange">
 <section id="section-6.1">
         <h3 id="name-self-acting-mode">
@@ -1847,8 +1882,7 @@ chain <span class="bcp14">MUST</span> be rejected, not erased or extended. This 
 actor credential types and user subject inputs. The grant lifetime
 <span class="bcp14">MUST NOT</span> exceed 300 seconds or the remaining validity of its actor
 or agent credential, accepted user credential, or applicable
-delegation. An IdP-issued access token's bootstrap scope is not a
-downstream scope ceiling. User authorization-state inputs retain the
+delegation. User authorization-state inputs retain the
 scope ceiling required by their input profile.<a href="#section-6.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>

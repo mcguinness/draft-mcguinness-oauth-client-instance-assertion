@@ -103,9 +103,12 @@ Table of Contents
    and key rotation.
 
    This document defines that identifier and its relationship to an
-   OAuth client [RFC6749].  It uses the Client Attestation JWT, HTTP
-   headers, and authentication methods of [ATTEST].  It does not define
-   an alternative assertion format or grant type.
+   OAuth client [RFC6749] as a profile under [ATTEST], Section 13.  It
+   retains the Client Attestation JWT, HTTP headers, authentication
+   methods, and client subject semantics of ATTEST.  It adds a stable
+   instance identifier and its processing rules; it does not define an
+   alternative assertion format or grant type.  Other ATTEST deployments
+   do not require this instance identification profile.
 
    The identity of a runtime is distinct from the identity of the
    principal whose authority it exercises.  Authorization profiles, such
