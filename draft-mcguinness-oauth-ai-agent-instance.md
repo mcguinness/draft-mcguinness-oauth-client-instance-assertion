@@ -259,140 +259,69 @@ Entity Attestation Token formats ({{RFC9711}}).
 
 ## Interoperability with WAG {#wag-interop}
 
-An AI Agent Instance can use OAuth 2.0 Token Exchange ({{RFC8693}})
-to obtain a WAG for a downstream authorization server. The
-instance first obtains an access token under this profile from
-its issuing AS, using CIA or Client Attestation evidence. It then
-presents that access token as the `subject_token` in a token
-exchange at the issuing AS. The exchange returns a WAG, which the
-instance redeems at the downstream AS as an RFC 7523 authorization
-grant. The issuing AS therefore also acts as the WAG issuer and
-Agent Attester; the downstream AS trusts that issuer for the
-applicable tenancy under {{WAG}}.
+An Agent Instance can exchange its own instance-bound access token
+for a WAG at its issuing AS, then redeem that WAG at a downstream
+AS. The issuing AS acts as the WAG issuer and Agent Attester;
+issuer trust and redemption follow {{carrier-wag}}.
 
 ~~~ ascii-art
- Agent Instance       Issuing AS / WAG Issuer       Downstream AS
-       |                        |                        |
-       |-- instance evidence -->|                        |
-       |<-- instance-bound AT --|                        |
-       |                        |                        |
-       |-- token exchange ----->|                        |
-       |   subject_token = AT   |                        |
-       |   audience = downstream AS                      |
-       |<-- WAG ----------------|                        |
-       |                        |                        |
-       |-- JWT bearer grant: assertion = WAG ----------->|
-       |<-- instance-bound resource access token -------|
+ Instance access token -- RFC 8693 --> WAG
+ WAG -- RFC 7523 at downstream AS --> Resource access token
 ~~~
-
-This section defines issuance of the WAG through token exchange.
-{{carrier-wag}} defines its subsequent redemption. Neither the
-initial instance-bound access token nor the WAG is a resource
-access token for the downstream API. The instance uses the final
-access token to call that API.
 
 ### Requesting a WAG {#wag-exchange-request}
 
-The instance sends `grant_type` set to
-`urn:ietf:params:oauth:grant-type:token-exchange` to its issuing AS,
-with the following parameters:
+The instance sends an RFC 8693 token-exchange request with:
 
-* `subject_token`: an access token previously issued by that AS
-  under this profile with the instance as its top-level subject,
-  and authorized by AS policy for this exchange.
+* `subject_token`: its own access token previously issued under
+  this profile by the issuing AS.
 * `subject_token_type`:
   `urn:ietf:params:oauth:token-type:access_token`.
 * `requested_token_type`: `urn:ietf:params:oauth:token-type:jwt`.
-* `audience`: the identifier of the downstream AS at which the
-  WAG will be redeemed. This is not the downstream API's resource
-  identifier; that identifier is supplied on WAG redemption.
+* `audience`: the downstream AS identifier, not the resource API.
 
-The issuing AS and client MUST establish support for this exchange
-and the WAG output profile through registered configuration or
-out-of-band agreement. The JWT token type identifies a format,
-not WAG semantics: the AS MUST select WAG issuance only for a
-configured client and downstream audience. A generic JWT request
-MUST NOT by itself activate this profile. The AS MUST authorize
-the requested target and MUST NOT issue a WAG for an unapproved
-tenancy or downstream AS.
+The AS MUST select WAG issuance through configured agreement for
+that client, target AS, and tenancy; requesting a JWT alone is
+insufficient. It MUST authenticate the client according to its
+registration and validate the source token's validity, exchange
+eligibility, originating instance state, and client binding. The
+instance MUST prove possession of the source token's binding key
+using DPoP or mutual TLS per {{wag-binding}}.
 
-The client authenticates according to its registration at the
-issuing AS. The instance MUST prove possession of the key bound
-to the `subject_token` at the exchange endpoint, using DPoP or
-mutual TLS. The AS MUST validate the subject token's issuer,
-audience or recorded exchange eligibility, validity, originating
-instance state, and binding key. The authenticated client MUST
-match the client recorded at original issuance. For DPoP, the AS
-validates the token-endpoint proof per {{RFC9449}} and matches
-its key to the subject token's `cnf.jkt`.
-
-This exchange uses the instance identity and provenance recorded
-with the validated subject token; it does not require a new CIA
-or Client Attestation. It MUST NOT include `actor_token`,
-`actor_token_type`, or `client_instance_assertion`. The initial
-CIA is not moved into the `subject_token` slot. This is an
-exchange of the instance's own access token for an authorization
-grant, not the CIA actor-token flow for delegated access-token
-issuance in {{chains}}.
-
-The AS MUST reject a subject token that names a user or another
-principal, contains an `act` chain, or lacks originating state
-establishing that its subject is the presenting Agent Instance.
-It MUST NOT extract an agent from a delegated token's `act` and
-promote that agent to the WAG subject. Such a conversion would
-discard the principal and delegation constraints under which the
-token was issued.
+The AS uses the source token's recorded identity and provenance;
+no fresh instance assertion is required. The request MUST NOT
+include `actor_token`, `actor_token_type`, or
+`client_instance_assertion`. The AS MUST reject a source token
+with an `act` chain or whose originating state does not establish
+the presenting instance as its subject. A delegated token cannot
+be converted into authority held by its agent actor.
 
 ### WAG Issuance and Response {#wag-exchange-response}
 
-After validating the request, the issuing AS MUST construct a WAG
-conforming to {{carrier-wag}}. The WAG's `iss` is the trusted
-per-tenancy WAG issuer. Its `sub` and `agent_instance_id` MUST
-identify the same instance established by the subject token,
-using an explicitly configured, issuer-qualified mapping where
-the original Attester and WAG issuer use different namespaces.
-The mapping MUST be stable across exchanges and key rotation and
-MUST satisfy the WAG identifier's non-reassignment requirements.
-The AS MUST NOT choose the WAG subject from requester-supplied
-identity claims or by heuristic matching.
+The AS MUST issue a WAG conforming to {{carrier-wag}}, with the
+same instance as `sub` and `agent_instance_id`, the verified
+source-token key in `cnf`, the approved downstream AS in `aud`,
+and no `act`. Namespace differences follow the issuer-qualified
+mapping rules of {{carrier-composition}}; mappings MUST remain
+stable across exchanges and key rotation. The AS MUST retain
+the source identity, binding, and mapping for audit.
 
-The WAG MUST contain `cnf` for the subject token's verified
-instance key, and its `aud` MUST identify the approved downstream
-AS according to {{WAG}}'s audience rules. It MUST NOT contain an
-`act` claim. The issuing AS re-attests provenance from validated
-originating instance state and derives WAG authorization
-properties under its issuer and tenancy policy. It MUST NOT copy
-unvalidated request claims into the WAG. Authority conveyed by the
-WAG MUST remain within the authority approved for this exchange;
-property values are not a translation of arbitrary requested
-scope strings into portable permissions.
+The AS MUST derive provenance from validated originating state
+and authorization properties from approved issuer policy per
+{{wag-properties}}, without exceeding the authority approved for
+the exchange. Freshness follows {{security-freshness}}; stale
+state requires a new source token or current attested evidence.
+The WAG MUST have a fresh `jti` and MUST expire no later than the
+source token. A new binding key requires a new source token.
 
-The issuing AS MUST issue a fresh `jti` and a short-lived WAG
-whose expiration is no later than the subject token's expiration.
-It MUST apply the freshness requirements of {{security-freshness}}
-and MUST require a new source token or current attested evidence
-when recorded provenance no longer satisfies issuance policy.
-It MUST retain the originating instance identity, binding, and
-any subject mapping for audit. Key rotation requires a new source
-token bound to the new key; this exchange does not rebind an
-existing credential to a requester-selected key.
-
-The RFC 8693 response carries the WAG in `access_token`, with
-`issued_token_type` set to `urn:ietf:params:oauth:token-type:jwt`
-and `token_type` set to `N_A`, because the returned JWT is an
-authorization grant, not an API access token. The AS MUST include
-`expires_in` and MUST NOT issue a refresh token for this exchange.
-The instance redeems the returned WAG in `assertion` at the
-downstream AS with a fresh proof from the same instance key, per
-{{carrier-wag}}. No client registration at the downstream AS is
-required by this profile; the client registration used at the
-issuing AS does not imply one downstream.
-
-The downstream AS applies {{surfacing-wag}} to its resource access
-token. Issuer trust, supported confirmation methods, and profile
-activation must be established between the two ASes; support for
-RFC 8693, RFC 7523, or the JWT token type alone does not establish
-that agreement. {{appendix-example-wag}} shows both protocol steps.
+The RFC 8693 response MUST carry the WAG in `access_token`, set
+`issued_token_type` to `urn:ietf:params:oauth:token-type:jwt` and
+`token_type` to `N_A`, include `expires_in`, and omit a refresh
+token. The instance redeems this authorization grant downstream
+per {{carrier-wag}}, using the same instance key. Resource access
+token representation follows {{surfacing-wag}}. The exchange does
+not require the client to register at the downstream AS.
+{{appendix-example-wag}} shows the requests and response.
 
 # Agent Instance Claims {#agent-claims}
 
@@ -1719,60 +1648,20 @@ to the key present at their issuance per {{CIA-CORE}} and
 {{refresh}}; the migrated instance obtains new tokens through a
 fresh grant or exchange under its unchanged identity.)
 
-# Worked Example: Exchanging an Agent Token for a WAG {#appendix-example-wag}
+# Example: Exchanging an Agent Token for a WAG {#appendix-example-wag}
 {:numbered="false"}
 
-An enterprise authorizes a support agent to call a third-party
-support API. The agent platform is registered as OAuth client
-`https://agents.example/assistant` at its issuing AS,
-`https://acme.agents.example`. That AS also operates the tenancy's
-WAG issuer. The downstream AS, `https://as.example`, trusts this
-WAG issuer and requires the WAG carrier of this profile.
+The agent client `https://agents.example/assistant` has obtained a
+self-acting, DPoP-bound access token from
+`https://acme.agents.example` using CIA or Client Attestation.
+Its subject is `wimse://acme.agents.example/agent/7f3d9a2e`.
+The issuing AS permits its exchange for a WAG targeting
+`https://as.example`, which trusts the tenancy's WAG issuer.
+Cryptographic values are abbreviated and line breaks are for
+display only.
 
-## Obtain the Instance-Bound Source Token
-{:numbered="false"}
-
-The instance first obtains a self-acting access token using
-`client_credentials` with its CIA and proof of possession per
-{{carrier-cia}}. The issuing AS validates the runtime Attester
-and records the instance's identity and provenance. In this
-example, its policy permits the instance to obtain WAGs for the
-support deployment. An illustrative source-token payload is:
-
-~~~ json
-{
-  "iss": "https://acme.agents.example",
-  "aud": "https://acme.agents.example",
-  "sub": "wimse://acme.agents.example/agent/7f3d9a2e",
-  "client_id": "https://agents.example/assistant",
-  "sub_profile": "ai_agent client_instance",
-  "scope": "wag.issue",
-  "agent_platform": "urn:example:claude-code",
-  "agent_model": {
-    "id": "urn:example:model:atlas",
-    "version": "7.3"
-  },
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1785271600,
-  "exp": 1785272200,
-  "jti": "source-7f3d9a2e"
-}
-~~~
-
-`wag.issue` is a deployment-defined scope, not a scope registered
-by this document. The token's audience and recorded issuance
-state permit its use at the issuing AS's exchange endpoint. The
-instance is the subject and the token has no `act`. Cryptographic
-values in this example are abbreviated; form-body line breaks are
-for display only.
-
-## Exchange the Source Token for a WAG
-{:numbered="false"}
-
-The instance sends an RFC 8693 request to the issuing AS. It
-presents the source access token in `subject_token`, authenticates
-its OAuth client using `private_key_jwt`, and proves possession
-of the instance's DPoP key:
+The instance requests the WAG, authenticating its client with
+`private_key_jwt` and proving possession of the source-token key:
 
 ~~~ http-message
 POST /token HTTP/1.1
@@ -1791,17 +1680,9 @@ grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Atoken-exchange
 &client_assertion=eyJ...client-authentication...
 ~~~
 
-The issuing AS validates the source token, originating instance
-state, client authentication, key possession, and authorization
-for the target. Its configured output profile for this client
-and audience is WAG. It returns:
+The exchange response contains the WAG in `access_token`:
 
-~~~ http-message
-HTTP/1.1 200 OK
-Content-Type: application/json
-Cache-Control: no-store
-Pragma: no-cache
-
+~~~ json
 {
   "access_token": "eyJ...workload-authorization-grant...",
   "issued_token_type": "urn:ietf:params:oauth:token-type:jwt",
@@ -1810,9 +1691,7 @@ Pragma: no-cache
 }
 ~~~
 
-The response's `access_token` field contains the WAG to redeem
-at the downstream AS. It does not contain the support API's
-access token. The decoded WAG is:
+The decoded WAG carries the same instance and binding key:
 
 ~~~ json
 {
@@ -1821,16 +1700,8 @@ access token. The decoded WAG is:
   "agent_instance_id":
     "wimse://acme.agents.example/agent/7f3d9a2e",
   "agent_platform": "urn:example:claude-code",
-  "agent_model": {
-    "id": "urn:example:model:atlas",
-    "version": "7.3"
-  },
-  "agent_runtime": { "eat": "eyJ...runtime-evidence..." },
-  "name": "Support Triage Agent",
-  "namespace": "acme/support",
-  "groups": ["support-eng"],
+  "agent_model": { "id": "urn:example:model:atlas", "version": "7.3" },
   "roles": ["responder"],
-  "ctx": "channel:C0123456789",
   "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
   "aud": ["https://as.example", "https://as.example/token"],
   "iat": 1785271680,
@@ -1839,76 +1710,25 @@ access token. The decoded WAG is:
 }
 ~~~
 
-## Redeem the WAG for the Resource Access Token
-{:numbered="false"}
-
-The instance now sends the returned WAG to the downstream AS in
-`assertion`, with a fresh DPoP proof for that endpoint using the
-same instance key. The support API is identified by `resource`.
-No OAuth client registration at this downstream AS is required:
+The instance then redeems the WAG at the downstream AS, naming
+the support API in `resource` and using a fresh DPoP proof from
+the same key:
 
 ~~~ http-message
 POST /token HTTP/1.1
 Host: as.example
 Content-Type: application/x-www-form-urlencoded
-DPoP: <proof signed by the key identified by cnf.jkt>
+DPoP: <fresh proof for this endpoint signed by the instance key>
 
 grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer
-&assertion=eyJhbGciOiJFUzI1NiIs...
+&assertion=eyJ...workload-authorization-grant...
 &resource=https%3A%2F%2Fsupport.example%2F
 ~~~
 
-The downstream AS validates the WAG issuer, grant, agent claims,
-replay status, and DPoP proof. Its local permission mapping grants
-`issues.read issues.write`. An illustrative access-token payload
-is below; this deployment uses a JWT format that does not require
-`client_id`, as discussed in {{surfacing-wag}}:
-
-~~~ json
-{
-  "iss": "https://as.example",
-  "aud": "https://support.example/",
-  "sub": "wimse://acme.agents.example/agent/7f3d9a2e",
-  "sub_profile": "ai_agent",
-  "scope": "issues.read issues.write",
-  "agent_platform": "urn:example:claude-code",
-  "agent_model": {
-    "id": "urn:example:model:atlas",
-    "version": "7.3"
-  },
-  "cnf": { "jkt": "0ZcOCORZNYy...iguA4I" },
-  "iat": 1785271685,
-  "exp": 1785271985
-}
-~~~
-
-The token has no `act`: the agent is the authorized subject.
-`agent_runtime` was consumed by the AS and is not forwarded.
-The resource server validates the AS token and DPoP proof and
-applies subject-based policy. No refresh token is issued; the
-agent performs another authorized exchange at its issuing AS to
-obtain a new WAG for later access.
-
-## Separate Runtime Authority
-{:numbered="false"}
-
-If an enterprise issuer supplies the WAG while a runtime authority
-supplies CIA evidence, the client-bound composition additionally
-establishes the OAuth client and its trusted instance issuer. For
-example, a CIA names the same URI in both `sub` and
-`agent_instance_id`, carries the client's `client_id`, and binds
-the same key in `cnf.jkt`. The token request adds `client_id` and
-`client_instance_assertion`, plus any required client
-authentication. The AS checks the shared namespace agreement or
-configured issuer-qualified mapping and validates both authorities
-per {{carrier-composition}}.
-
-The resulting token still has the WAG principal in `sub` and no
-`act`. It additionally includes `client_instance` in `sub_profile`
-and the established `client_id` under the applicable client-bound
-token format. A different instance subject without an authorized
-mapping, or a different confirmation key, causes rejection rather
-than a token with a duplicated or substituted actor.
+The downstream AS issues a resource access token with the agent
+as `sub`, `sub_profile` containing `ai_agent`, and the same key in
+`cnf`, without an `act` claim or a refresh token. The instance
+uses that access token to call the support API.
 
 # Document History
 {:numbered="false"}
