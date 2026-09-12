@@ -36,6 +36,7 @@ normative:
     seriesinfo:
       Internet-Draft: draft-mcguinness-oauth-client-instance-identification-latest
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
+  WIT: I-D.ietf-wimse-workload-creds
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ENTITY-PROFILES: I-D.mora-oauth-entity-profiles
@@ -77,7 +78,7 @@ informative:
 This specification defines how an identity provider binds a
 platform-authenticated agent to a registered agent principal and
 issues authorization grants for that principal. It profiles
-Attestation-Based Client Authentication or SPIFFE X.509-SVID client
+Attestation-Based Client Authentication or SPIFFE X.509-SVID or WIT-SVID client
 authentication, the client credentials grant, and OAuth 2.0 Token
 Exchange. Stable instance identification is an optional extension.
 The resulting Workload Authorization Grant identifies a self-acting
@@ -120,8 +121,11 @@ End-to-end deployment examples appear in {{flows}}.
 ## Relationship to Client Attestation and Actor Profile
 
 {{ATTEST}} supplies one authentication binding. {{SPIFFE-OAUTH}}
-supplies the native X.509-SVID binding. Both resolve to an IdP agent
-principal and establish a DPoP key. {{INSTANCE}} optionally adds
+supplies native X.509-SVID and WIT-SVID bindings. WIT-SVID uses a
+Workload Identity Token {{WIT}} directly in the ATTEST header with
+its key-possession proof; no additional attestation wraps the WIT.
+All inputs resolve to an IdP agent principal and establish a DPoP key.
+{{INSTANCE}} optionally adds
 stable instance context to ATTEST; it is not a prerequisite for
 agent authentication or token exchange. The ATTEST binding retains
 `sub=client_id` and adds `agent_id` only for shared clients.
@@ -216,6 +220,7 @@ establish this authority or switch the configured input binding.
 | ATTEST, agent is the client | Exact attestation `(iss, sub)`; no `agent_id` |
 | ATTEST, shared client | Exact attestation `(iss, sub, agent_id)` |
 | SPIFFE X.509-SVID, agent is the client | Approved trust domain and exact SPIFFE ID; `client_id` equals that ID |
+| SPIFFE WIT-SVID, agent is the client | Approved trust domain and exact WIT `sub`; `client_id` equals that SPIFFE ID |
 
 The IdP MUST resolve this lookup to one Registered Agent. Missing,
 ambiguous, or disabled bindings MUST cause rejection. In ATTEST,
@@ -283,8 +288,50 @@ does not rebind an existing token to another DPoP key.
 
 This input does not establish a stable instance identifier. The IdP
 MUST NOT derive `client_instance` from the SPIFFE ID or certificate
-fingerprint. JWT-SVID and WIT-SVID inputs need their own binding rules
-and are not implied by support for `spiffe_x509` here.
+fingerprint. WIT-SVID uses the separate binding in {{wit-input}};
+JWT-SVID is outside this profile.
+
+### SPIFFE WIT-SVID {#wit-input}
+
+The client MUST authenticate using `spiffe_wit` under
+{{SPIFFE-OAUTH, Section 3.3}}. It MUST send the WIT-SVID directly in
+`OAuth-Client-Attestation` and a fresh Client Attestation PoP JWT in
+`OAuth-Client-Attestation-PoP`, with `client_id` equal to the exact
+SPIFFE ID in the WIT's `sub`. This input represents the agent as
+client; the WIT MUST omit `agent_id` and the IdP MUST reject its presence.
+The requirements specific to {{agent-evidence}} do not apply to this input.
+
+The IdP MUST validate the WIT under {{WIT}}, including `typ=wit+jwt`,
+expiration, signature, and the public key and proof algorithm in
+`cnf.jwk`. It MUST use trust anchors configured for the trust domain
+in `sub` and resolve the exact binding in {{identity}}. The optional
+`iss` claim MUST NOT select trust anchors or replace that lookup;
+its absence alone MUST NOT cause rejection. A valid signature from
+the domain does not authorize an unconfigured SPIFFE ID.
+
+The IdP MUST validate the Client Attestation PoP JWT under {{ATTEST}},
+including the IdP issuer as audience, freshness, and any required
+challenge. The request MUST also include the DPoP proof required by
+{{inputs}}. Both proofs MUST use the WIT's `cnf.jwk` key and its
+`alg` value. The IdP MUST compare keys using their {{RFC7638}}
+thumbprints and reject a mismatch. Implementations MUST support
+`ES256`. The separate proofs authenticate the client and establish
+the token binding respectively; DPoP alone MUST NOT replace the
+Client Attestation PoP JWT in this input. Validation errors use
+the applicable ATTEST or DPoP errors.
+
+The IdP MUST associate the SPIFFE binding with the issued access
+token. A renewed WIT-SVID MAY authenticate an exchange using an
+existing eligible token only if its identity binding and proof key
+remain the same. Changing the WIT key requires a new IdP access
+token. The issuance lifetime limit in {{idp-access-token}} applies
+to the access token, not to the WIT's original lifetime.
+
+This input does not establish stable instance context. The IdP
+MUST NOT derive `client_instance` from the WIT's `sub`, `jti`, or
+key, or copy unprofiled instance claims. The WIT MUST NOT be used
+as `subject_token`, `actor_token`, or `client_assertion` in this
+flow; {{exchange}} uses the resolved IdP-issued access token.
 
 ## Optional Instance Identification {#instance-identification}
 
@@ -667,8 +714,8 @@ this contract without defining new SCIM attributes.
 # Metadata and Configuration {#metadata}
 
 The IdP MUST advertise `client_credentials`, token exchange, and its
-implemented input methods (`attest_jwt_client_auth_dpop` and/or
-`spiffe_x509`) through existing {{RFC8414}} and input-specification
+implemented input methods (`attest_jwt_client_auth_dpop`,
+`spiffe_x509`, or `spiffe_wit`) through existing {{RFC8414}} and input-specification
 metadata, and DPoP `ES256` support under {{RFC9449}}. Profile selection and
 approved identity bindings use the configuration in {{identity}}.
 Delegated implementations use Actor Profile's existing metadata for
@@ -760,9 +807,13 @@ do not describe the agent actor's memberships. Provisioning transport,
 synchronization, policy engines, access-token formats, and introspection
 {{RFC7662}} are deployment choices outside this profile.
 
-Native SPIFFE X.509-SVID authentication follows {{spiffe-input}}.
+Native SPIFFE X.509-SVID and WIT-SVID authentication follow
+{{spiffe-input}} and {{wit-input}}, respectively.
 Other credential types need explicit binding and proof rules; support
 for SPIFFE does not imply that every SVID type is accepted.
+Direct WIT actor evidence under Actor Profile is a different input
+path. It would need explicit external-subject mapping and proof
+rules; it does not implicitly substitute for the IdP access token here.
 
 # End-to-End Deployment Examples {#flows}
 {:numbered="false"}
@@ -773,7 +824,7 @@ hosting environment, authentication evidence, and acting relationship:
 
 | Deployment | Evidence accepted by IdP | Identity model | Example output |
 |---|---|---|---|
-| SPIFFE workload | X.509-SVID and DPoP | Agent is the client | Self-acting WAG (provisional output) |
+| SPIFFE workload | X.509-SVID or WIT-SVID with their required proofs | Agent is the client | Self-acting WAG (provisional output) |
 | Harness on managed device | Enterprise Client Attestation and DPoP | Agent is the client | User-delegated ID-JAG |
 | Harness in managed platform | Platform Client Attestation and DPoP | Agents share a client | Self-acting WAG, with delegated variant |
 
@@ -863,6 +914,59 @@ claim a stable runtime identity. A renewed SVID can be used with an
 existing eligible token when the approved SPIFFE binding and DPoP
 key remain the same. An unrelated identity or replacement DPoP key
 cannot use that token.
+
+### WIT-SVID Variant
+{:numbered="false"}
+
+With {{wit-input}} configured, the harness instead obtains a WIT-SVID
+for the same SPIFFE ID, binding key `K`. The following decoded payload
+omits the optional `iss`; the IdP uses the configured trust anchors
+for `workloads.example`. Its protected header uses `typ=wit+jwt`,
+`alg=ES256`, and a `kid` selecting a key in that trusted bundle.
+
+~~~ json
+{
+  "sub": "spiffe://workloads.example/agents/support",
+  "iat": 1789128000,
+  "exp": 1789131600,
+  "cnf": {
+    "jwk": {
+      "kty": "EC",
+      "crv": "P-256",
+      "alg": "ES256",
+      "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
+      "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
+    }
+  }
+}
+~~~
+
+The harness sends this request over server-authenticated TLS. The
+Client Attestation PoP JWT has `aud=https://idp.example/tenant/acme`,
+a fresh `iat` and unique `jti`, and the IdP's challenge if supplied.
+It uses `typ=oauth-client-attestation-pop+jwt`. Both that proof and
+the DPoP proof are signed with `K` using `ES256`.
+
+~~~ http
+POST /token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+OAuth-Client-Attestation: eyJ...wit-svid...
+OAuth-Client-Attestation-PoP: eyJ...attestation-pop...
+DPoP: eyJ...proof-K...
+
+grant_type=client_credentials
+&client_id=spiffe%3A%2F%2Fworkloads.example%2Fagents%2Fsupport
+&resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
+~~~
+
+The IdP resolves the same `agent-42` and issues a DPoP access token
+with at most 300 seconds of validity and `cnf.jkt=JKT(K)`. The extra
+JWK `alg` member does not change the RFC 7638 thumbprint. Steps 4
+and 5 above then apply, with WIT-SVID and fresh attestation and
+DPoP proofs authenticating the exchange. For user-delegated access,
+the same IdP token is actor evidence under {{delegated-exchange}};
+the WIT itself remains client authentication evidence at the IdP.
 
 ## Harness on a Managed Device {#device-flow}
 {:numbered="false"}
@@ -1118,7 +1222,10 @@ Independent platform, client, and IdP implementations can exercise:
 | Shared client omits `agent_id` | Reject; no fallback to client-only binding |
 | Agent with its own client identity supplies `agent_id` | Reject; no switch to the shared-client model |
 | Missing, ambiguous, or disabled binding | Reject issuance |
-| SPIFFE client with approved exact ID and DPoP proof | IdP access token without stable instance context |
+| X.509-SVID client with approved exact ID and DPoP proof | IdP access token without stable instance context |
+| WIT-SVID with approved exact ID, attestation PoP, and matching DPoP key; no `iss` | IdP access token for the configured agent; no stable instance context |
+| WIT-SVID with missing attestation PoP, mismatched key or proof algorithm, or expired credential | Reject authentication or proof |
+| WIT-SVID with unapproved trust domain or mismatched `client_id` | Reject; `iss` cannot select another trust anchor |
 | Renewed SVID, same binding and DPoP key | Existing eligible token remains usable |
 | Existing eligible token from an authorized issuance path | No redundant acquisition |
 | Same agent in a second execution | Same agent subject; distinct context if execution tracking is configured |
@@ -1165,6 +1272,14 @@ Actor Profile. Redemption details for sender-bound JWT grants also
 need coordination with {{JWT-DPOP}} and ID-JAG. This document does
 not register a competing redemption mechanism.
 
+SPIFFE OAuth's WIT-SVID binding and its authentication-method metadata
+need alignment with the evolving ATTEST proof modes. This document
+selects `spiffe_wit` with the separate Client Attestation PoP JWT
+specified by SPIFFE OAuth, plus DPoP bound to the same key. It does
+not infer combined-mode support from that method name. General WIT
+inputs, including direct Actor Profile input, need separate agreement
+on identity mapping and trust-domain validation when `iss` is absent.
+
 # Document History
 {:numbered="false"}
 
@@ -1174,6 +1289,8 @@ not register a competing redemption mechanism.
   identity binding, access-token acquisition, and grant issuance.
 * Defined ATTEST and SPIFFE X.509-SVID inputs, optional instance
   identification, eligible-token reuse, and Actor Profile delegation.
+* Added WIT-SVID authentication with trust-domain identity resolution,
+  attestation proof, DPoP key binding, and credential renewal rules.
 * Used `client_id` as agent identity when the agent is the client;
   required `agent_id` only for agents represented by a shared client.
 * Completed deployment examples with downstream client authentication,
