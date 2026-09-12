@@ -4,6 +4,20 @@
 
 This is the working area for individual Internet-Drafts.
 
+## OAuth 2.0 Client Instance Assertion
+
+* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-assertion)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion)
+* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.diff)
+
+## OAuth 2.0 AI Agent Instance Profile
+
+* [Editor's Copy](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-ai-agent-instance)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance)
+* [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.diff)
+
 ## Client Instance Identification for Attestation-Based Client Authentication
 
 * [Draft source](draft-mcguinness-oauth-client-instance-identification.md)
@@ -33,10 +47,8 @@ examples include downstream client authentication and provisioning
 correlation. WAG interoperability still requires coordination with
 the underlying draft.
 
-These two drafts replace the earlier Client Instance Assertion
-and standalone AI Agent Instance architecture. The earlier sources
-remain in Git history. The new instance-identification draft and
-the federation draft have not yet been submitted to the IETF.
+The instance-identification and agent-federation drafts have not
+yet been submitted to the IETF.
 
 ## Contributing
 
