@@ -10,7 +10,7 @@
        This specification defines how an identity provider binds a
 platform-authenticated agent to a registered agent principal and
 issues authorization grants for that principal. It profiles
-Attestation-Based Client Authentication or SPIFFE X.509-SVID client
+Attestation-Based Client Authentication or SPIFFE X.509-SVID or WIT-SVID client
 authentication, the client credentials grant, and OAuth 2.0 Token
 Exchange. Stable instance identification is an optional extension.
 The resulting Workload Authorization Grant identifies a self-acting
@@ -1091,7 +1091,7 @@ svg {
 <p id="section-abstract-1">This specification defines how an identity provider binds a
 platform-authenticated agent to a registered agent principal and
 issues authorization grants for that principal. It profiles
-Attestation-Based Client Authentication or SPIFFE X.509-SVID client
+Attestation-Based Client Authentication or SPIFFE X.509-SVID or WIT-SVID client
 authentication, the client credentials grant, and OAuth 2.0 Token
 Exchange. Stable instance identification is an optional extension.
 The resulting Workload Authorization Grant identifies a self-acting
@@ -1188,6 +1188,9 @@ acting for a user through the OAuth Actor Profile.<a href="#section-abstract-1" 
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.2">
                     <p id="section-toc.1-1.3.2.1.2.2.1"><a href="#section-3.1.2" class="auto internal xref">3.1.2</a>.  <a href="#name-spiffe-x509-svid" class="internal xref">SPIFFE X.509-SVID</a></p>
 </li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.3">
+                    <p id="section-toc.1-1.3.2.1.2.3.1"><a href="#section-3.1.3" class="auto internal xref">3.1.3</a>.  <a href="#name-spiffe-wit-svid" class="internal xref">SPIFFE WIT-SVID</a></p>
+</li>
                 </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
@@ -1262,6 +1265,11 @@ acting for a user through the OAuth Actor Profile.<a href="#section-abstract-1" 
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
                 <p id="section-toc.1-1.12.2.1.1"><a href="#appendix-B.1" class="auto internal xref"></a><a href="#name-spiffe-workload-to-idp" class="internal xref">SPIFFE Workload to IdP</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1.2.1">
+                    <p id="section-toc.1-1.12.2.1.2.1.1"><a href="#appendix-B.1.1" class="auto internal xref"></a><a href="#name-wit-svid-variant" class="internal xref">WIT-SVID Variant</a></p>
+</li>
+                </ul>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
                 <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-B.2" class="auto internal xref"></a><a href="#name-harness-on-a-managed-device" class="internal xref">Harness on a Managed Device</a></p>
@@ -1337,8 +1345,11 @@ End-to-end deployment examples appear in <a href="#flows" class="auto internal x
 <a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-relationship-to-client-atte" class="section-name selfRef">Relationship to Client Attestation and Actor Profile</a>
         </h3>
 <p id="section-1.1-1"><span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> supplies one authentication binding. <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span>
-supplies the native X.509-SVID binding. Both resolve to an IdP agent
-principal and establish a DPoP key. <span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> optionally adds
+supplies native X.509-SVID and WIT-SVID bindings. WIT-SVID uses a
+Workload Identity Token <span>[<a href="#WIT" class="cite xref">WIT</a>]</span> directly in the ATTEST header with
+its key-possession proof; no additional attestation wraps the WIT.
+All inputs resolve to an IdP agent principal and establish a DPoP key.
+<span>[<a href="#INSTANCE" class="cite xref">INSTANCE</a>]</span> optionally adds
 stable instance context to ATTEST; it is not a prerequisite for
 agent authentication or token exchange. The ATTEST binding retains
 <code>sub=client_id</code> and adds <code>agent_id</code> only for shared clients.<a href="#section-1.1-1" class="pilcrow">¶</a></p>
@@ -1490,6 +1501,10 @@ establish this authority or switch the configured input binding.<a href="#sectio
             <td class="text-left" rowspan="1" colspan="1">SPIFFE X.509-SVID, agent is the client</td>
             <td class="text-left" rowspan="1" colspan="1">Approved trust domain and exact SPIFFE ID; <code>client_id</code> equals that ID</td>
           </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">SPIFFE WIT-SVID, agent is the client</td>
+            <td class="text-left" rowspan="1" colspan="1">Approved trust domain and exact WIT <code>sub</code>; <code>client_id</code> equals that SPIFFE ID</td>
+          </tr>
         </tbody>
       </table>
 <p id="section-3-3">The IdP <span class="bcp14">MUST</span> resolve this lookup to one Registered Agent. Missing,
@@ -1562,8 +1577,50 @@ the DPoP key <span class="bcp14">MUST</span> still match the access token. Certi
 does not rebind an existing token to another DPoP key.<a href="#section-3.1.2-2" class="pilcrow">¶</a></p>
 <p id="section-3.1.2-3">This input does not establish a stable instance identifier. The IdP
 <span class="bcp14">MUST NOT</span> derive <code>client_instance</code> from the SPIFFE ID or certificate
-fingerprint. JWT-SVID and WIT-SVID inputs need their own binding rules
-and are not implied by support for <code>spiffe_x509</code> here.<a href="#section-3.1.2-3" class="pilcrow">¶</a></p>
+fingerprint. WIT-SVID uses the separate binding in <a href="#wit-input" class="auto internal xref">Section 3.1.3</a>;
+JWT-SVID is outside this profile.<a href="#section-3.1.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="wit-input">
+<section id="section-3.1.3">
+          <h4 id="name-spiffe-wit-svid">
+<a href="#section-3.1.3" class="section-number selfRef">3.1.3. </a><a href="#name-spiffe-wit-svid" class="section-name selfRef">SPIFFE WIT-SVID</a>
+          </h4>
+<p id="section-3.1.3-1">The client <span class="bcp14">MUST</span> authenticate using <code>spiffe_wit</code> under
+<span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02#section-3.3" class="relref">Section 3.3</a></span>. It <span class="bcp14">MUST</span> send the WIT-SVID directly in
+<code>OAuth-Client-Attestation</code> and a fresh Client Attestation PoP JWT in
+<code>OAuth-Client-Attestation-PoP</code>, with <code>client_id</code> equal to the exact
+SPIFFE ID in the WIT's <code>sub</code>. This input represents the agent as
+client; the WIT <span class="bcp14">MUST</span> omit <code>agent_id</code> and the IdP <span class="bcp14">MUST</span> reject its presence.
+The requirements specific to <a href="#agent-evidence" class="auto internal xref">Section 3.1.1</a> do not apply to this input.<a href="#section-3.1.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-2">The IdP <span class="bcp14">MUST</span> validate the WIT under <span>[<a href="#WIT" class="cite xref">WIT</a>]</span>, including <code>typ=wit+jwt</code>,
+expiration, signature, and the public key and proof algorithm in
+<code>cnf.jwk</code>. It <span class="bcp14">MUST</span> use trust anchors configured for the trust domain
+in <code>sub</code> and resolve the exact binding in <a href="#identity" class="auto internal xref">Section 3</a>. The optional
+<code>iss</code> claim <span class="bcp14">MUST NOT</span> select trust anchors or replace that lookup;
+its absence alone <span class="bcp14">MUST NOT</span> cause rejection. A valid signature from
+the domain does not authorize an unconfigured SPIFFE ID.<a href="#section-3.1.3-2" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-3">The IdP <span class="bcp14">MUST</span> validate the Client Attestation PoP JWT under <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>,
+including the IdP issuer as audience, freshness, and any required
+challenge. The request <span class="bcp14">MUST</span> also include the DPoP proof required by
+<a href="#inputs" class="auto internal xref">Section 3.1</a>. Both proofs <span class="bcp14">MUST</span> use the WIT's <code>cnf.jwk</code> key and its
+<code>alg</code> value. The IdP <span class="bcp14">MUST</span> compare keys using their <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span>
+thumbprints and reject a mismatch. Implementations <span class="bcp14">MUST</span> support
+<code>ES256</code>. The separate proofs authenticate the client and establish
+the token binding respectively; DPoP alone <span class="bcp14">MUST NOT</span> replace the
+Client Attestation PoP JWT in this input. Validation errors use
+the applicable ATTEST or DPoP errors.<a href="#section-3.1.3-3" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-4">The IdP <span class="bcp14">MUST</span> associate the SPIFFE binding with the issued access
+token. A renewed WIT-SVID <span class="bcp14">MAY</span> authenticate an exchange using an
+existing eligible token only if its identity binding and proof key
+remain the same. Changing the WIT key requires a new IdP access
+token. The issuance lifetime limit in <a href="#idp-access-token" class="auto internal xref">Section 4.2</a> applies
+to the access token, not to the WIT's original lifetime.<a href="#section-3.1.3-4" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-5">This input does not establish stable instance context. The IdP
+<span class="bcp14">MUST NOT</span> derive <code>client_instance</code> from the WIT's <code>sub</code>, <code>jti</code>, or
+key, or copy unprofiled instance claims. The WIT <span class="bcp14">MUST NOT</span> be used
+as <code>subject_token</code>, <code>actor_token</code>, or <code>client_assertion</code> in this
+flow; <a href="#exchange" class="auto internal xref">Section 5</a> uses the resolved IdP-issued access token.<a href="#section-3.1.3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2049,8 +2106,8 @@ this contract without defining new SCIM attributes.<a href="#section-6.1-2" clas
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-metadata-and-configuration" class="section-name selfRef">Metadata and Configuration</a>
       </h2>
 <p id="section-7-1">The IdP <span class="bcp14">MUST</span> advertise <code>client_credentials</code>, token exchange, and its
-implemented input methods (<code>attest_jwt_client_auth_dpop</code> and/or
-<code>spiffe_x509</code>) through existing <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span> and input-specification
+implemented input methods (<code>attest_jwt_client_auth_dpop</code>,
+<code>spiffe_x509</code>, or <code>spiffe_wit</code>) through existing <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span> and input-specification
 metadata, and DPoP <code>ES256</code> support under <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. Profile selection and
 approved identity bindings use the configuration in <a href="#identity" class="auto internal xref">Section 3</a>.
 Delegated implementations use Actor Profile's existing metadata for
@@ -2130,6 +2187,10 @@ registered. WAG identifiers are addressed in <a href="#coordination" class="auto
 <dt id="SPIFFE-OAUTH">[SPIFFE-OAUTH]</dt>
         <dd>
 <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, <span class="refAuthor">Thorgersen, S.</span>, and <span class="refAuthor">N. Cam-Winget</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-02</span>, <time datetime="2026-06-15" class="refDate">15 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WIT">[WIT]</dt>
+        <dd>
+<span class="refAuthor">Campbell, B.</span>, <span class="refAuthor">Salowey, J. A.</span>, <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Sheffer, Y.</span>, and <span class="refAuthor">Y. Rosomakho</span>, <span class="refTitle">"WIMSE Workload Credentials"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-wimse-workload-creds-02</span>, <time datetime="2026-07-02" class="refDate">2 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02">https://datatracker.ietf.org/doc/html/draft-ietf-wimse-workload-creds-02</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ATTEST">[ATTEST]</dt>
         <dd>
@@ -2283,9 +2344,13 @@ and assignments are policy inputs; group claims about an ID-JAG user
 do not describe the agent actor's memberships. Provisioning transport,
 synchronization, policy engines, access-token formats, and introspection
 <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> are deployment choices outside this profile.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
-<p id="appendix-A-5">Native SPIFFE X.509-SVID authentication follows <a href="#spiffe-input" class="auto internal xref">Section 3.1.2</a>.
+<p id="appendix-A-5">Native SPIFFE X.509-SVID and WIT-SVID authentication follow
+<a href="#spiffe-input" class="auto internal xref">Section 3.1.2</a> and <a href="#wit-input" class="auto internal xref">Section 3.1.3</a>, respectively.
 Other credential types need explicit binding and proof rules; support
-for SPIFFE does not imply that every SVID type is accepted.<a href="#appendix-A-5" class="pilcrow">¶</a></p>
+for SPIFFE does not imply that every SVID type is accepted.
+Direct WIT actor evidence under Actor Profile is a different input
+path. It would need explicit external-subject mapping and proof
+rules; it does not implicitly substitute for the IdP access token here.<a href="#appendix-A-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="flows">
@@ -2309,7 +2374,7 @@ hosting environment, authentication evidence, and acting relationship:<a href="#
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">SPIFFE workload</td>
-            <td class="text-left" rowspan="1" colspan="1">X.509-SVID and DPoP</td>
+            <td class="text-left" rowspan="1" colspan="1">X.509-SVID or WIT-SVID with their required proofs</td>
             <td class="text-left" rowspan="1" colspan="1">Agent is the client</td>
             <td class="text-left" rowspan="1" colspan="1">Self-acting WAG (provisional output)</td>
           </tr>
@@ -2424,6 +2489,62 @@ claim a stable runtime identity. A renewed SVID can be used with an
 existing eligible token when the approved SPIFFE binding and DPoP
 key remain the same. An unrelated identity or replacement DPoP key
 cannot use that token.<a href="#appendix-B.1-6" class="pilcrow">¶</a></p>
+<div id="wit-svid-variant">
+<section id="appendix-B.1.1">
+          <h4 id="name-wit-svid-variant">
+<a href="#name-wit-svid-variant" class="section-name selfRef">WIT-SVID Variant</a>
+          </h4>
+<p id="appendix-B.1.1-1">With <a href="#wit-input" class="auto internal xref">Section 3.1.3</a> configured, the harness instead obtains a WIT-SVID
+for the same SPIFFE ID, binding key <code>K</code>. The following decoded payload
+omits the optional <code>iss</code>; the IdP uses the configured trust anchors
+for <code>workloads.example</code>. Its protected header uses <code>typ=wit+jwt</code>,
+<code>alg=ES256</code>, and a <code>kid</code> selecting a key in that trusted bundle.<a href="#appendix-B.1.1-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-B.1.1-2">
+<pre>
+{
+  "sub": "spiffe://workloads.example/agents/support",
+  "iat": 1789128000,
+  "exp": 1789131600,
+  "cnf": {
+    "jwk": {
+      "kty": "EC",
+      "crv": "P-256",
+      "alg": "ES256",
+      "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
+      "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
+    }
+  }
+}
+</pre><a href="#appendix-B.1.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B.1.1-3">The harness sends this request over server-authenticated TLS. The
+Client Attestation PoP JWT has <code>aud=https://idp.example/tenant/acme</code>,
+a fresh <code>iat</code> and unique <code>jti</code>, and the IdP's challenge if supplied.
+It uses <code>typ=oauth-client-attestation-pop+jwt</code>. Both that proof and
+the DPoP proof are signed with <code>K</code> using <code>ES256</code>.<a href="#appendix-B.1.1-3" class="pilcrow">¶</a></p>
+<div class="lang-http sourcecode" id="appendix-B.1.1-4">
+<pre>
+POST /token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+OAuth-Client-Attestation: eyJ...wit-svid...
+OAuth-Client-Attestation-PoP: eyJ...attestation-pop...
+DPoP: eyJ...proof-K...
+
+grant_type=client_credentials
+&amp;client_id=spiffe%3A%2F%2Fworkloads.example%2Fagents%2Fsupport
+&amp;resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
+</pre><a href="#appendix-B.1.1-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-B.1.1-5">The IdP resolves the same <code>agent-42</code> and issues a DPoP access token
+with at most 300 seconds of validity and <code>cnf.jkt=JKT(K)</code>. The extra
+JWK <code>alg</code> member does not change the RFC 7638 thumbprint. Steps 4
+and 5 above then apply, with WIT-SVID and fresh attestation and
+DPoP proofs authenticating the exchange. For user-delegated access,
+the same IdP token is actor evidence under <a href="#delegated-exchange" class="auto internal xref">Section 5.2</a>;
+the WIT itself remains client authentication evidence at the IdP.<a href="#appendix-B.1.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="device-flow">
@@ -2832,8 +2953,22 @@ follow the deployment's expiration and revocation behavior.<a href="#appendix-B.
             <td class="text-left" rowspan="1" colspan="1">Reject issuance</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">SPIFFE client with approved exact ID and DPoP proof</td>
+            <td class="text-left" rowspan="1" colspan="1">X.509-SVID client with approved exact ID and DPoP proof</td>
             <td class="text-left" rowspan="1" colspan="1">IdP access token without stable instance context</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">WIT-SVID with approved exact ID, attestation PoP, and matching DPoP key; no <code>iss</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">IdP access token for the configured agent; no stable instance context</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">WIT-SVID with missing attestation PoP, mismatched key or proof algorithm, or expired credential</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject authentication or proof</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">WIT-SVID with unapproved trust domain or mismatched <code>client_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject; <code>iss</code> cannot select another trust anchor</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Renewed SVID, same binding and DPoP key</td>
@@ -2928,6 +3063,13 @@ ID-JAG's audience and needs grant-profile precedence clarified in
 Actor Profile. Redemption details for sender-bound JWT grants also
 need coordination with <span>[<a href="#JWT-DPOP" class="cite xref">JWT-DPOP</a>]</span> and ID-JAG. This document does
 not register a competing redemption mechanism.<a href="#appendix-D-4" class="pilcrow">¶</a></p>
+<p id="appendix-D-5">SPIFFE OAuth's WIT-SVID binding and its authentication-method metadata
+need alignment with the evolving ATTEST proof modes. This document
+selects <code>spiffe_wit</code> with the separate Client Attestation PoP JWT
+specified by SPIFFE OAuth, plus DPoP bound to the same key. It does
+not infer combined-mode support from that method name. General WIT
+inputs, including direct Actor Profile input, need separate agreement
+on identity mapping and trust-domain validation when <code>iss</code> is absent.<a href="#appendix-D-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="document-history">
@@ -2946,19 +3088,23 @@ identity binding, access-token acquisition, and grant issuance.<a href="#appendi
 identification, eligible-token reuse, and Actor Profile delegation.<a href="#appendix-E-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-E-2.3">
-          <p id="appendix-E-2.3.1">Used <code>client_id</code> as agent identity when the agent is the client;
-required <code>agent_id</code> only for agents represented by a shared client.<a href="#appendix-E-2.3.1" class="pilcrow">¶</a></p>
+          <p id="appendix-E-2.3.1">Added WIT-SVID authentication with trust-domain identity resolution,
+attestation proof, DPoP key binding, and credential renewal rules.<a href="#appendix-E-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-E-2.4">
-          <p id="appendix-E-2.4.1">Completed deployment examples with downstream client authentication,
-credential timing, and issuer-qualified provisioning correlation.<a href="#appendix-E-2.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-E-2.4.1">Used <code>client_id</code> as agent identity when the agent is the client;
+required <code>agent_id</code> only for agents represented by a shared client.<a href="#appendix-E-2.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-E-2.5">
-          <p id="appendix-E-2.5.1">Kept WAG output explicitly provisional pending related specifications.<a href="#appendix-E-2.5.1" class="pilcrow">¶</a></p>
+          <p id="appendix-E-2.5.1">Completed deployment examples with downstream client authentication,
+credential timing, and issuer-qualified provisioning correlation.<a href="#appendix-E-2.5.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-E-2.6">
-          <p id="appendix-E-2.6.1">Moved existing client flows and deployment choices to informative
-guidance and inherited downstream grant processing.<a href="#appendix-E-2.6.1" class="pilcrow">¶</a></p>
+          <p id="appendix-E-2.6.1">Kept WAG output explicitly provisional pending related specifications.<a href="#appendix-E-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-E-2.7">
+          <p id="appendix-E-2.7.1">Moved existing client flows and deployment choices to informative
+guidance and inherited downstream grant processing.<a href="#appendix-E-2.7.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
