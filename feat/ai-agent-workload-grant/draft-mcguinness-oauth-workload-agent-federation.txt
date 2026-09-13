@@ -435,11 +435,14 @@ Table of Contents
    Client Attestation MUST include nonempty strings for iss and
    sub=client_id, and iat as a NumericDate.  It MUST use an approved
    asymmetric algorithm with a kid resolvable through trusted attester
-   configuration.  Implementations MUST support ES256.  Its lifetime
-   MUST NOT exceed 300 seconds.  The IdP MUST reject missing or
-   incorrectly typed required claims or iat not preceding exp using
-   invalid_client_attestation, and MUST reject an attestation whose
-   lifetime exceeds this limit as not fresh enough using
+   configuration.  Implementations MUST support ES256.  The IdP MUST
+   configure a maximum attestation age and lifetime for each approved
+   attester.  Request freshness comes from the DPoP proof and the per-
+   issuance status checks in Section 4.2, not from a short-lived
+   attestation.  The IdP MUST reject missing or incorrectly typed
+   required claims or iat not preceding exp using
+   invalid_client_attestation, and MUST reject an attestation outside
+   its configured age or lifetime limits as not fresh enough using
    use_fresh_attestation, both under [ATTEST].
 
    When the client represents the agent, the attestation MUST omit
@@ -600,17 +603,22 @@ Table of Contents
 
                                   Table 3
 
+   The IdP's token endpoint is the resource for this token. resource in
+   the request and aud in the token both name the IdP issuer identifier
+   under [RFC8707] and [RFC9068], and the token is accepted only as
+   subject_token or actor_token at that endpoint.
+
    An eligible token MUST NOT contain act; a token that already carries
    an actor would add a second actor hop at exchange.  A token issued by
-   this acquisition MUST have a lifetime of at most 300 seconds, not
-   exceeding the remaining validity of the authenticating attestation or
-   SVID.  The short lifetime keeps the token a transient exchange input
-   rather than a standing credential, so no refresh token is issued and
-   a revoked binding takes effect at the next acquisition.  The IdP MUST
-   associate it with the Federation Binding, input method, source
-   tenant, and exchange authorization through trusted issuance policy or
-   token state.  Validated client_instance MAY be included under
-   Section 3.2.
+   this acquisition MUST have a lifetime of at most 300 seconds.  The
+   attestation or SVID was valid at issuance; its remaining validity
+   does not bound the token.  The short lifetime keeps the token a
+   transient exchange input rather than a standing credential, so no
+   refresh token is issued and a revoked binding takes effect at the
+   next acquisition.  The IdP MUST associate it with the Federation
+   Binding, input method, source tenant, and exchange authorization
+   through trusted issuance policy or token state.  Validated
+   client_instance MAY be included under Section 3.2.
 
    The response follows [RFC6749] with token_type=DPoP and expires_in.
    Clients need not parse the access token.  It MAY be reused with fresh
@@ -627,9 +635,19 @@ Table of Contents
 5.  Requesting an Authorization Grant
 
    The client MUST use [RFC8693] at the IdP token endpoint with the same
-   logical client and configured authentication under Section 3.1.  The
-   fresh proof key MUST match the IdP-issued access token's cnf.jkt.  In
-   both outputs:
+   logical client and configured authentication under Section 3.1.
+
+   The DPoP proof at the exchange serves two purposes.  It binds the
+   issued grant under [RFC9449], and it demonstrates possession of the
+   IdP-issued access token presented as subject_token or actor_token.
+   [RFC9449] defines possession only for tokens presented to a protected
+   resource, using ath; no ath is present at the token endpoint, so
+   under this document the proof key MUST match that token's cnf.jkt.
+   The IdP SHOULD issue server-provided nonces under [RFC9449],
+   Section 8 for acquisition and exchange requests so that proofs cannot
+   be generated in advance.
+
+   In both outputs:
 
    *  grant_type is urn:ietf:params:oauth:grant-type:token-exchange.
 
@@ -639,8 +657,10 @@ Table of Contents
 
    *  scope MUST contain a nonempty set of requested resource scopes.
 
-   This profile does not support authorization_details; its presence
-   MUST cause invalid_request.
+   This profile does not support authorization_details [RFC9396]; its
+   presence MUST cause invalid_request.  Scope is the only authorization
+   granularity both grants carry in this version; a Rich Authorization
+   Requests profile for agent grants is left to a future document.
 
 5.1.  Self-Acting Agent
 
@@ -680,6 +700,12 @@ Table of Contents
    inputs permitted by ID-JAG MAY be supported with their validation and
    authorization limits.  Inputs carrying an existing act chain MUST be
    rejected, not erased or extended.
+
+   For a shared client, the user credential was issued to the shared
+   client and cannot distinguish the agents behind it.  The delegation
+   approval verified in Section 5.3 is the only element that names the
+   acting agent.  The IdP MUST NOT issue an ID-JAG for a shared-client
+   agent without an approval that names that agent.
 
    POST /token HTTP/1.1
    Host: idp.example
@@ -743,10 +769,11 @@ Table of Contents
    The grant MUST contain the IdP's issuer in iss, the exact target RAS
    issuer in aud, and the approved resource and scope. cnf.jkt MUST
    equal the thumbprint of the validated DPoP key.  The grant lifetime
-   MUST NOT exceed 300 seconds or the remaining validity of the IdP-
-   issued access token, accepted user credential, or applicable
-   delegation.  The IdP MUST assign a unique jti and MUST NOT reuse
-   (iss, jti).
+   MUST NOT exceed 300 seconds.  For ID-JAG it MUST NOT exceed the
+   remaining validity of the accepted user credential or of the
+   applicable delegation.  The IdP-issued access token was valid at
+   exchange; its remaining validity does not bound the grant.  The IdP
+   MUST assign a unique jti and MUST NOT reuse (iss, jti).
 
    For WAG, the claims and processing in Section 5.4.1 apply.
 
@@ -858,9 +885,11 @@ Table of Contents
 
    *  MUST NOT contain act;
 
-   *  MAY carry WAG's Agent Properties, name, namespace, groups, roles,
-      and ctx, populated from the Registered Agent record and its group
-      memberships at the IdP. name MUST NOT be used as a key for
+   *  MAY carry WAG's Agent Properties. groups and roles use their
+      [RFC9068] definitions and name its OpenID Connect definition
+      [OIDC]; namespace and ctx are WAG placeholders pending
+      registration.  Values come from the Registered Agent record and
+      its memberships at the IdP. name MUST NOT be used as a key for
       authorization or attribution. groups and roles describe the agent,
       never a user;
 
@@ -870,7 +899,12 @@ Table of Contents
    require the agent to be projected into it before first issuance and
    MUST accept a previously unseen sub under an allowlisted iss.
    Authorization that depends on a provisioned agent record follows
-   Section 6.1 and MAY be withheld until the record exists.
+   Section 6.1 and MAY be withheld until the record exists.  RAS policy
+   selects between property-based authorization under WAG and record-
+   based authorization under Section 6.1.  Agent Properties supplied by
+   the IdP are inputs to that policy, not entitlements; the RAS MUST NOT
+   treat them as authoritative unless its configuration for that issuer
+   says so.
 
 5.5.  Response and Errors
 
@@ -900,10 +934,12 @@ Table of Contents
    Redemption uses the urn:ietf:params:oauth:grant-type:jwt-bearer grant
    with the JWT in assertion under [RFC7523], as both [ID-JAG] and [WAG]
    require, accompanied by the DPoP proof required below.  The bound-
-   grant checks below apply.  Other processing follows [ID-JAG] for
-   delegated output and [WAG] as profiled in Section 5.4.1 for self-
-   acting output.  Delegated processing additionally follows Actor
-   Profile, including preservation of act.  This document does not
+   grant checks below apply.  The redemption request MUST include
+   resource [RFC8707] equal to the grant's resource claim; the RAS MUST
+   reject a mismatch with invalid_target.  Other processing follows
+   [ID-JAG] for delegated output and [WAG] as profiled in Section 5.4.1
+   for self-acting output.  Delegated processing additionally follows
+   Actor Profile, including preservation of act.  This document does not
    define a separate redemption protocol, access-token format, or
    introspection schema.  Downstream access-token lifetimes and refresh
    behavior follow the underlying grant and resource authorization
@@ -918,9 +954,8 @@ Table of Contents
    private_key_jwt under [RFC7523] and explain the separate credential
    in Appendix "Client Authentication at the RAS".
 
-   For WAG, the redemption request MUST include resource equal to the
-   grant's resource claim; the RAS MUST reject a mismatch with
-   invalid_target.  WAG leaves client identity unspecified.  Under this
+   For WAG, the resource requirement above satisfies WAG's redemption
+   parameter.  WAG leaves client identity unspecified.  Under this
    document the DPoP proof supplies the possession check, and the RAS
    MAY additionally require client authentication by configuration.  The
    RAS MUST make any Agent Properties in the grant available to the
@@ -934,11 +969,13 @@ Table of Contents
    present a fresh DPoP proof at redemption.  The RAS MUST validate it
    under [RFC9449] and reject a missing or invalid proof or a key that
    does not match cnf.jkt, using ID-JAG's bound-grant processing for ID-
-   JAG and the same checks for WAG.  The RAS MUST issue a sender-
-   constrained access token, such as a DPoP-bound token under [RFC9449],
-   when redeeming a grant issued under this profile, and MUST NOT issue
-   a bearer access token from it.  That access token, rather than an
-   upstream credential or grant, is used at the resource server.
+   JAG and the same checks for WAG.  The RAS MUST accept each grant at
+   most once, tracking (iss, jti) for at least the grant's lifetime, and
+   MUST reject a replayed grant with invalid_grant.  The RAS MUST issue
+   a sender-constrained access token, such as a DPoP-bound token under
+   [RFC9449], when redeeming a grant issued under this profile, and MUST
+   NOT issue a bearer access token from it.  That access token, rather
+   than an upstream credential or grant, is used at the resource server.
 
 6.1.  Agent Record Correlation
 
@@ -1056,10 +1093,51 @@ Table of Contents
 
 9.2.  Media Type Registration
 
-   This section registers oauth-wag+jwt, a new media type [RFC2046], in
-   the "Media Types" registry in the manner described in [RFC6838].  It
-   indicates that the content is a Workload Authorization Grant issued
-   under Section 5.4.1.
+   This section registers the application/oauth-wag+jwt media type
+   [RFC2046] in the "Media Types" registry in the manner described in
+   [RFC6838], using the +jwt structured syntax suffix [RFC8417].  It is
+   used as the JOSE typ value oauth-wag+jwt under [RFC8725] to indicate
+   that the content is a Workload Authorization Grant issued under
+   Section 5.4.1.
+
+   *  Type name: application
+
+   *  Subtype name: oauth-wag+jwt
+
+   *  Required parameters: n/a
+
+   *  Optional parameters: n/a
+
+   *  Encoding considerations: binary; a JWT is a sequence of base64url-
+      encoded values separated by period characters
+
+   *  Security considerations: see Section 8 and [RFC8725]
+
+   *  Interoperability considerations: n/a
+
+   *  Published specification: this document
+
+   *  Applications that use this media type: identity providers,
+      resource authorization servers, and agent clients implementing
+      this document
+
+   *  Fragment identifier considerations: n/a
+
+   *  Additional information: Magic number(s): n/a; File extension(s):
+      n/a; Macintosh file type code(s): n/a
+
+   *  Person and email address to contact for further information: Karl
+      McGuinness, public@karlmcguinness.com
+
+   *  Intended usage: COMMON
+
+   *  Restrictions on usage: none
+
+   *  Author: Karl McGuinness
+
+   *  Change controller: IETF
+
+   *  Provisional registration?  No
 
 9.3.  OAuth URI Registration
 
@@ -1149,6 +1227,11 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-carleton-
               workload-authz-grant-00>.
 
+   [OIDC]     Sakimura, N., Bradley, J., Jones, M., de Medeiros, B., and
+              C. Mortimore, "OpenID Connect Core 1.0 incorporating
+              errata set 2", December 2023,
+              <https://openid.net/specs/openid-connect-core-1_0.html>.
+
    [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6749>.
@@ -1184,6 +1267,11 @@ Table of Contents
               Authorization Server Metadata", RFC 8414,
               DOI 10.17487/RFC8414, June 2018,
               <https://www.rfc-editor.org/rfc/rfc8414>.
+
+   [RFC8417]  Hunt, P., Ed., Jones, M., Denniss, W., and M. Ansari,
+              "Security Event Token (SET)", RFC 8417,
+              DOI 10.17487/RFC8417, July 2018,
+              <https://www.rfc-editor.org/rfc/rfc8417>.
 
    [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
               and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
@@ -1243,6 +1331,11 @@ Table of Contents
    [RFC8252]  Denniss, W. and J. Bradley, "OAuth 2.0 for Native Apps",
               BCP 212, RFC 8252, DOI 10.17487/RFC8252, October 2017,
               <https://www.rfc-editor.org/rfc/rfc8252>.
+
+   [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
+              Rich Authorization Requests", RFC 9396,
+              DOI 10.17487/RFC9396, May 2023,
+              <https://www.rfc-editor.org/rfc/rfc9396>.
 
    [SPIFFE-CONCEPTS]
               SPIFFE, "SPIFFE Concepts", 2026,
@@ -1684,6 +1777,7 @@ Client Authentication at the RAS
 
    grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
    &assertion=eyJ...idp-id-jag...
+   &resource=https%3A%2F%2Fapi.app.example
    &client_id=dev-agent-at-app
    &client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
    &client_assertion=eyJ...client-key-assertion...
@@ -1876,8 +1970,11 @@ Interoperability Test Cases
     | Grant redemption with missing or     | Reject under the bound-  |
     | mismatched proof                     | grant rules              |
     +--------------------------------------+--------------------------+
-    | WAG redemption without resource, or  | invalid_target           |
-    | with resource not matching the grant |                          |
+    | Redemption without resource, or with | invalid_target           |
+    | resource not matching the grant      |                          |
+    +--------------------------------------+--------------------------+
+    | Replayed grant with a valid DPoP     | invalid_grant; grants    |
+    | proof                                | are single use           |
     +--------------------------------------+--------------------------+
     | WAG with a previously unseen sub     | Access token issued;     |
     | under an allowlisted iss             | record-dependent         |
@@ -1979,8 +2076,9 @@ Document History
       section and recorded the input method with issued tokens.
 
    *  Limited access-token reuse to tokens issued under this document's
-      acquisition, selected use_fresh_attestation for over-long
-      attestations, and split the SVID renewal interoperability case.
+      acquisition, selected use_fresh_attestation for attestations
+      outside configured age limits, and split the SVID renewal
+      interoperability case.
 
    *  Required sender-constrained downstream access tokens, kept jwt-
       bearer redemption with a DPoP proof, and added shared-client and
@@ -1998,6 +2096,19 @@ Document History
 
    *  Reorganized the end-to-end examples around the agent acting for
       itself and on behalf of a user, adding WAG redemption at the RAS.
+
+   *  Decoupled artifact lifetimes, replaced the fixed attestation
+      lifetime with configured age limits, and made the exchange DPoP
+      proof's dual role explicit with server nonces recommended.
+
+   *  Required single-use grants and resource at every redemption,
+      clarified the self-issued token's audience and the RAS
+      authorization paths for WAG, and tied Agent Properties to
+      registered claim definitions.
+
+   *  Stated the shared-client delegation-approval requirement,
+      explained the RAR exclusion, and completed the media type
+      registration template.
 
 Author's Address
 
