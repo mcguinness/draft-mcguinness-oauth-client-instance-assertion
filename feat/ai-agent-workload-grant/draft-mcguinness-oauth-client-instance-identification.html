@@ -1411,13 +1411,20 @@ and associate it with that Logical Client and the proven key.<a href="#section-5
 before accepting the request.<a href="#section-5-3.5.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-5-4">In DPoP combined mode, the proof key <span class="bcp14">MUST</span> match <code>cnf.jwk</code>.
-Where an issued artifact uses <code>cnf.jkt</code>, the receiver <span class="bcp14">MUST</span> compute
-the JWK SHA-256 thumbprint according to <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> from the
-validated public key; it <span class="bcp14">MUST NOT</span> accept an unrelated
-requester-selected thumbprint. DPoP nonce and replay processing
-follow <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. A fresh proof is required for each request;
-the Client Attestation itself can be reused within its validity.<a href="#section-5-4" class="pilcrow">¶</a></p>
+<p id="section-5-4">In DPoP combined mode, the proof key <span class="bcp14">MUST</span> match <code>cnf.jwk</code>. Under
+any other supported proof method, a token-binding key presented
+in the same request <span class="bcp14">MUST</span> also be the validated <code>cnf.jwk</code> key, and
+the receiver <span class="bcp14">MUST</span> reject a DPoP proof from a different key. This
+profile deliberately narrows the base specification's allowance
+for an unrelated DPoP key so that token binding, the instance
+identity established in step 4, and the key-continuity rules in
+<a href="#lifetime" class="auto internal xref">Section 6</a> all refer to one key. Where an issued artifact uses
+<code>cnf.jkt</code>, the receiver <span class="bcp14">MUST</span> compute the JWK SHA-256 thumbprint
+according to <span>[<a href="#RFC7638" class="cite xref">RFC7638</a>]</span> from that validated <code>cnf.jwk</code> key; it
+<span class="bcp14">MUST NOT</span> accept an unrelated requester-selected thumbprint. DPoP
+nonce and replay processing follow <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. A fresh proof is
+required for each request; the Client Attestation itself can be
+reused within its validity.<a href="#section-5-4" class="pilcrow">¶</a></p>
 <p id="section-5-5">A receiver <span class="bcp14">MUST NOT</span> substitute instance identification for grant
 validation. In particular, it <span class="bcp14">MUST NOT</span> set an access token's
 <code>sub</code>, add an <code>act</code> claim, or extend a delegation chain solely
@@ -1447,11 +1454,11 @@ by its identifier.<a href="#section-6-1" class="pilcrow">¶</a></p>
 <p id="section-6-2">A suspend/resume operation <span class="bcp14">MAY</span> retain the identifier only when the
 attester establishes continuity and prevents independently restored
 copies of the identified unit from sharing that identity.<a href="#section-6-2" class="pilcrow">¶</a></p>
-<p id="section-6-3">Attestation renewal and key rotation within a continuing
-instance <span class="bcp14">MUST</span> preserve its identifier. A new key requires a
-new attestation and authenticated proof of its binding to that
-instance. Possession of an instance identifier, an expired
-attestation, or a former public key alone <span class="bcp14">MUST NOT</span> establish
+<p id="section-6-3">Attestation renewal and key rotation within a continuing instance <span class="bcp14">MUST</span>
+preserve each identifier the attester has assigned to that instance. A
+new key requires a new attestation and authenticated proof of its
+binding to that instance. Possession of an instance identifier, an
+expired attestation, or a former public key alone <span class="bcp14">MUST NOT</span> establish
 continuity. A receiver <span class="bcp14">MUST NOT</span> use a key thumbprint, certificate
 serial number, or JWT <code>jti</code> as a substitute for the identifier.<a href="#section-6-3" class="pilcrow">¶</a></p>
 <p id="section-6-4">This profile does not override refresh-token binding in
@@ -1491,8 +1498,10 @@ either be copied from validated evidence or assigned through
 an authenticated, unambiguous mapping maintained by the issuer.
 The issuer <span class="bcp14">MUST NOT</span> copy unvalidated client-supplied context.
 Both members <span class="bcp14">MUST</span> be nonempty strings. Additional members <span class="bcp14">MAY</span>
-be defined by other profiles; unknown members are ignored unless
-the applicable profile requires their processing.<a href="#section-7-3" class="pilcrow">¶</a></p>
+be defined by other profiles. A receiver <span class="bcp14">MUST</span> ignore members it
+does not recognize. A profile defining additional members <span class="bcp14">MUST</span>
+specify their processing for receivers implementing that profile
+and <span class="bcp14">MUST NOT</span> change the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7-3" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="section-7-4">
 <pre>
 {
@@ -1546,10 +1555,20 @@ does not prove software behavior, authorization, or integrity
 beyond the evidence the attester actually evaluated. Instance
 revocation does not automatically revoke previously issued
 tokens; consuming profiles define those consequences.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">Stable identifiers and keys can correlate activity. Issuers
-<span class="bcp14">SHOULD</span> use recipient-scoped instance mappings when broader
-correlation is unnecessary, preserve their internal audit
-mapping, and disclose only needed provenance. Error responses
+<p id="section-9-3">Stable identifiers and keys can correlate activity. A
+<code>client_instance_id</code> that survives key rotation also links an
+instance across every receiver that trusts the same attester,
+which defeats the unlinkability mitigation in
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span> of using distinct Client Instance Keys
+per authorization server. Where cross-receiver linkability is a
+concern, the attester <span class="bcp14">SHOULD</span> assign a distinct
+<code>client_instance_id</code> per receiver while maintaining its internal
+mapping; receivers <span class="bcp14">MUST NOT</span> assume identifiers seen by different
+receivers are comparable. Deployments that require one identifier
+across receivers accept that correlation as an explicit
+trade-off. Issuers <span class="bcp14">SHOULD</span> use recipient-scoped instance mappings
+when broader correlation is unnecessary, preserve their internal
+audit mapping, and disclose only needed provenance. Error responses
 <span class="bcp14">SHOULD</span> avoid revealing unrelated instance identities. Logs <span class="bcp14">MUST NOT</span> contain raw credentials or private keys.<a href="#section-9-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1660,12 +1679,24 @@ Controller is IETF.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
 <p id="appendix-A-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<p id="appendix-A-2">This document replaces the instance-authentication portions of
-draft-mcguinness-oauth-client-instance-assertion. It uses ATTEST
-as its sole protocol foundation and separates instance evidence
-from agent federation and actor semantics.
-The identified unit is explicitly configured; installation continuity
-is distinguished from process or container execution lifetime.<a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-A-2.1">
+          <p id="appendix-A-2.1.1">Replaced the instance-authentication portions of
+draft-mcguinness-oauth-client-instance-assertion, using ATTEST as
+the sole protocol foundation and separating instance evidence from
+agent federation and actor semantics.<a href="#appendix-A-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.2">
+          <p id="appendix-A-2.2.1">Made the identified unit explicitly configured and distinguished
+installation continuity from process or container execution
+lifetime.<a href="#appendix-A-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-A-2.3">
+          <p id="appendix-A-2.3.1">Bound non-combined proof methods to the attestation key, restored
+the <span class="bcp14">MUST</span> for ignoring unknown <code>client_instance</code> members, and
+addressed cross-receiver linkability of stable instance identifiers.<a href="#appendix-A-2.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
 </section>
 </div>
 <div id="authors-addresses">
