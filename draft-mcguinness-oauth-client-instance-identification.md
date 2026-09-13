@@ -141,23 +141,23 @@ All requirements of {{ATTEST}} apply. This profile retains
 `typ=oauth-client-attestation+jwt` and `sub=client_id`; it does
 not exercise the base specification's subject override.
 
-The following claims are additionally REQUIRED:
+In addition to the requirements of {{ATTEST}}, the following apply:
 
 `iss`:
-: The exact issuer identifier of an approved Client Attester
-  in {{configuration}}.
+: REQUIRED by {{ATTEST}}. It MUST equal the exact issuer identifier of
+  an approved Client Attester in {{configuration}}.
 
 `client_instance_id`:
-: A nonempty StringOrURI {{RFC7519}} identifying the Client
-  Instance within the issuer's namespace. The identifier MUST
-  be opaque to receivers and MUST NOT be reassigned to another
-  instance. Receivers MUST NOT derive permissions by parsing it.
+: REQUIRED. A nonempty StringOrURI {{RFC7519}} identifying the Client
+  Instance within the issuer's namespace. The identifier MUST be
+  opaque to receivers and MUST NOT be reassigned to another instance.
+  Receivers MUST NOT derive permissions by parsing it.
 
 `iat`:
-: The time at which the attestation was issued, as a NumericDate.
-  It MUST precede `exp`. Receivers MUST reject attestations
-  outside their configured age and lifetime limits, allowing
-  only their configured clock skew.
+: REQUIRED. The time at which the attestation was issued, as a
+  NumericDate. It MUST precede `exp`. Receivers MUST reject
+  attestations outside their configured age and lifetime limits,
+  allowing only their configured clock skew.
 
 The protected header MUST contain `kid`. Attestations MUST use
 an asymmetric signature algorithm permitted by the trust
@@ -343,21 +343,23 @@ revocation does not automatically revoke previously issued
 tokens; consuming profiles define those consequences.
 
 Stable identifiers and keys can correlate activity. A
-`client_instance_id` that survives key rotation also links an
-instance across every receiver that trusts the same attester,
-which defeats the unlinkability mitigation in
-{{ATTEST, Section 11.1}} of using distinct Client Instance Keys
-per authorization server. Where cross-receiver linkability is a
-concern, the attester SHOULD assign a distinct
+`client_instance_id` that survives key rotation also links an instance
+across every receiver that trusts the same attester, which defeats the
+unlinkability mitigation in {{ATTEST, Section 11.1}} of using distinct
+Client Instance Keys per authorization server. Where cross-receiver
+linkability is a concern, the attester SHOULD assign a distinct
 `client_instance_id` per receiver while maintaining its internal
 mapping; receivers MUST NOT assume identifiers seen by different
-receivers are comparable. Deployments that require one identifier
-across receivers accept that correlation as an explicit
-trade-off. Issuers SHOULD use recipient-scoped instance mappings
-when broader correlation is unnecessary, preserve their internal
-audit mapping, and disclose only needed provenance. Error responses
-SHOULD avoid revealing unrelated instance identities. Logs MUST
-NOT contain raw credentials or private keys.
+receivers are comparable. A Client Attestation carries no audience, so
+a per-receiver identifier requires the attester to issue a distinct
+attestation for each receiver, which is the practice
+{{ATTEST, Section 11.1}} already recommends. Deployments that require
+one identifier across receivers accept that correlation as an explicit
+trade-off. Issuers SHOULD use recipient-scoped instance mappings when
+broader correlation is unnecessary, preserve their internal audit
+mapping, and disclose only needed provenance. Error responses SHOULD
+avoid revealing unrelated instance identities. Logs MUST NOT contain
+raw credentials or private keys.
 
 # IANA Considerations
 
@@ -392,3 +394,6 @@ Controller is IETF.
 * Bound non-combined proof methods to the attestation key, restored
   the MUST for ignoring unknown `client_instance` members, and
   addressed cross-receiver linkability of stable instance identifiers.
+* Clarified that `iss` is required by ATTEST with an exact-match
+  constraint here, and that per-receiver identifiers require
+  per-receiver attestations.

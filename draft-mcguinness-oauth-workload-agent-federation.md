@@ -43,6 +43,16 @@ normative:
   ID-JAG: I-D.ietf-oauth-identity-assertion-authz-grant
   IDENTITY-CHAINING: I-D.ietf-oauth-identity-chaining
   WAG: I-D.carleton-workload-authz-grant
+  OIDC:
+    title: "OpenID Connect Core 1.0 incorporating errata set 2"
+    target: https://openid.net/specs/openid-connect-core-1_0.html
+    date: 2023-12
+    author:
+      - ins: N. Sakimura
+      - ins: J. Bradley
+      - ins: M. Jones
+      - ins: B. de Medeiros
+      - ins: C. Mortimore
   RFC6749:
   RFC6838:
   RFC7518:
@@ -51,6 +61,7 @@ normative:
   RFC7638:
   RFC7800:
   RFC8414:
+  RFC8417:
   RFC8693:
   RFC8707:
   RFC8725:
@@ -62,6 +73,7 @@ informative:
   RFC2046:
   RFC7662:
   RFC8252:
+  RFC9396:
   SPIFFE-CONCEPTS:
     title: "SPIFFE Concepts"
     target: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/
@@ -348,13 +360,16 @@ input-specific processing.
 The client MUST use `attest_jwt_client_auth_dpop` under {{ATTEST}}.
 The Client Attestation MUST include nonempty strings for `iss` and
 `sub=client_id`, and `iat` as a NumericDate. It MUST use an approved
-asymmetric algorithm with a `kid`
-resolvable through trusted attester configuration. Implementations
-MUST support `ES256`. Its lifetime MUST NOT exceed 300 seconds.
-The IdP MUST reject missing or incorrectly typed required claims or
-`iat` not preceding `exp` using `invalid_client_attestation`, and
-MUST reject an attestation whose lifetime exceeds this limit as not
-fresh enough using `use_fresh_attestation`, both under {{ATTEST}}.
+asymmetric algorithm with a `kid` resolvable through trusted attester
+configuration. Implementations MUST support `ES256`. The IdP MUST
+configure a maximum attestation age and lifetime for each approved
+attester. Request freshness comes from the DPoP proof and the
+per-issuance status checks in {{idp-access-token}}, not from a
+short-lived attestation. The IdP MUST reject missing or incorrectly
+typed required claims or `iat` not preceding `exp` using
+`invalid_client_attestation`, and MUST reject an attestation outside
+its configured age or lifetime limits as not fresh enough using
+`use_fresh_attestation`, both under {{ATTEST}}.
 
 When the client represents the agent, the attestation MUST omit
 `agent_id`. A shared client MUST include `agent_id`, a nonempty
@@ -509,11 +524,16 @@ The issued access token MUST conform to {{RFC9068}} and contain:
 | `sub_profile` | `ai_agent` under {{ENTITY-PROFILES}} |
 | `cnf.jkt` | SHA-256 JWK thumbprint of the proven DPoP key under {{RFC7638}} |
 
-An eligible token MUST NOT contain `act`; a token that already
-carries an actor would add a second actor hop at exchange. A token
-issued by this acquisition MUST have a lifetime of at most 300
-seconds, not exceeding the remaining validity of the authenticating
-attestation or SVID. The short lifetime keeps the token a transient
+The IdP's token endpoint is the resource for this token. `resource` in
+the request and `aud` in the token both name the IdP issuer identifier
+under {{RFC8707}} and {{RFC9068}}, and the token is accepted only as
+`subject_token` or `actor_token` at that endpoint.
+
+An eligible token MUST NOT contain `act`; a token that already carries
+an actor would add a second actor hop at exchange. A token issued by
+this acquisition MUST have a lifetime of at most 300 seconds. The
+attestation or SVID was valid at issuance; its remaining validity does
+not bound the token. The short lifetime keeps the token a transient
 exchange input rather than a standing credential, so no refresh token
 is issued and a revoked binding takes effect at the next acquisition.
 The IdP MUST associate it with the Federation Binding, input method,
@@ -537,18 +557,30 @@ rebinding an existing token to a different key.
 
 # Requesting an Authorization Grant {#exchange}
 
-The client MUST use {{RFC8693}} at the IdP token endpoint with
-the same logical client and configured authentication under {{inputs}}.
-The fresh proof key MUST match the IdP-issued access token's
-`cnf.jkt`. In both outputs:
+The client MUST use {{RFC8693}} at the IdP token endpoint with the
+same logical client and configured authentication under {{inputs}}.
+
+The DPoP proof at the exchange serves two purposes. It binds the
+issued grant under {{RFC9449}}, and it demonstrates possession of the
+IdP-issued access token presented as `subject_token` or `actor_token`.
+{{RFC9449}} defines possession only for tokens presented to a
+protected resource, using `ath`; no `ath` is present at the token
+endpoint, so under this document the proof key MUST match that token's
+`cnf.jkt`. The IdP SHOULD issue server-provided nonces under
+{{RFC9449, Section 8}} for acquisition and exchange requests so that
+proofs cannot be generated in advance.
+
+In both outputs:
 
 * `grant_type` is `urn:ietf:params:oauth:grant-type:token-exchange`.
 * `audience` MUST be exactly one target RAS issuer identifier.
 * `resource` MUST be exactly one resource {{RFC8707}} at that RAS.
 * `scope` MUST contain a nonempty set of requested resource scopes.
 
-This profile does not support `authorization_details`; its presence
-MUST cause `invalid_request`.
+This profile does not support `authorization_details` {{RFC9396}}; its
+presence MUST cause `invalid_request`. Scope is the only authorization
+granularity both grants carry in this version; a Rich Authorization
+Requests profile for agent grants is left to a future document.
 
 ## Self-Acting Agent {#self-exchange}
 
@@ -591,6 +623,12 @@ Implementations MUST support an OpenID Connect ID Token with
 Other inputs permitted by ID-JAG MAY be supported with their
 validation and authorization limits. Inputs carrying an existing
 `act` chain MUST be rejected, not erased or extended.
+
+For a shared client, the user credential was issued to the shared
+client and cannot distinguish the agents behind it. The delegation
+approval verified in {{idp-processing}} is the only element that names
+the acting agent. The IdP MUST NOT issue an ID-JAG for a shared-client
+agent without an approval that names that agent.
 
 ~~~ http
 POST /token HTTP/1.1
@@ -648,13 +686,14 @@ resolvable through trusted issuer configuration. Implementations
 MUST support `ES256` {{RFC7518}} in addition to requirements of
 the underlying specifications.
 
-The grant MUST contain the IdP's issuer in `iss`, the exact target
-RAS issuer in `aud`, and the approved `resource` and `scope`.
-`cnf.jkt` MUST equal the thumbprint of the validated DPoP key.
-The grant lifetime MUST NOT exceed 300 seconds or the remaining
-validity of the IdP-issued access token, accepted user credential,
-or applicable delegation. The IdP MUST assign a unique `jti` and
-MUST NOT reuse `(iss, jti)`.
+The grant MUST contain the IdP's issuer in `iss`, the exact target RAS
+issuer in `aud`, and the approved `resource` and `scope`. `cnf.jkt`
+MUST equal the thumbprint of the validated DPoP key. The grant
+lifetime MUST NOT exceed 300 seconds. For ID-JAG it MUST NOT exceed
+the remaining validity of the accepted user credential or of the
+applicable delegation. The IdP-issued access token was valid at
+exchange; its remaining validity does not bound the grant. The IdP
+MUST assign a unique `jti` and MUST NOT reuse `(iss, jti)`.
 
 For WAG, the claims and processing in {{wag-profile}} apply.
 
@@ -761,10 +800,12 @@ under this document:
   item for IdP-issued grants: the grant is not a bearer grant and
   MUST be redeemed with a DPoP proof under {{consumption}};
 * MUST NOT contain `act`;
-* MAY carry WAG's Agent Properties, `name`, `namespace`, `groups`,
-  `roles`, and `ctx`, populated from the Registered Agent record and
-  its group memberships at the IdP. `name` MUST NOT be used as a key
-  for authorization or attribution. `groups` and `roles` describe the
+* MAY carry WAG's Agent Properties. `groups` and `roles` use their
+  {{RFC9068}} definitions and `name` its OpenID Connect definition
+  {{OIDC}}; `namespace` and `ctx` are WAG placeholders pending
+  registration. Values come from the Registered Agent record and its
+  memberships at the IdP. `name` MUST NOT be used as a key for
+  authorization or attribution. `groups` and `roles` describe the
   agent, never a user;
 * carries `jti`, `iat`, and `exp` under {{grant}}.
 
@@ -772,7 +813,12 @@ Registration and provisioning at the RAS follow WAG: a RAS MUST NOT
 require the agent to be projected into it before first issuance and
 MUST accept a previously unseen `sub` under an allowlisted `iss`.
 Authorization that depends on a provisioned agent record follows
-{{agent-correlation}} and MAY be withheld until the record exists.
+{{agent-correlation}} and MAY be withheld until the record exists. RAS
+policy selects between property-based authorization under WAG and
+record-based authorization under {{agent-correlation}}. Agent
+Properties supplied by the IdP are inputs to that policy, not
+entitlements; the RAS MUST NOT treat them as authoritative unless its
+configuration for that issuer says so.
 
 ## Response and Errors
 
@@ -801,15 +847,17 @@ request MUST NOT produce a self-acting grant.
 
 Redemption uses the `urn:ietf:params:oauth:grant-type:jwt-bearer`
 grant with the JWT in `assertion` under {{RFC7523}}, as both
-{{ID-JAG}} and {{WAG}} require, accompanied by the DPoP proof
-required below. The bound-grant checks below apply. Other processing
+{{ID-JAG}} and {{WAG}} require, accompanied by the DPoP proof required
+below. The bound-grant checks below apply. The redemption request MUST
+include `resource` {{RFC8707}} equal to the grant's `resource` claim;
+the RAS MUST reject a mismatch with `invalid_target`. Other processing
 follows {{ID-JAG}} for delegated output and {{WAG}} as profiled in
-{{wag-profile}} for self-acting output. Delegated
-processing additionally follows Actor Profile, including preservation
-of `act`. This document does not define a
-separate redemption protocol, access-token format, or introspection
-schema. Downstream access-token lifetimes and refresh behavior
-follow the underlying grant and resource authorization policy.
+{{wag-profile}} for self-acting output. Delegated processing
+additionally follows Actor Profile, including preservation of `act`.
+This document does not define a separate redemption protocol,
+access-token format, or introspection schema. Downstream access-token
+lifetimes and refresh behavior follow the underlying grant and
+resource authorization policy.
 
 For ID-JAG, the client MUST authenticate to the RAS using a credential
 registered or otherwise trusted for the downstream `client_id` in
@@ -819,24 +867,25 @@ provision that credential. DPoP possession alone MUST NOT be treated
 as client authentication. The examples use `private_key_jwt` under
 {{RFC7523}} and explain the separate credential in {{ras-auth}}.
 
-For WAG, the redemption request MUST include `resource` equal to the
-grant's `resource` claim; the RAS MUST reject a mismatch with
-`invalid_target`. WAG leaves client identity unspecified. Under this
-document the DPoP proof supplies the possession check, and the RAS
-MAY additionally require client authentication by configuration. The
-RAS MUST make any Agent Properties in the grant available to the
-resource server's authorization decision and MUST NOT issue a refresh
-token for a WAG, as WAG requires. A grant that fails validation,
-including a missing or mismatched DPoP proof, is rejected with
-`invalid_grant`; scopes beyond the grant use `invalid_scope`.
+For WAG, the `resource` requirement above satisfies WAG's redemption
+parameter. WAG leaves client identity unspecified. Under this document
+the DPoP proof supplies the possession check, and the RAS MAY
+additionally require client authentication by configuration. The RAS
+MUST make any Agent Properties in the grant available to the resource
+server's authorization decision and MUST NOT issue a refresh token for
+a WAG, as WAG requires. A grant that fails validation, including a
+missing or mismatched DPoP proof, is rejected with `invalid_grant`;
+scopes beyond the grant use `invalid_scope`.
 
 Every grant is bound to the proven DPoP key. The IdP MUST issue only
-to a RAS configured to validate that binding. The client MUST
-present a fresh DPoP proof at redemption. The RAS MUST validate it
-under {{RFC9449}} and reject a missing or invalid proof or a key
-that does not match `cnf.jkt`, using ID-JAG's bound-grant processing
-for ID-JAG and the same checks for WAG. The RAS MUST issue a
-sender-constrained access token, such as a DPoP-bound token under
+to a RAS configured to validate that binding. The client MUST present
+a fresh DPoP proof at redemption. The RAS MUST validate it under
+{{RFC9449}} and reject a missing or invalid proof or a key that does
+not match `cnf.jkt`, using ID-JAG's bound-grant processing for ID-JAG
+and the same checks for WAG. The RAS MUST accept each grant at most
+once, tracking `(iss, jti)` for at least the grant's lifetime, and
+MUST reject a replayed grant with `invalid_grant`. The RAS MUST issue
+a sender-constrained access token, such as a DPoP-bound token under
 {{RFC9449}}, when redeeming a grant issued under this profile, and
 MUST NOT issue a bearer access token from it. That access token,
 rather than an upstream credential or grant, is used at the resource
@@ -958,10 +1007,35 @@ by a shared client.
 
 ## Media Type Registration
 
-This section registers `oauth-wag+jwt`, a new media type {{RFC2046}},
-in the "Media Types" registry in the manner described in {{RFC6838}}.
-It indicates that the content is a Workload Authorization Grant
+This section registers the `application/oauth-wag+jwt` media type
+{{RFC2046}} in the "Media Types" registry in the manner described in
+{{RFC6838}}, using the `+jwt` structured syntax suffix {{RFC8417}}.
+It is used as the JOSE `typ` value `oauth-wag+jwt` under {{RFC8725}}
+to indicate that the content is a Workload Authorization Grant
 issued under {{wag-profile}}.
+
+* Type name: application
+* Subtype name: oauth-wag+jwt
+* Required parameters: n/a
+* Optional parameters: n/a
+* Encoding considerations: binary; a JWT is a sequence of
+  base64url-encoded values separated by period characters
+* Security considerations: see {{security}} and {{RFC8725}}
+* Interoperability considerations: n/a
+* Published specification: this document
+* Applications that use this media type: identity providers,
+  resource authorization servers, and agent clients implementing
+  this document
+* Fragment identifier considerations: n/a
+* Additional information: Magic number(s): n/a; File extension(s):
+  n/a; Macintosh file type code(s): n/a
+* Person and email address to contact for further information:
+  Karl McGuinness, public@karlmcguinness.com
+* Intended usage: COMMON
+* Restrictions on usage: none
+* Author: Karl McGuinness
+* Change controller: IETF
+* Provisional registration? No
 
 ## OAuth URI Registration
 
@@ -1373,6 +1447,7 @@ DPoP: eyJ...grant-key-proof...
 
 grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer
 &assertion=eyJ...idp-id-jag...
+&resource=https%3A%2F%2Fapi.app.example
 &client_id=dev-agent-at-app
 &client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 &client_assertion=eyJ...client-key-assertion...
@@ -1489,7 +1564,8 @@ exercise:
 | Optional downstream instance context | Same principal and binding semantics |
 | Configured instance extension, missing or mismatched evidence | Reject; no fallback to key-only processing |
 | Grant redemption with missing or mismatched proof | Reject under the bound-grant rules |
-| WAG redemption without `resource`, or with `resource` not matching the grant | `invalid_target` |
+| Redemption without `resource`, or with `resource` not matching the grant | `invalid_target` |
+| Replayed grant with a valid DPoP proof | `invalid_grant`; grants are single use |
 | WAG with a previously unseen `sub` under an allowlisted `iss` | Access token issued; record-dependent authorization withheld until correlated |
 | ID-JAG redemption with DPoP but no required client authentication | Reject; DPoP is not the registered client credential |
 | WAG subject and ID-JAG actor name the same IdP agent | Resolve the same provisioned record |
@@ -1565,8 +1641,9 @@ on identity mapping and trust-domain validation when `iss` is absent.
 * Consolidated cross-input rules into one contract in the inputs
   section and recorded the input method with issued tokens.
 * Limited access-token reuse to tokens issued under this document's
-  acquisition, selected `use_fresh_attestation` for over-long
-  attestations, and split the SVID renewal interoperability case.
+  acquisition, selected `use_fresh_attestation` for attestations
+  outside configured age limits, and split the SVID renewal
+  interoperability case.
 * Required sender-constrained downstream access tokens, kept
   jwt-bearer redemption with a DPoP proof, and added shared-client
   and agent-identifier privacy considerations.
@@ -1579,3 +1656,13 @@ on identity mapping and trust-domain validation when `iss` is absent.
   model against CIMD per-agent identifiers.
 * Reorganized the end-to-end examples around the agent acting for
   itself and on behalf of a user, adding WAG redemption at the RAS.
+* Decoupled artifact lifetimes, replaced the fixed attestation
+  lifetime with configured age limits, and made the exchange DPoP
+  proof's dual role explicit with server nonces recommended.
+* Required single-use grants and `resource` at every redemption,
+  clarified the self-issued token's audience and the RAS authorization
+  paths for WAG, and tied Agent Properties to registered claim
+  definitions.
+* Stated the shared-client delegation-approval requirement, explained
+  the RAR exclusion, and completed the media type registration
+  template.
