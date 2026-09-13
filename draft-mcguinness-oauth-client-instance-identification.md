@@ -213,13 +213,20 @@ The receiver MUST:
 5. Apply any configured instance suspension or other risk policy
    before accepting the request.
 
-In DPoP combined mode, the proof key MUST match `cnf.jwk`.
-Where an issued artifact uses `cnf.jkt`, the receiver MUST compute
-the JWK SHA-256 thumbprint according to {{RFC7638}} from the
-validated public key; it MUST NOT accept an unrelated
-requester-selected thumbprint. DPoP nonce and replay processing
-follow {{RFC9449}}. A fresh proof is required for each request;
-the Client Attestation itself can be reused within its validity.
+In DPoP combined mode, the proof key MUST match `cnf.jwk`. Under
+any other supported proof method, a token-binding key presented
+in the same request MUST also be the validated `cnf.jwk` key, and
+the receiver MUST reject a DPoP proof from a different key. This
+profile deliberately narrows the base specification's allowance
+for an unrelated DPoP key so that token binding, the instance
+identity established in step 4, and the key-continuity rules in
+{{lifetime}} all refer to one key. Where an issued artifact uses
+`cnf.jkt`, the receiver MUST compute the JWK SHA-256 thumbprint
+according to {{RFC7638}} from that validated `cnf.jwk` key; it
+MUST NOT accept an unrelated requester-selected thumbprint. DPoP
+nonce and replay processing follow {{RFC9449}}. A fresh proof is
+required for each request; the Client Attestation itself can be
+reused within its validity.
 
 A receiver MUST NOT substitute instance identification for grant
 validation. In particular, it MUST NOT set an access token's
@@ -249,11 +256,11 @@ A suspend/resume operation MAY retain the identifier only when the
 attester establishes continuity and prevents independently restored
 copies of the identified unit from sharing that identity.
 
-Attestation renewal and key rotation within a continuing
-instance MUST preserve its identifier. A new key requires a
-new attestation and authenticated proof of its binding to that
-instance. Possession of an instance identifier, an expired
-attestation, or a former public key alone MUST NOT establish
+Attestation renewal and key rotation within a continuing instance MUST
+preserve each identifier the attester has assigned to that instance. A
+new key requires a new attestation and authenticated proof of its
+binding to that instance. Possession of an instance identifier, an
+expired attestation, or a former public key alone MUST NOT establish
 continuity. A receiver MUST NOT use a key thumbprint, certificate
 serial number, or JWT `jti` as a substitute for the identifier.
 
@@ -283,8 +290,10 @@ either be copied from validated evidence or assigned through
 an authenticated, unambiguous mapping maintained by the issuer.
 The issuer MUST NOT copy unvalidated client-supplied context.
 Both members MUST be nonempty strings. Additional members MAY
-be defined by other profiles; unknown members are ignored unless
-the applicable profile requires their processing.
+be defined by other profiles. A receiver MUST ignore members it
+does not recognize. A profile defining additional members MUST
+specify their processing for receivers implementing that profile
+and MUST NOT change the meaning of `iss` or `id`.
 
 ~~~ json
 {
@@ -333,10 +342,20 @@ beyond the evidence the attester actually evaluated. Instance
 revocation does not automatically revoke previously issued
 tokens; consuming profiles define those consequences.
 
-Stable identifiers and keys can correlate activity. Issuers
-SHOULD use recipient-scoped instance mappings when broader
-correlation is unnecessary, preserve their internal audit
-mapping, and disclose only needed provenance. Error responses
+Stable identifiers and keys can correlate activity. A
+`client_instance_id` that survives key rotation also links an
+instance across every receiver that trusts the same attester,
+which defeats the unlinkability mitigation in
+{{ATTEST, Section 11.1}} of using distinct Client Instance Keys
+per authorization server. Where cross-receiver linkability is a
+concern, the attester SHOULD assign a distinct
+`client_instance_id` per receiver while maintaining its internal
+mapping; receivers MUST NOT assume identifiers seen by different
+receivers are comparable. Deployments that require one identifier
+across receivers accept that correlation as an explicit
+trade-off. Issuers SHOULD use recipient-scoped instance mappings
+when broader correlation is unnecessary, preserve their internal
+audit mapping, and disclose only needed provenance. Error responses
 SHOULD avoid revealing unrelated instance identities. Logs MUST
 NOT contain raw credentials or private keys.
 
@@ -363,9 +382,13 @@ Controller is IETF.
 
 *RFC EDITOR: Remove this section before publication.*
 
-This document replaces the instance-authentication portions of
-draft-mcguinness-oauth-client-instance-assertion. It uses ATTEST
-as its sole protocol foundation and separates instance evidence
-from agent federation and actor semantics.
-The identified unit is explicitly configured; installation continuity
-is distinguished from process or container execution lifetime.
+* Replaced the instance-authentication portions of
+  draft-mcguinness-oauth-client-instance-assertion, using ATTEST as
+  the sole protocol foundation and separating instance evidence from
+  agent federation and actor semantics.
+* Made the identified unit explicitly configured and distinguished
+  installation continuity from process or container execution
+  lifetime.
+* Bound non-combined proof methods to the attestation key, restored
+  the MUST for ignoring unknown `client_instance` members, and
+  addressed cross-receiver linkability of stable instance identifiers.
