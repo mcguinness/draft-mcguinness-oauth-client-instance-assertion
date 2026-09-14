@@ -106,9 +106,9 @@ A Receiver can rely on a separate attester to establish instance
 continuity. Direct resource-server presentation follows
 {{ATTEST, Section 1.1}}, the audience requirement in
 {{ATTEST, Section 5.1}}, and the validation rules in
-{{ATTEST, Section 7}}. Credentials other than Client Attestations,
-including platform-issued JWTs, require a separate carrier profile;
-none is defined here.
+{{ATTEST, Section 4}} and {{ATTEST, Section 7}}. Credentials other than
+Client Attestations, including platform-issued JWTs, require a separate
+carrier profile; none is defined here.
 
 Together with Agent Federation, this document replaces the relevant
 parts of draft-mcguinness-oauth-client-instance-assertion and
@@ -216,10 +216,10 @@ The claims `exp` and `cnf` remain required; `iat` remains optional.
 
 The Client Attester MUST:
 
-* generate identifiers unpredictable to parties other than the attester
-  before disclosure, using at least 128 bits of cryptographically secure
-  randomness or at least 128 bits of output from a cryptographically
-  secure keyed pseudorandom function;
+* generate identifiers unpredictable to any party other than the
+  attester, using at least 128 bits of cryptographically secure randomness
+  or at least 128 bits of output from a cryptographically secure keyed
+  pseudorandom function;
 * exclude runtime hostnames, user identifiers, and other embedded
   instance or user attributes; and
 * preserve uniqueness and continuity as specified in {{lifetime}}.
