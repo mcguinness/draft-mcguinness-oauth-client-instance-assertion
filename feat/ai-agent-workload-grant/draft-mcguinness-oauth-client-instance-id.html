@@ -1185,7 +1185,7 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-client-attestation-claims" class="internal xref">Client Attestation Claims</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
-                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-additional-claims" class="internal xref">Additional Claims</a></p>
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-profile-claim-requirements" class="internal xref">Profile Claim Requirements</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
                 <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-example" class="internal xref">Example</a></p>
@@ -1366,8 +1366,10 @@ requirements. It defines no enrollment or key-rotation protocol and
 does not authorize transferring existing grants, sessions, or tokens
 to a replacement key.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
 <p id="section-1.2-2">A Receiver can rely on a separate attester to establish instance
-continuity. Direct presentation to resource servers follows
-<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>. Credentials other than Client Attestations,
+continuity. Direct resource-server presentation follows
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>, the audience requirement in
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.1" class="relref">Section 5.1</a></span>, and the validation rules in
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7" class="relref">Section 7</a></span>. Credentials other than Client Attestations,
 including platform-issued JWTs, require a separate carrier profile;
 none is defined here.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
 <p id="section-1.2-3">Together with Agent Federation, this document replaces the relevant
@@ -1470,6 +1472,9 @@ attesters (<a href="#lifetime" class="auto internal xref">Section 6</a>).<a href
 through trusted configuration. An instance claim <span class="bcp14">MUST NOT</span> select this
 profile or change the client's authentication method. This document
 adds no discovery or client metadata parameters.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-4">Missing required instance claims produce <code>invalid_client_attestation</code>
+(<a href="#errors" class="auto internal xref">Section 5.3</a>). That shared error reports rejection, not discovery of this
+profile; profile selection remains an administrative agreement.<a href="#section-3.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="attester-authority">
@@ -1508,10 +1513,10 @@ authentication.<a href="#section-3.2-4" class="pilcrow">¶</a></p>
 <p id="section-4-1">All ATTEST requirements apply. This profile retains
 <code>typ=oauth-client-attestation+jwt</code> and <code>sub=client_id</code>.
 The claims <code>exp</code> and <code>cnf</code> remain required; <code>iat</code> remains optional.<a href="#section-4-1" class="pilcrow">¶</a></p>
-<div id="additional-claims">
+<div id="profile-claim-requirements">
 <section id="section-4.1">
-        <h3 id="name-additional-claims">
-<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-additional-claims" class="section-name selfRef">Additional Claims</a>
+        <h3 id="name-profile-claim-requirements">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-profile-claim-requirements" class="section-name selfRef">Profile Claim Requirements</a>
         </h3>
 <span class="break"></span><dl class="dlParallel" id="section-4.1-1">
           <dt id="section-4.1-1.1">
@@ -1533,8 +1538,10 @@ The instance identity is <code>(iss, client_instance_id)</code>.<a href="#sectio
 <p id="section-4.1-2">The Client Attester <span class="bcp14">MUST</span>:<a href="#section-4.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.1-3.1">
-            <p id="section-4.1-3.1.1">generate unpredictable identifiers with at least 128 bits of
-randomness;<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-3.1.1">generate identifiers unpredictable to parties other than the attester
+before disclosure, using at least 128 bits of cryptographically secure
+randomness or at least 128 bits of output from a cryptographically
+secure keyed pseudorandom function;<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.1-3.2">
             <p id="section-4.1-3.2.1">exclude runtime hostnames, user identifiers, and other embedded
@@ -1544,13 +1551,17 @@ instance or user attributes; and<a href="#section-4.1-3.2.1" class="pilcrow">¶<
             <p id="section-4.1-3.3.1">preserve uniqueness and continuity as specified in <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-4.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-4.1-4">A URI-form identifier can name the attester's namespace, including its
-authority component; the instance-specific portion remains random and
-opaque. The namespace does not establish trust in the identifier.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
-<p id="section-4.1-5">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, compare them as exact,
+<p id="section-4.1-4">A keyed derivation, such as HMAC <span>[<a href="#RFC2104" class="cite xref">RFC2104</a>]</span> over an authenticated
+installation identifier, <span class="bcp14">MUST</span> use an attester-held secret with at least
+128 bits of entropy. Changes to derivation inputs or secrets do not
+relax the continuity and non-reassignment rules in <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">A URI-form identifier can name the attester's namespace, including its
+authority component; the instance-specific portion remains unpredictable
+and opaque. The namespace does not establish trust in the identifier.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+<p id="section-4.1-6">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, compare them as exact,
 case-sensitive strings without URI normalization, accept conforming
 values up to 256 characters, and reject longer values. They <span class="bcp14">MUST NOT</span>
-derive permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
+derive permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-4.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="example">
@@ -1642,11 +1653,14 @@ instance claims or missing required claims, including an absent
 <p id="section-5.3-2">When instance policy rejects an unknown, suspended, retired, or otherwise
 disallowed instance, the Receiver <span class="bcp14">MUST</span> return the same error and <span class="bcp14">MUST NOT</span> disclose in the response whether the instance is known or its
 lifecycle status. This does not require a registry of known instances.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
-<p id="section-5.3-3">Other authentication failures and freshness challenges retain ATTEST
-error processing. An error response does not select this profile or
-replace the configuration required by <a href="#configuration" class="auto internal xref">Section 3</a>.
+<p id="section-5.3-3">This profile deliberately reuses ATTEST's validation error for instance
+policy rejection, so the error code does not distinguish policy rejection
+from an invalid claim. Receivers <span class="bcp14">SHOULD</span> avoid distinguishable response
+timing between these failure cases.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">Other authentication failures and freshness challenges retain ATTEST
+error processing.
 A failed profile check <span class="bcp14">MUST NOT</span> trigger fallback to processing without
-the required instance evidence.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+the required instance evidence.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2128,6 +2142,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="RFC2104">[RFC2104]</dt>
+        <dd>
+<span class="refAuthor">Krawczyk, H.</span>, <span class="refAuthor">Bellare, M.</span>, and <span class="refAuthor">R. Canetti</span>, <span class="refTitle">"HMAC: Keyed-Hashing for Message Authentication"</span>, <span class="seriesInfo">RFC 2104</span>, <span class="seriesInfo">DOI 10.17487/RFC2104</span>, <time datetime="1997-02" class="refDate">February 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2104">https://www.rfc-editor.org/rfc/rfc2104</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
 <span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
