@@ -1598,7 +1598,7 @@ establish this authority or switch the configured input binding.
 Bindings <span class="bcp14">MAY</span> be established by importing agents from a platform's
 registry. An import is configuration: it <span class="bcp14">MUST</span> be authenticated and
 audited like any other binding change, and it <span class="bcp14">MUST</span> record the platform
-issuer and the identity claim value it binds.<a href="#section-3-1" class="pilcrow">¶</a></p>
+issuer and the subject value it binds.<a href="#section-3-1" class="pilcrow">¶</a></p>
 <table class="center" id="table-2">
         <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
 <thead>
@@ -1610,7 +1610,8 @@ issuer and the identity claim value it binds.<a href="#section-3-1" class="pilcr
         <tbody>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Platform-issued JWT, agent is the client</td>
-            <td class="text-left" rowspan="1" colspan="1">Approved platform issuer and exact value of the configured identity claim; <code>client_id</code> designated by the binding</td>
+            <td class="text-left" rowspan="1" colspan="1">Approved platform issuer and exact <code>sub</code>; <code>client_id</code> equals <code>sub</code>
+</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">ATTEST, agent is the client</td>
@@ -1708,37 +1709,47 @@ platform issuer, presented as <code>client_assertion</code> with
 under <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>], <a href="https://rfc-editor.org/rfc/rfc7523#section-2.2" class="relref">Section 2.2</a></span>. This is the credential a cloud or
 agent platform issues about the workload or agent it runs, such as
 a managed-identity token, an agent identity token, or a projected
-service-account token. This input represents the agent as client.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
+service-account token, when it meets the requirements below. This
+input represents the agent as client and requires <code>sub=client_id</code>.
+Mapping another claim to a different OAuth client identifier requires
+a separate authentication binding and is outside this input.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
 <p id="section-3.1.1-2">For each approved platform issuer the IdP <span class="bcp14">MUST</span> configure the exact
 issuer identifier; the key source, which <span class="bcp14">MUST</span> be issuer metadata
 under <span>[<a href="#OIDC" class="cite xref">OIDC</a>]</span> or <span>[<a href="#RFC8414" class="cite xref">RFC8414</a>]</span> or a configured key set and <span class="bcp14">MUST NOT</span>
-be a URL or key supplied in the JWT; the claim that carries the
-platform's agent identity, <code>sub</code> unless configured otherwise; the
-audience values it accepts, which <span class="bcp14">MUST</span> identify the IdP; permitted
-asymmetric algorithms; and a maximum age and lifetime.<a href="#section-3.1.1-2" class="pilcrow">¶</a></p>
+be a URL or key supplied in the JWT; audience values, which <span class="bcp14">MUST</span>
+identify the IdP; permitted asymmetric algorithms; maximum age and
+lifetime; and allowable clock skew.<a href="#section-3.1.1-2" class="pilcrow">¶</a></p>
 <p id="section-3.1.1-3">The IdP <span class="bcp14">MUST</span> validate the JWT under <span>[<a href="#RFC7523" class="cite xref">RFC7523</a>], <a href="https://rfc-editor.org/rfc/rfc7523#section-3" class="relref">Section 3</a></span>,
 including <code>iss</code> against the configured issuer, <code>aud</code> against the
-configured values, signature, <code>exp</code>, and the configured age and
-lifetime limits. The identity claim value <span class="bcp14">MUST</span> equal the external
-identity of exactly one Federation Binding under <a href="#identity" class="auto internal xref">Section 3</a>; a
-value the IdP has not bound <span class="bcp14">MUST</span> cause rejection, and a pattern or
-prefix match <span class="bcp14">MUST NOT</span> substitute for an exact binding. The binding
-designates the logical <code>client_id</code>; the IdP <span class="bcp14">MAY</span> use the identity
-claim value itself as <code>client_id</code> when it is unambiguous. A
-<code>client_id</code> present in the request <span class="bcp14">MUST</span> match the designated value.<a href="#section-3.1.1-3" class="pilcrow">¶</a></p>
+configured values, signature, and expiration. This input additionally
+requires <code>iat</code> and <code>exp</code> as NumericDates, with <code>iat</code> preceding <code>exp</code>.
+The IdP <span class="bcp14">MUST</span> reject missing or incorrectly typed timestamps, an <code>iat</code>
+in the future beyond configured clock skew, or a JWT outside its
+configured age or lifetime limits. The exact <code>(iss, sub)</code> <span class="bcp14">MUST</span> resolve
+to one Federation Binding under <a href="#identity" class="auto internal xref">Section 3</a>; an unbound value or a
+pattern or prefix match <span class="bcp14">MUST NOT</span> be accepted. The request <span class="bcp14">MUST</span> include
+<code>client_id</code> equal to <code>sub</code>. The binding maps this authenticated client
+to the Registered Agent; it does not rewrite the client identifier.<a href="#section-3.1.1-3" class="pilcrow">¶</a></p>
 <p id="section-3.1.1-4">A platform-issued JWT is a bearer credential with no key of its
-own. It authenticates the client on its own and <span class="bcp14">MUST</span> be handled as
-a client credential: the IdP <span class="bcp14">MUST</span> require <code>aud</code> to identify itself,
-<span class="bcp14">MUST</span> enforce the configured maximum age, and <span class="bcp14">SHOULD</span> reject a <code>jti</code>
-presented more than once within that age. A separate DPoP proof
-establishes the token-binding key, which the platform need not
-know. Both <span class="bcp14">MUST</span> be validated in the same request. A renewed
-platform JWT for the same bound identity <span class="bcp14">MAY</span> authenticate an
-exchange with an existing eligible token; the DPoP key <span class="bcp14">MUST</span> still
-match. Validation errors use <code>invalid_client</code> under <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>.<a href="#section-3.1.1-4" class="pilcrow">¶</a></p>
-<p id="section-3.1.1-5">There is no registered authentication method name for third-party
+own. A separate DPoP proof establishes the token-binding key, which
+the platform need not know. Both <span class="bcp14">MUST</span> be validated in the same request.<a href="#section-3.1.1-4" class="pilcrow">¶</a></p>
+<p id="section-3.1.1-5">To support platforms that cache credentials, the same JWT <span class="bcp14">MAY</span> be
+reused with fresh DPoP proofs. On its first successful use, the IdP
+<span class="bcp14">MUST</span> atomically associate the SHA-256 digest of the JWS Signing Input
+<span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> with
+the Federation Binding and proven DPoP key. It <span class="bcp14">MUST</span> retain this
+association until the JWT expires, including allowable clock skew,
+and reject reuse with another binding or key. Reuse with the same
+binding and key <span class="bcp14">MUST NOT</span> be rejected solely because the JWT or its
+<code>jti</code> was previously seen; all current validation and status checks
+still apply. A client changing keys needs a newly issued platform
+JWT with a different signing input, such as a new <code>iat</code> or <code>jti</code>.
+A renewed JWT <span class="bcp14">MAY</span> authenticate exchange with an existing eligible
+access token only with that access token's key. Validation errors use
+<code>invalid_client</code> under <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>.<a href="#section-3.1.1-5" class="pilcrow">¶</a></p>
+<p id="section-3.1.1-6">There is no registered authentication method name for third-party
 JWT assertions; the IdP expresses support through its platform
-issuer configuration under <a href="#metadata" class="auto internal xref">Section 7</a>.<a href="#section-3.1.1-5" class="pilcrow">¶</a></p>
+issuer configuration under <a href="#metadata" class="auto internal xref">Section 7</a>.<a href="#section-3.1.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="agent-evidence">
@@ -2178,8 +2189,8 @@ exchange; its remaining validity does not bound the grant. The IdP
 <p id="section-5.4-4">For ID-JAG, the JWT <span class="bcp14">MUST</span> conform to <span>[<a href="#ID-JAG" class="cite xref">ID-JAG</a>]</span>, with <code>sub</code> resolved
 under its user subject-mapping rules. Actor Profile construction <span class="bcp14">MUST</span>
 introduce exactly one actor, with <code>act.iss</code> equal to the IdP issuer,
-<code>act.sub</code> equal to the agent identifier the IdP would place in a WAG
-<code>sub</code> for that RAS, and <code>act.sub_profile=ai_agent</code>. The ID-JAG <span class="bcp14">MUST</span>
+<code>act.sub</code> equal to the IdP-issued actor token's <code>sub</code>, and
+<code>act.sub_profile=ai_agent</code>. The ID-JAG <span class="bcp14">MUST</span>
 include the downstream <code>client_id</code> and other required ID-JAG claims,
 including applicable tenant context. Translating a client identifier
 <span class="bcp14">MUST NOT</span> rewrite the agent actor's namespace. ID-JAG's
@@ -2265,9 +2276,8 @@ registration, and <span class="bcp14">MUST</span> interpret <code>sub</code> and
 <code>iss</code>, as WAG requires;<a href="#section-5.4.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
             <li class="normal" id="section-5.4.1-2.4">
-              <p id="section-5.4.1-2.4.1">has <code>sub</code> equal to the Registered Agent identifier bound to the
-IdP-issued access token, or the recipient-scoped identifier the IdP
-maintains for that agent at the target RAS under <a href="#security" class="auto internal xref">Section 8</a>. This
+              <p id="section-5.4.1-2.4.1">has <code>sub</code> equal to the Registered Agent identifier in the
+IdP-issued access token. This
 value is WAG's Agent Identifier: opaque, unique within <code>iss</code>,
 immutable, and never reassigned. It <span class="bcp14">MAY</span> take the URI form WAG
 recommends, with an authority component under the IdP's tenant
@@ -2493,12 +2503,16 @@ limit each attester's approved bindings to the agents it governs, and
 authentication. The attester <code>iss</code> <span class="bcp14">SHOULD</span> be retained with each
 issuance for audit.<a href="#section-8-5" class="pilcrow">¶</a></p>
 <p id="section-8-6">A platform-issued JWT authenticates the client without a key of its
-own, so its theft lets the holder acquire an IdP access token bound to
-a key of the holder's choosing until the JWT expires. Audience
-restriction to the IdP, the configured maximum age, <code>jti</code> replay
-rejection, and transport protection are the mitigations, and platform
-tokens with long lifetimes <span class="bcp14">SHOULD</span> be constrained by a short configured
-maximum age. A compromised or mistakenly approved platform issuer can
+own. Theft before its first use can let an attacker establish the
+initial key association; subsequent key matching does not prevent
+that race. Audience restriction to the IdP, configured age limits,
+and transport protection limit this exposure. The reuse association
+in <a href="#platform-jwt-input" class="auto internal xref">Section 3.1.1</a> prevents an already-used JWT from enrolling
+another key; it excludes the signature so another valid signature
+over the same content does not bypass the check. Platforms <span class="bcp14">MUST NOT</span>
+share one cached JWT among clients using independent DPoP keys.
+Platform tokens with long lifetimes <span class="bcp14">SHOULD</span> be constrained by a short
+configured maximum age. A compromised or mistakenly approved platform issuer can
 impersonate every agent bound to it, so the same scoping and
 withdrawal requirements apply to platform issuers as to attesters.
 Changes to imported bindings alter which platform identity is which
@@ -2512,13 +2526,13 @@ agent serves one user, such as a per-user desktop agent, <code>act.sub</code> or
 the WAG <code>sub</code> becomes a cross-service identifier for that user even
 where ID-JAG subject mapping is pairwise. The IdP <span class="bcp14">SHOULD NOT</span> let
 per-user agent identifiers act as a cross-context user pseudonym
-without a correlation requirement at the receiving RASes. It <span class="bcp14">MAY</span>
-maintain a recipient-scoped Registered Agent identifier per RAS and
-substitute it at grant construction under <a href="#grant" class="auto internal xref">Section 5.4</a>, provided the
-identifier is stable for that RAS and identical across the WAG <code>sub</code>
-and ID-JAG <code>act.sub</code> it receives, so that <a href="#agent-correlation" class="auto internal xref">Section 6.1</a> still
-resolves one record. The IdP-issued access token always carries the
-canonical identifier.<a href="#section-8-8" class="pilcrow">¶</a></p>
+without a correlation requirement at the receiving RASes. This
+profile preserves the canonical agent identifier from the IdP access
+token in both WAG <code>sub</code> and ID-JAG <code>act.sub</code>; the IdP <span class="bcp14">MUST NOT</span> substitute
+a recipient-specific actor identifier during grant construction.
+Deployments requiring pairwise agent identifiers need an additional
+profile coordinated with Actor Profile before using this flow.
+Recipient-scoped instance context remains available under <a href="#grant" class="auto internal xref">Section 5.4</a>.<a href="#section-8-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana">
@@ -2704,6 +2718,10 @@ registered.<a href="#section-9.4-1" class="pilcrow">¶</a></p>
 <dt id="RFC6838">[RFC6838]</dt>
         <dd>
 <span class="refAuthor">Freed, N.</span>, <span class="refAuthor">Klensin, J.</span>, and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"Media Type Specifications and Registration Procedures"</span>, <span class="seriesInfo">BCP 13</span>, <span class="seriesInfo">RFC 6838</span>, <span class="seriesInfo">DOI 10.17487/RFC6838</span>, <time datetime="2013-01" class="refDate">January 2013</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6838">https://www.rfc-editor.org/rfc/rfc6838</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7515">https://www.rfc-editor.org/rfc/rfc7515</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7518">[RFC7518]</dt>
         <dd>
@@ -3118,7 +3136,8 @@ agent platform and the agent authenticates with the JWT that
 platform issues about it, under <a href="#platform-jwt-input" class="auto internal xref">Section 3.1.1</a>. The import
 bound <code>sub=agent-runtime-8f2c</code> at issuer
 <code>https://agents.cloud.example/tenant/acme</code> to Registered Agent
-<code>agent-42</code> and designated <code>client_id=https://idp.example/clients/agent-42</code>.
+<code>agent-42</code>. The OAuth <code>client_id</code> is <code>agent-runtime-8f2c</code>, matching
+the platform JWT's <code>sub</code>.
 Decoded platform JWT:<a href="#appendix-B.1.3-1" class="pilcrow">¶</a></p>
 <div class="lang-json sourcecode" id="appendix-B.1.3-2">
 <pre>
@@ -3142,7 +3161,7 @@ Content-Type: application/x-www-form-urlencoded
 DPoP: eyJ...proof-K...
 
 grant_type=client_credentials
-&amp;client_id=https%3A%2F%2Fidp.example%2Fclients%2Fagent-42
+&amp;client_id=agent-runtime-8f2c
 &amp;client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
 &amp;client_assertion=eyJ...platform-jwt...
 &amp;resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
@@ -3152,7 +3171,8 @@ grant_type=client_credentials
 matches <code>sub</code> to the imported binding, and issues the access token
 with <code>sub=agent-42</code> and <code>cnf.jkt=JKT(K)</code>. Steps 4 and 5 of the
 X.509-SVID flow then apply, with a fresh platform JWT or the same
-unexpired one authenticating the exchange. The platform never sees
+unexpired one authenticating the exchange with <code>K</code>, as required by
+the reuse association in <a href="#platform-jwt-input" class="auto internal xref">Section 3.1.1</a>. The platform never sees
 <code>K</code>; the JWT authenticates the agent and the proof binds the token.
 For user-delegated access the same access token is actor evidence
 under <a href="#delegated-exchange" class="auto internal xref">Section 5.2</a>.<a href="#appendix-B.1.3-5" class="pilcrow">¶</a></p>
@@ -3582,7 +3602,7 @@ exercise:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
             <td class="text-left" rowspan="1" colspan="1">Reject issuance</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Platform-issued JWT from an approved issuer with a bound identity claim and DPoP proof</td>
+            <td class="text-left" rowspan="1" colspan="1">Platform-issued JWT from an approved issuer with a bound <code>sub=client_id</code> and DPoP proof</td>
             <td class="text-left" rowspan="1" colspan="1">IdP access token for the bound agent; no stable instance context</td>
           </tr>
           <tr>
@@ -3591,8 +3611,24 @@ exercise:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
 </td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Platform-issued JWT whose identity claim is not bound to a Registered Agent</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject issuance; no pattern or prefix match</td>
+            <td class="text-left" rowspan="1" colspan="1">Platform-issued JWT whose subject is not bound to a Registered Agent, or differs from <code>client_id</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">Reject with <code>invalid_client</code>; no claim substitution or prefix match</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Platform JWT with missing or mistyped <code>iat</code>, invalid time ordering, excessive age or lifetime, or future <code>iat</code> beyond clock skew</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_client</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Cached platform JWT reused with the same binding and key, all other checks valid</td>
+            <td class="text-left" rowspan="1" colspan="1">Accept with fresh DPoP proof</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Previously used platform JWT presented with another key, including a different signature over the same signing input</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>invalid_client</code>; no new key association</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">X.509-SVID client with approved exact ID and DPoP proof</td>
@@ -3651,6 +3687,10 @@ exercise:<a href="#appendix-C-1" class="pilcrow">¶</a></p>
             <td class="text-left" rowspan="1" colspan="1">Agent acting for a user</td>
             <td class="text-left" rowspan="1" colspan="1">User subject; Registered Agent <code>act</code>
 </td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Canonical agent identifier in the IdP access token</td>
+            <td class="text-left" rowspan="1" colspan="1">Same value in WAG <code>sub</code> and ID-JAG <code>act.sub</code>; no recipient-specific substitution</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Valid user and agent credentials without delegation</td>
@@ -3829,7 +3869,10 @@ also needs confirmation with identity chaining.<a href="#appendix-D.1-3" class="
         <h3 id="name-other-coordination-items">
 <a href="#name-other-coordination-items" class="section-name selfRef">Other Coordination Items</a>
         </h3>
-<p id="appendix-D.2-1">Actor Profile's generic JWT-grant audience guidance uses a token
+<p id="appendix-D.2-1">Pairwise agent identifiers need an explicit Actor Profile extension.
+This document currently preserves the actor token's <code>sub</code>; it does
+not override Actor Profile's JWT access-token actor construction.<a href="#appendix-D.2-1" class="pilcrow">¶</a></p>
+<p id="appendix-D.2-2">Actor Profile's generic JWT-grant audience guidance uses a token
 endpoint, while ID-JAG uses the RAS issuer. This document selects
 ID-JAG's audience and needs grant-profile precedence clarified in
 Actor Profile. ID-JAG and WAG both redeem with
@@ -3839,14 +3882,14 @@ bound-grant example and <span>[<a href="#JWT-DPOP" class="cite xref">JWT-DPOP</a
 document follows the normative text of ID-JAG and WAG, sending a DPoP
 proof with the jwt-bearer grant, and will follow ID-JAG if it adopts
 the jwt-dpop grant type. This document does not register a competing
-redemption mechanism.<a href="#appendix-D.2-1" class="pilcrow">¶</a></p>
-<p id="appendix-D.2-2">SPIFFE OAuth's WIT-SVID binding and its authentication-method metadata
+redemption mechanism.<a href="#appendix-D.2-2" class="pilcrow">¶</a></p>
+<p id="appendix-D.2-3">SPIFFE OAuth's WIT-SVID binding and its authentication-method metadata
 need alignment with the evolving ATTEST proof modes. This document
 selects <code>spiffe_wit</code> with the separate Client Attestation PoP JWT
 specified by SPIFFE OAuth, plus DPoP bound to the same key. It does
 not infer combined-mode support from that method name. General WIT
 inputs, including direct Actor Profile input, need separate agreement
-on identity mapping and trust-domain validation when <code>iss</code> is absent.<a href="#appendix-D.2-2" class="pilcrow">¶</a></p>
+on identity mapping and trust-domain validation when <code>iss</code> is absent.<a href="#appendix-D.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -3948,6 +3991,11 @@ needed and why it belongs in WAG.<a href="#appendix-E-2.19.1" class="pilcrow">¶
 imported from cloud and agent platforms, with binding by registry
 import, and reframed ATTEST and SPIFFE as two credential types among
 several.<a href="#appendix-E-2.20.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-E-2.21">
+          <p id="appendix-E-2.21.1">Required platform JWT <code>sub=client_id</code>, explicit timestamp checks,
+and reuse with the first proven key; preserved canonical actor
+identifiers pending a coordinated pairwise-identifier profile.<a href="#appendix-E-2.21.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>

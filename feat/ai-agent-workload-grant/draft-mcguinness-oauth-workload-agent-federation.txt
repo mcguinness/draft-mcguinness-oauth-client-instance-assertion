@@ -369,30 +369,28 @@ Table of Contents
    Bindings MAY be established by importing agents from a platform's
    registry.  An import is configuration: it MUST be authenticated and
    audited like any other binding change, and it MUST record the
-   platform issuer and the identity claim value it binds.
+   platform issuer and the subject value it binds.
 
-    +======================+=========================================+
-    | Input and client     | Federation Binding lookup               |
-    | model                |                                         |
-    +======================+=========================================+
-    | Platform-issued JWT, | Approved platform issuer and exact      |
-    | agent is the client  | value of the configured identity claim; |
-    |                      | client_id designated by the binding     |
-    +----------------------+-----------------------------------------+
-    | ATTEST, agent is the | Exact attestation (iss, sub); no        |
-    | client               | agent_id                                |
-    +----------------------+-----------------------------------------+
-    | ATTEST, shared       | Exact attestation (iss, sub, agent_id)  |
-    | client               |                                         |
-    +----------------------+-----------------------------------------+
-    | SPIFFE X.509-SVID,   | Approved trust domain and exact SPIFFE  |
-    | agent is the client  | ID; client_id equals that ID            |
-    +----------------------+-----------------------------------------+
-    | SPIFFE WIT-SVID,     | Approved trust domain and exact WIT     |
-    | agent is the client  | sub; client_id equals that SPIFFE ID    |
-    +----------------------+-----------------------------------------+
+     +========================+======================================+
+     | Input and client model | Federation Binding lookup            |
+     +========================+======================================+
+     | Platform-issued JWT,   | Approved platform issuer and exact   |
+     | agent is the client    | sub; client_id equals sub            |
+     +------------------------+--------------------------------------+
+     | ATTEST, agent is the   | Exact attestation (iss, sub); no     |
+     | client                 | agent_id                             |
+     +------------------------+--------------------------------------+
+     | ATTEST, shared client  | Exact attestation (iss, sub,         |
+     |                        | agent_id)                            |
+     +------------------------+--------------------------------------+
+     | SPIFFE X.509-SVID,     | Approved trust domain and exact      |
+     | agent is the client    | SPIFFE ID; client_id equals that ID  |
+     +------------------------+--------------------------------------+
+     | SPIFFE WIT-SVID, agent | Approved trust domain and exact WIT  |
+     | is the client          | sub; client_id equals that SPIFFE ID |
+     +------------------------+--------------------------------------+
 
-                                 Table 2
+                                  Table 2
 
    The IdP MUST resolve this lookup to one Registered Agent.  Missing,
    ambiguous, or disabled bindings MUST cause rejection.  In ATTEST, it
@@ -461,38 +459,48 @@ Table of Contents
    type:jwt-bearer under [RFC7523], Section 2.2.  This is the credential
    a cloud or agent platform issues about the workload or agent it runs,
    such as a managed-identity token, an agent identity token, or a
-   projected service-account token.  This input represents the agent as
-   client.
+   projected service-account token, when it meets the requirements
+   below.  This input represents the agent as client and requires
+   sub=client_id.  Mapping another claim to a different OAuth client
+   identifier requires a separate authentication binding and is outside
+   this input.
 
    For each approved platform issuer the IdP MUST configure the exact
    issuer identifier; the key source, which MUST be issuer metadata
    under [OIDC] or [RFC8414] or a configured key set and MUST NOT be a
-   URL or key supplied in the JWT; the claim that carries the platform's
-   agent identity, sub unless configured otherwise; the audience values
-   it accepts, which MUST identify the IdP; permitted asymmetric
-   algorithms; and a maximum age and lifetime.
+   URL or key supplied in the JWT; audience values, which MUST identify
+   the IdP; permitted asymmetric algorithms; maximum age and lifetime;
+   and allowable clock skew.
 
    The IdP MUST validate the JWT under [RFC7523], Section 3, including
    iss against the configured issuer, aud against the configured values,
-   signature, exp, and the configured age and lifetime limits.  The
-   identity claim value MUST equal the external identity of exactly one
-   Federation Binding under Section 3; a value the IdP has not bound
-   MUST cause rejection, and a pattern or prefix match MUST NOT
-   substitute for an exact binding.  The binding designates the logical
-   client_id; the IdP MAY use the identity claim value itself as
-   client_id when it is unambiguous.  A client_id present in the request
-   MUST match the designated value.
+   signature, and expiration.  This input additionally requires iat and
+   exp as NumericDates, with iat preceding exp.  The IdP MUST reject
+   missing or incorrectly typed timestamps, an iat in the future beyond
+   configured clock skew, or a JWT outside its configured age or
+   lifetime limits.  The exact (iss, sub) MUST resolve to one Federation
+   Binding under Section 3; an unbound value or a pattern or prefix
+   match MUST NOT be accepted.  The request MUST include client_id equal
+   to sub.  The binding maps this authenticated client to the Registered
+   Agent; it does not rewrite the client identifier.
 
    A platform-issued JWT is a bearer credential with no key of its own.
-   It authenticates the client on its own and MUST be handled as a
-   client credential: the IdP MUST require aud to identify itself, MUST
-   enforce the configured maximum age, and SHOULD reject a jti presented
-   more than once within that age.  A separate DPoP proof establishes
-   the token-binding key, which the platform need not know.  Both MUST
-   be validated in the same request.  A renewed platform JWT for the
-   same bound identity MAY authenticate an exchange with an existing
-   eligible token; the DPoP key MUST still match.  Validation errors use
-   invalid_client under [RFC6749].
+   A separate DPoP proof establishes the token-binding key, which the
+   platform need not know.  Both MUST be validated in the same request.
+
+   To support platforms that cache credentials, the same JWT MAY be
+   reused with fresh DPoP proofs.  On its first successful use, the IdP
+   MUST atomically associate the SHA-256 digest of the JWS Signing Input
+   [RFC7515] with the Federation Binding and proven DPoP key.  It MUST
+   retain this association until the JWT expires, including allowable
+   clock skew, and reject reuse with another binding or key.  Reuse with
+   the same binding and key MUST NOT be rejected solely because the JWT
+   or its jti was previously seen; all current validation and status
+   checks still apply.  A client changing keys needs a newly issued
+   platform JWT with a different signing input, such as a new iat or
+   jti.  A renewed JWT MAY authenticate exchange with an existing
+   eligible access token only with that access token's key.  Validation
+   errors use invalid_client under [RFC6749].
 
    There is no registered authentication method name for third-party JWT
    assertions; the IdP expresses support through its platform issuer
@@ -850,13 +858,13 @@ Table of Contents
    For ID-JAG, the JWT MUST conform to [ID-JAG], with sub resolved under
    its user subject-mapping rules.  Actor Profile construction MUST
    introduce exactly one actor, with act.iss equal to the IdP issuer,
-   act.sub equal to the agent identifier the IdP would place in a WAG
-   sub for that RAS, and act.sub_profile=ai_agent.  The ID-JAG MUST
-   include the downstream client_id and other required ID-JAG claims,
-   including applicable tenant context.  Translating a client identifier
-   MUST NOT rewrite the agent actor's namespace.  ID-JAG's issuer-
-   identifier audience rule governs this output rather than Actor
-   Profile's generic token-endpoint audience rule.
+   act.sub equal to the IdP-issued actor token's sub, and
+   act.sub_profile=ai_agent.  The ID-JAG MUST include the downstream
+   client_id and other required ID-JAG claims, including applicable
+   tenant context.  Translating a client identifier MUST NOT rewrite the
+   agent actor's namespace.  ID-JAG's issuer-identifier audience rule
+   governs this output rather than Actor Profile's generic token-
+   endpoint audience rule.
 
    The IdP MAY include client_instance for downstream audit or risk.  It
    MUST be omitted unless current instance evidence was validated under
@@ -928,14 +936,12 @@ Table of Contents
       client registration, and MUST interpret sub and jti only within
       that iss, as WAG requires;
 
-   *  has sub equal to the Registered Agent identifier bound to the IdP-
-      issued access token, or the recipient-scoped identifier the IdP
-      maintains for that agent at the target RAS under Section 8.  This
-      value is WAG's Agent Identifier: opaque, unique within iss,
-      immutable, and never reassigned.  It MAY take the URI form WAG
-      recommends, with an authority component under the IdP's tenant
-      issuer; the RAS MUST treat it as an exact-match opaque string in
-      either form;
+   *  has sub equal to the Registered Agent identifier in the IdP-issued
+      access token.  This value is WAG's Agent Identifier: opaque,
+      unique within iss, immutable, and never reassigned.  It MAY take
+      the URI form WAG recommends, with an authority component under the
+      IdP's tenant issuer; the RAS MUST treat it as an exact-match
+      opaque string in either form;
 
    *  has sub_profile=ai_agent under [ENTITY-PROFILES];
 
@@ -1137,10 +1143,14 @@ Table of Contents
    issuance for audit.
 
    A platform-issued JWT authenticates the client without a key of its
-   own, so its theft lets the holder acquire an IdP access token bound
-   to a key of the holder's choosing until the JWT expires.  Audience
-   restriction to the IdP, the configured maximum age, jti replay
-   rejection, and transport protection are the mitigations, and platform
+   own.  Theft before its first use can let an attacker establish the
+   initial key association; subsequent key matching does not prevent
+   that race.  Audience restriction to the IdP, configured age limits,
+   and transport protection limit this exposure.  The reuse association
+   in Section 3.1.1 prevents an already-used JWT from enrolling another
+   key; it excludes the signature so another valid signature over the
+   same content does not bypass the check.  Platforms MUST NOT share one
+   cached JWT among clients using independent DPoP keys.  Platform
    tokens with long lifetimes SHOULD be constrained by a short
    configured maximum age.  A compromised or mistakenly approved
    platform issuer can impersonate every agent bound to it, so the same
@@ -1158,13 +1168,14 @@ Table of Contents
    the WAG sub becomes a cross-service identifier for that user even
    where ID-JAG subject mapping is pairwise.  The IdP SHOULD NOT let
    per-user agent identifiers act as a cross-context user pseudonym
-   without a correlation requirement at the receiving RASes.  It MAY
-   maintain a recipient-scoped Registered Agent identifier per RAS and
-   substitute it at grant construction under Section 5.4, provided the
-   identifier is stable for that RAS and identical across the WAG sub
-   and ID-JAG act.sub it receives, so that Section 6.1 still resolves
-   one record.  The IdP-issued access token always carries the canonical
-   identifier.
+   without a correlation requirement at the receiving RASes.  This
+   profile preserves the canonical agent identifier from the IdP access
+   token in both WAG sub and ID-JAG act.sub; the IdP MUST NOT substitute
+   a recipient-specific actor identifier during grant construction.
+   Deployments requiring pairwise agent identifiers need an additional
+   profile coordinated with Actor Profile before using this flow.
+   Recipient-scoped instance context remains available under
+   Section 5.4.
 
 9.  IANA Considerations
 
@@ -1325,6 +1336,10 @@ Table of Contents
               Specifications and Registration Procedures", BCP 13,
               RFC 6838, DOI 10.17487/RFC6838, January 2013,
               <https://www.rfc-editor.org/rfc/rfc6838>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/rfc/rfc7515>.
 
    [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
               DOI 10.17487/RFC7518, May 2015,
@@ -1702,9 +1717,8 @@ Platform-Issued JWT Variant
    agent platform and the agent authenticates with the JWT that platform
    issues about it, under Section 3.1.1.  The import bound sub=agent-
    runtime-8f2c at issuer https://agents.cloud.example/tenant/acme to
-   Registered Agent agent-42 and designated
-   client_id=https://idp.example/clients/agent-42.  Decoded platform
-   JWT:
+   Registered Agent agent-42.  The OAuth client_id is agent-runtime-
+   8f2c, matching the platform JWT's sub.  Decoded platform JWT:
 
    {
      "iss": "https://agents.cloud.example/tenant/acme",
@@ -1724,7 +1738,7 @@ Platform-Issued JWT Variant
    DPoP: eyJ...proof-K...
 
    grant_type=client_credentials
-   &client_id=https%3A%2F%2Fidp.example%2Fclients%2Fagent-42
+   &client_id=agent-runtime-8f2c
    &client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
    &client_assertion=eyJ...platform-jwt...
    &resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
@@ -1733,7 +1747,8 @@ Platform-Issued JWT Variant
    matches sub to the imported binding, and issues the access token with
    sub=agent-42 and cnf.jkt=JKT(K).  Steps 4 and 5 of the X.509-SVID
    flow then apply, with a fresh platform JWT or the same unexpired one
-   authenticating the exchange.  The platform never sees K; the JWT
+   authenticating the exchange with K, as required by the reuse
+   association in Section 3.1.1.  The platform never sees K; the JWT
    authenticates the agent and the proof binds the token.  For user-
    delegated access the same access token is actor evidence under
    Section 5.2.
@@ -2029,122 +2044,145 @@ Interoperability Test Cases
    body.  Independent platform, client, IdP, and RAS implementations can
    exercise:
 
-    +======================================+==========================+
-    | Case                                 | Expected result          |
-    +======================================+==========================+
-    | ATTEST agent as client; approved     | IdP access token without |
-    | binding and key proof, instance      | stable instance context  |
-    | extension disabled                   |                          |
-    +--------------------------------------+--------------------------+
-    | ATTEST shared client; approved (iss, | IdP access token for the |
-    | sub, agent_id) binding and key proof | Registered Agent         |
-    +--------------------------------------+--------------------------+
-    | Shared client omits agent_id         | Reject; no fallback to   |
-    |                                      | client-only binding      |
-    +--------------------------------------+--------------------------+
-    | Agent with its own client identity   | Reject; no switch to the |
-    | supplies agent_id                    | shared-client model      |
-    +--------------------------------------+--------------------------+
-    | Missing, ambiguous, or disabled      | Reject issuance          |
-    | binding                              |                          |
-    +--------------------------------------+--------------------------+
-    | Platform-issued JWT from an approved | IdP access token for the |
-    | issuer with a bound identity claim   | bound agent; no stable   |
-    | and DPoP proof                       | instance context         |
-    +--------------------------------------+--------------------------+
-    | Platform-issued JWT with an          | Reject client            |
-    | unapproved issuer, wrong audience,   | authentication with      |
-    | or expired                           | invalid_client           |
-    +--------------------------------------+--------------------------+
-    | Platform-issued JWT whose identity   | Reject issuance; no      |
-    | claim is not bound to a Registered   | pattern or prefix match  |
-    | Agent                                |                          |
-    +--------------------------------------+--------------------------+
-    | X.509-SVID client with approved      | IdP access token without |
-    | exact ID and DPoP proof              | stable instance context  |
-    +--------------------------------------+--------------------------+
-    | WIT-SVID with approved exact ID,     | IdP access token for the |
-    | attestation PoP, and matching DPoP   | configured agent; no     |
-    | key; no iss                          | stable instance context  |
-    +--------------------------------------+--------------------------+
-    | WIT-SVID with missing attestation    | Reject authentication or |
-    | PoP, mismatched key or proof         | proof                    |
-    | algorithm, or expired credential     |                          |
-    +--------------------------------------+--------------------------+
-    | WIT-SVID with unapproved trust       | Reject; iss cannot       |
-    | domain or mismatched client_id       | select another trust     |
-    |                                      | anchor                   |
-    +--------------------------------------+--------------------------+
-    | Renewed X.509-SVID, same binding and | Existing eligible token  |
-    | DPoP key                             | remains usable           |
-    +--------------------------------------+--------------------------+
-    | Renewed WIT-SVID, same binding and   | Existing eligible token  |
-    | unchanged cnf.jwk                    | remains usable           |
-    +--------------------------------------+--------------------------+
-    | Renewed WIT-SVID with a new cnf.jwk  | Reject exchange with the |
-    |                                      | old token; new IdP       |
-    |                                      | access token required    |
-    +--------------------------------------+--------------------------+
-    | Unexpired token from this document's | Reused without           |
-    | acquisition; same client, agent,     | reacquisition            |
-    | input method, and key                |                          |
-    +--------------------------------------+--------------------------+
-    | Access token from any other          | Not eligible;            |
-    | issuance, even with a matching       | acquisition required     |
-    | audience                             |                          |
-    +--------------------------------------+--------------------------+
-    | Same agent in a second execution     | Same agent subject;      |
-    |                                      | distinct context if      |
-    |                                      | execution tracking is    |
-    |                                      | configured               |
-    +--------------------------------------+--------------------------+
-    | Unrelated client, agent, instance,   | Reject inconsistent      |
-    | or key at exchange                   | evidence                 |
-    +--------------------------------------+--------------------------+
-    | Agent acting for itself              | WAG subject is the       |
-    |                                      | agent; no act            |
-    +--------------------------------------+--------------------------+
-    | Agent acting for a user              | User subject; Registered |
-    |                                      | Agent act                |
-    +--------------------------------------+--------------------------+
-    | Valid user and agent credentials     | actor_unauthorized       |
-    | without delegation                   |                          |
-    +--------------------------------------+--------------------------+
-    | Unsupported requested output         | invalid_request; no      |
-    |                                      | fallback                 |
-    +--------------------------------------+--------------------------+
-    | Optional downstream instance context | Same principal and       |
-    |                                      | binding semantics        |
-    +--------------------------------------+--------------------------+
-    | Configured instance extension,       | Reject; no fallback to   |
-    | missing or mismatched evidence       | key-only processing      |
-    +--------------------------------------+--------------------------+
-    | Grant redemption with missing or     | Reject under the bound-  |
-    | mismatched proof                     | grant rules              |
-    +--------------------------------------+--------------------------+
-    | Redemption without resource, or with | invalid_target           |
-    | resource not matching the grant      |                          |
-    +--------------------------------------+--------------------------+
-    | Replayed grant with a valid DPoP     | invalid_grant; grants    |
-    | proof                                | are single use           |
-    +--------------------------------------+--------------------------+
-    | WAG with a previously unseen sub     | Access token issued;     |
-    | under an allowlisted iss             | record-dependent         |
-    |                                      | authorization withheld   |
-    |                                      | until correlated         |
-    +--------------------------------------+--------------------------+
-    | ID-JAG redemption with DPoP but no   | Reject; DPoP is not the  |
-    | required client authentication       | registered client        |
-    |                                      | credential               |
-    +--------------------------------------+--------------------------+
-    | WAG subject and ID-JAG actor name    | Resolve the same         |
-    | the same IdP agent                   | provisioned record       |
-    +--------------------------------------+--------------------------+
-    | Same bare agent identifier from      | No match to the original |
-    | another issuer                       | issuer's record          |
-    +--------------------------------------+--------------------------+
+    +======================================+=========================+
+    | Case                                 | Expected result         |
+    +======================================+=========================+
+    | ATTEST agent as client; approved     | IdP access token        |
+    | binding and key proof, instance      | without stable instance |
+    | extension disabled                   | context                 |
+    +--------------------------------------+-------------------------+
+    | ATTEST shared client; approved (iss, | IdP access token for    |
+    | sub, agent_id) binding and key proof | the Registered Agent    |
+    +--------------------------------------+-------------------------+
+    | Shared client omits agent_id         | Reject; no fallback to  |
+    |                                      | client-only binding     |
+    +--------------------------------------+-------------------------+
+    | Agent with its own client identity   | Reject; no switch to    |
+    | supplies agent_id                    | the shared-client model |
+    +--------------------------------------+-------------------------+
+    | Missing, ambiguous, or disabled      | Reject issuance         |
+    | binding                              |                         |
+    +--------------------------------------+-------------------------+
+    | Platform-issued JWT from an approved | IdP access token for    |
+    | issuer with a bound sub=client_id    | the bound agent; no     |
+    | and DPoP proof                       | stable instance context |
+    +--------------------------------------+-------------------------+
+    | Platform-issued JWT with an          | Reject client           |
+    | unapproved issuer, wrong audience,   | authentication with     |
+    | or expired                           | invalid_client          |
+    +--------------------------------------+-------------------------+
+    | Platform-issued JWT whose subject is | Reject with             |
+    | not bound to a Registered Agent, or  | invalid_client; no      |
+    | differs from client_id               | claim substitution or   |
+    |                                      | prefix match            |
+    +--------------------------------------+-------------------------+
+    | Platform JWT with missing or         | invalid_client          |
+    | mistyped iat, invalid time ordering, |                         |
+    | excessive age or lifetime, or future |                         |
+    | iat beyond clock skew                |                         |
+    +--------------------------------------+-------------------------+
+    | Cached platform JWT reused with the  | Accept with fresh DPoP  |
+    | same binding and key, all other      | proof                   |
+    | checks valid                         |                         |
+    +--------------------------------------+-------------------------+
+    | Previously used platform JWT         | invalid_client; no new  |
+    | presented with another key,          | key association         |
+    | including a different signature over |                         |
+    | the same signing input               |                         |
+    +--------------------------------------+-------------------------+
+    | X.509-SVID client with approved      | IdP access token        |
+    | exact ID and DPoP proof              | without stable instance |
+    |                                      | context                 |
+    +--------------------------------------+-------------------------+
+    | WIT-SVID with approved exact ID,     | IdP access token for    |
+    | attestation PoP, and matching DPoP   | the configured agent;   |
+    | key; no iss                          | no stable instance      |
+    |                                      | context                 |
+    +--------------------------------------+-------------------------+
+    | WIT-SVID with missing attestation    | Reject authentication   |
+    | PoP, mismatched key or proof         | or proof                |
+    | algorithm, or expired credential     |                         |
+    +--------------------------------------+-------------------------+
+    | WIT-SVID with unapproved trust       | Reject; iss cannot      |
+    | domain or mismatched client_id       | select another trust    |
+    |                                      | anchor                  |
+    +--------------------------------------+-------------------------+
+    | Renewed X.509-SVID, same binding and | Existing eligible token |
+    | DPoP key                             | remains usable          |
+    +--------------------------------------+-------------------------+
+    | Renewed WIT-SVID, same binding and   | Existing eligible token |
+    | unchanged cnf.jwk                    | remains usable          |
+    +--------------------------------------+-------------------------+
+    | Renewed WIT-SVID with a new cnf.jwk  | Reject exchange with    |
+    |                                      | the old token; new IdP  |
+    |                                      | access token required   |
+    +--------------------------------------+-------------------------+
+    | Unexpired token from this document's | Reused without          |
+    | acquisition; same client, agent,     | reacquisition           |
+    | input method, and key                |                         |
+    +--------------------------------------+-------------------------+
+    | Access token from any other          | Not eligible;           |
+    | issuance, even with a matching       | acquisition required    |
+    | audience                             |                         |
+    +--------------------------------------+-------------------------+
+    | Same agent in a second execution     | Same agent subject;     |
+    |                                      | distinct context if     |
+    |                                      | execution tracking is   |
+    |                                      | configured              |
+    +--------------------------------------+-------------------------+
+    | Unrelated client, agent, instance,   | Reject inconsistent     |
+    | or key at exchange                   | evidence                |
+    +--------------------------------------+-------------------------+
+    | Agent acting for itself              | WAG subject is the      |
+    |                                      | agent; no act           |
+    +--------------------------------------+-------------------------+
+    | Agent acting for a user              | User subject;           |
+    |                                      | Registered Agent act    |
+    +--------------------------------------+-------------------------+
+    | Canonical agent identifier in the    | Same value in WAG sub   |
+    | IdP access token                     | and ID-JAG act.sub; no  |
+    |                                      | recipient-specific      |
+    |                                      | substitution            |
+    +--------------------------------------+-------------------------+
+    | Valid user and agent credentials     | actor_unauthorized      |
+    | without delegation                   |                         |
+    +--------------------------------------+-------------------------+
+    | Unsupported requested output         | invalid_request; no     |
+    |                                      | fallback                |
+    +--------------------------------------+-------------------------+
+    | Optional downstream instance context | Same principal and      |
+    |                                      | binding semantics       |
+    +--------------------------------------+-------------------------+
+    | Configured instance extension,       | Reject; no fallback to  |
+    | missing or mismatched evidence       | key-only processing     |
+    +--------------------------------------+-------------------------+
+    | Grant redemption with missing or     | Reject under the bound- |
+    | mismatched proof                     | grant rules             |
+    +--------------------------------------+-------------------------+
+    | Redemption without resource, or with | invalid_target          |
+    | resource not matching the grant      |                         |
+    +--------------------------------------+-------------------------+
+    | Replayed grant with a valid DPoP     | invalid_grant; grants   |
+    | proof                                | are single use          |
+    +--------------------------------------+-------------------------+
+    | WAG with a previously unseen sub     | Access token issued;    |
+    | under an allowlisted iss             | record-dependent        |
+    |                                      | authorization withheld  |
+    |                                      | until correlated        |
+    +--------------------------------------+-------------------------+
+    | ID-JAG redemption with DPoP but no   | Reject; DPoP is not the |
+    | required client authentication       | registered client       |
+    |                                      | credential              |
+    +--------------------------------------+-------------------------+
+    | WAG subject and ID-JAG actor name    | Resolve the same        |
+    | the same IdP agent                   | provisioned record      |
+    +--------------------------------------+-------------------------+
+    | Same bare agent identifier from      | No match to the         |
+    | another issuer                       | original issuer's       |
+    |                                      | record                  |
+    +--------------------------------------+-------------------------+
 
-                                  Table 8
+                                 Table 8
 
    Only cases for the implemented input and output are applicable.
    Existing client-based deployments are compatibility context, not an
@@ -2235,6 +2273,10 @@ WAG Gaps Filled by This Document
    confirmation with identity chaining.
 
 Other Coordination Items
+
+   Pairwise agent identifiers need an explicit Actor Profile extension.
+   This document currently preserves the actor token's sub; it does not
+   override Actor Profile's JWT access-token actor construction.
 
    Actor Profile's generic JWT-grant audience guidance uses a token
    endpoint, while ID-JAG uses the RAS issuer.  This document selects
@@ -2335,6 +2377,10 @@ Document History
       imported from cloud and agent platforms, with binding by registry
       import, and reframed ATTEST and SPIFFE as two credential types
       among several.
+
+   *  Required platform JWT sub=client_id, explicit timestamp checks,
+      and reuse with the first proven key; preserved canonical actor
+      identifiers pending a coordinated pairwise-identifier profile.
 
 Author's Address
 
