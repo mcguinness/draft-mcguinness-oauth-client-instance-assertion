@@ -731,6 +731,9 @@ configured to trust the attester for the harness's Logical Client `C1`.
 This example uses installation granularity and a user-authorized
 authorization code grant. `I1`, `K1`, and `M1` denote the installation
 identifier, Client Instance Key, and recipient-scoped identifier.
+Only step 3 uses the browser. Attestation issuance and the token
+request are direct exchanges by the harness; the browser receives
+neither the Client Attestation nor its proof.
 
 ~~~ ascii-art
 Agent harness       Managed attester    OAuth AS          Resource
@@ -738,9 +741,9 @@ Agent harness       Managed attester    OAuth AS          Resource
      |-(1) App evidence--->                 |                 |
      <-(2) Attestation----|                 |                 |
      |                    |                 |                 |
-     |-(3) Authorization via browser------->                 |
+     |-(3) User authorization (browser)----->                 |
      <-Authorization code via redirect------|                 |
-     |-(4) Code + attestation + proofs------>                 |
+     |-(4) Direct token request------------>                 |
      <-(5) Token carrying instance context--|                 |
      |                    |                 |                 |
      |-(6) Resource request + access token + DPoP proof------->
@@ -764,8 +767,9 @@ Agent harness       Managed attester    OAuth AS          Resource
    {{RFC7636}}. The AS authenticates the user and obtains authorization
    for the requested access, then returns a code through the registered
    redirect URI. The diagram abbreviates these browser interactions.
-4. The harness redeems the code with `client_id=C1`, the redirect URI,
-   and PKCE verifier. It also presents the Client Attestation and
+4. The harness directly calls the AS token endpoint to redeem the code
+   with `client_id=C1`, the redirect URI, and PKCE verifier. It also
+   presents the Client Attestation and
    combined DPoP proof using `K1` under {{ATTEST}}. Client attestation
    does not replace PKCE or the user's authorization.
 5. The AS validates the code, PKCE verifier, attestation, proof, and
