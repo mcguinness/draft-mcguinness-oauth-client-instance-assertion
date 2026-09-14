@@ -1286,10 +1286,13 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-aauth-agent-provider-exampl" class="internal xref">AAuth Agent Provider Example</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-spiffe-workload-example" class="internal xref">SPIFFE Workload Example</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -2314,21 +2317,95 @@ the token's subject or creates an <code>act</code> claim; delegated access would
 require a separate authorization grant and its delegation semantics.<a href="#appendix-B-5" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="history">
+<div id="spiffe-example">
 <section id="appendix-C">
+      <h2 id="name-spiffe-workload-example">
+<a href="#name-spiffe-workload-example" class="section-name selfRef">SPIFFE Workload Example</a>
+      </h2>
+<p id="appendix-C-1">This informative example adds execution-level identification to a
+SPIFFE deployment where replicas share the SPIFFE ID
+<code>spiffe://example.org/agent-worker</code>. Direct OAuth authentication using
+SVIDs follows <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and remains sufficient when that workload
+identity meets the deployment's needs. Here, a workload attester issues
+a separate Client Attestation to distinguish executions; this is a
+deployment pattern, not an additional requirement on SPIFFE clients.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2">The workload obtains an X.509-SVID through the SPIFFE Workload API.
+The attester trusts its SPIFFE trust domain, maps the authorized SPIFFE
+ID to Logical Client <code>C1</code>, and can verify execution evidence from the
+managed runtime. The OAuth AS separately trusts the attester for <code>C1</code>
+and permits the client credentials grant for the target resource.
+<code>I1</code>, <code>K1</code>, and <code>M1</code> are symbolic instance, key, and mapped-identifier
+labels as in <a href="#aauth-example" class="auto internal xref">Appendix "AAuth Agent Provider Example"</a>.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="appendix-C-3">
+<pre>
+Workload            Workload attester   OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) mTLS enrollment&gt;                 |                 |
+     &lt;-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Grant + attestation + proof------&gt;                 |
+     &lt;-(4) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(5) Resource request + access token + DPoP proof-------&gt;
+     &lt;-Resource response--------------------------------------|
+</pre><a href="#appendix-C-3" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-C-4">
+<li id="appendix-C-4.1">
+          <p id="appendix-C-4.1.1">The workload authenticates to the attester using its X.509-SVID
+over mutual TLS and proves possession of a separate Client Instance
+Key <code>K1</code>. The attester validates the SVID and correlates the request
+and <code>K1</code> with authenticated runtime evidence identifying this
+execution, then assigns <code>I1</code>. The shared SPIFFE ID or an unverified
+container identifier alone cannot distinguish replicas. The
+enrollment and runtime-evidence mechanisms are deployment-specific.<a href="#appendix-C-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.2">
+          <p id="appendix-C-4.2.1">The attester issues a Client Attestation with
+<code>typ=oauth-client-attestation+jwt</code>, its own <code>iss</code>, <code>sub=C1</code>,
+<code>client_instance_id=I1</code>, <code>cnf.jwk</code> containing the public part of
+<code>K1</code>, and <code>exp</code>. The SPIFFE trust domain and OAuth attester issuer
+remain separate trust relationships.<a href="#appendix-C-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.3">
+          <p id="appendix-C-4.3.1">The workload sends <code>grant_type=client_credentials</code> and <code>client_id=C1</code>
+with the attestation and combined DPoP proof using <code>K1</code> under
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. This request uses attestation-based authentication;
+it does not also present the SVID as an OAuth client credential.<a href="#appendix-C-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.4">
+          <p id="appendix-C-4.4.1">The AS validates the attestation, proof, and instance policy and
+authorizes the grant. It issues a DPoP-bound access token carrying
+<code>client_instance</code> with its own <code>iss</code> and recipient-scoped <code>id=M1</code>.<a href="#appendix-C-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.5">
+          <p id="appendix-C-4.5.1">The resource validates the token, proof, and context under
+<a href="#instance-context" class="auto internal xref">Section 7</a>. It can correlate this execution for audit
+without validating SVIDs or trusting the workload attester directly.<a href="#appendix-C-4.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="appendix-C-5">SVID renewal alone neither creates a new instance nor proves continuity
+for attestation renewal. Verified continuity of the same execution
+preserves <code>I1</code>; a restart or another replica receives a new identifier
+even when it uses the same SPIFFE ID. Instance Context does not turn
+that execution into an authorization subject or delegated actor.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="history">
+<section id="appendix-D">
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
-<p id="appendix-C-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-D-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-D-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-C-2.1">
-          <p id="appendix-C-2.1.1">Initial draft.<a href="#appendix-C-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-D-2.1">
+          <p id="appendix-D-2.1.1">Initial draft.<a href="#appendix-D-2.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-D">
+<section id="appendix-E">
       <h2 id="name-authors-address">
 <a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
       </h2>
