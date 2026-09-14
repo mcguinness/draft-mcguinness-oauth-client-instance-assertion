@@ -27,8 +27,10 @@ author:
 normative:
   ATTEST: I-D.ietf-oauth-attestation-based-client-auth
   RFC6749:
+  RFC6750:
   RFC7519:
   RFC7662:
+  RFC8693:
   RFC8725:
 informative:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
@@ -100,9 +102,10 @@ does not authorize transferring existing grants, sessions, or tokens
 to a replacement key.
 
 A Receiver can rely on a separate attester to establish instance
-continuity. Credentials other than Client Attestations, including
-platform-issued JWTs, require a separate carrier profile; none is
-defined here.
+continuity. Direct presentation to resource servers follows
+{{ATTEST, Section 1.1}}. Credentials other than Client Attestations,
+including platform-issued JWTs, require a separate carrier profile;
+none is defined here.
 
 Together with Agent Federation, this document replaces the relevant
 parts of draft-mcguinness-oauth-client-instance-assertion and
@@ -173,8 +176,8 @@ adds no discovery or client metadata parameters.
 The Receiver's configuration is the sole source of attester authority
 for a Logical Client. The Receiver MUST associate each approved
 Attester Issuer with the keys used for ATTEST validation and compare
-issuer and client identifiers as exact strings, without URI
-normalization.
+issuer and client identifiers as exact, case-sensitive strings, without
+URI normalization.
 
 The Receiver MUST NOT establish attester authority solely from:
 
@@ -208,12 +211,18 @@ The Client Attester MUST:
 
 * generate unpredictable identifiers with at least 128 bits of
   randomness;
-* exclude hostnames, user identifiers, and other identifying data; and
+* exclude runtime hostnames, user identifiers, and other embedded
+  instance or user attributes; and
 * preserve uniqueness and continuity as specified in {{lifetime}}.
 
-Receivers MUST treat identifiers as opaque, accept conforming values
-up to 256 characters, and reject longer values. They MUST NOT derive
-permissions by parsing an identifier. Errors follow {{errors}}.
+A URI-form identifier can name the attester's namespace, including its
+authority component; the instance-specific portion remains random and
+opaque. The namespace does not establish trust in the identifier.
+
+Receivers MUST treat identifiers as opaque, compare them as exact,
+case-sensitive strings without URI normalization, accept conforming
+values up to 256 characters, and reject longer values. They MUST NOT
+derive permissions by parsing an identifier. Errors follow {{errors}}.
 
 ## Example
 
@@ -249,11 +258,17 @@ For a request configured to use this profile, the Receiver MUST:
    authority for the Logical Client under {{configuration}}.
 3. Associate `(iss, client_instance_id)` with the Logical Client and
    validated Client Instance Key.
-4. Apply configured instance policy, rejecting a disallowed instance.
+4. Apply configured instance policy, rejecting a disallowed instance
+   under {{errors}}.
 
 An identifier MUST NOT substitute for proof of key possession. Token
 binding follows ATTEST and the selected OAuth mechanism. This profile
 does not require DPoP combined mode or change token-binding rules.
+
+When the selected method permits a separate token-binding key, the token
+can carry Instance Context associated with the validated Client Instance
+Key even though its binding uses another key. The key-continuity rules
+in {{lifetime}} concern the Client Instance Key, not that separate key.
 
 ## Authorization
 
@@ -264,9 +279,18 @@ the instance and the token's subject, actor, or other presenter.
 
 ## Errors {#errors}
 
-Invalid instance claims or missing required claims result in
-`invalid_client_attestation` as defined by ATTEST. Authentication
-failures and freshness challenges retain ATTEST error processing.
+The Receiver MUST return `invalid_client_attestation` for invalid
+instance claims or missing required claims, including an absent
+`client_instance_id` when this profile is configured.
+
+When instance policy rejects an unknown, suspended, retired, or otherwise
+disallowed instance, the Receiver MUST return the same error and MUST
+NOT disclose in the response whether the instance is known or its
+lifecycle status. This does not require a registry of known instances.
+
+Other authentication failures and freshness challenges retain ATTEST
+error processing. An error response does not select this profile or
+replace the configuration required by {{configuration}}.
 A failed profile check MUST NOT trigger fallback to processing without
 the required instance evidence.
 
@@ -348,6 +372,9 @@ context. Its value is a JSON object with these members:
 : REQUIRED. Nonempty StringOrURI identifying the instance within that
   authority's namespace.
 
+Recipients MUST compare both members as exact, case-sensitive strings
+without URI normalization.
+
 Recipients MUST ignore unrecognized members. Profiles defining
 additional members MUST specify their processing without changing
 the meaning of `iss` or `id`.
@@ -365,13 +392,16 @@ the meaning of `iss` or `id`.
 
 The object MUST identify the instance whose participation and key
 possession were validated for issuance. Issuers MUST NOT copy
-unvalidated client-supplied context. Two representations are defined:
+unvalidated client-supplied context. Three representations are defined:
 
 * **Mapped (RECOMMENDED):** `iss` identifies the Receiver issuing the
   token; `id` is assigned through an authenticated mapping it maintains.
 * **Pass-through:** `iss` and `id` retain the attestation's `iss` and
   `client_instance_id`. This form MUST be used only with recipients
   configured to trust that attester's namespace.
+* **Preserved:** `iss` and `id` retain the values from validated upstream
+  token context. This form MUST be used only with recipients configured
+  to trust that Instance Authority under {{context-exchange}}.
 
 A Receiver issuing mapped context MUST:
 
@@ -393,11 +423,11 @@ Before using Instance Context, a recipient MUST:
 3. Verify that its Instance Authority is either:
 
    * the token issuer; or
-   * a pass-through authority explicitly configured for that token
+   * an external Instance Authority explicitly configured for that token
      issuer and recipient.
 
-4. Reject invalid context. If context is required, also reject the
-   request.
+4. Reject invalid context. If context is required and is missing or
+   invalid, also reject the request under {{context-errors}}.
 
 Mapped context requires no direct trust in the original attester.
 An Instance Authority identifier does not authorize fetching keys from
@@ -408,7 +438,20 @@ its granularity. A recipient whose processing depends on granularity
 MUST establish it through trusted configuration or a consuming profile,
 not by parsing the identifier.
 
-## Authorization and Token Exchange
+## Errors {#context-errors}
+
+When required context is missing or invalid, a recipient MUST use:
+
+* `invalid_token` at a resource server, following {{RFC6750, Section 3.1}}
+  and the applicable access-token presentation method; or
+* `invalid_request` when rejecting a subject or actor token in an
+  RFC 8693 exchange, as required by {{RFC8693, Section 2.2.2}}.
+
+Other consuming profiles MUST specify their error mapping. These
+errors concern token context; failures validating a directly presented
+Client Attestation follow {{errors}}.
+
+## Authorization and Token Exchange {#context-exchange}
 
 Instance Context records validated participation at issuance; it does
 not independently authenticate the current token presenter. Proof of
