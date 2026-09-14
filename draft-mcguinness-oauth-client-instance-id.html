@@ -1283,10 +1283,19 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-instance-lifecycle-example" class="internal xref">Instance Lifecycle Example</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-aauth-agent-provider-exampl" class="internal xref">AAuth Agent Provider Example</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-spiffe-workload-example" class="internal xref">SPIFFE Workload Example</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-managed-device-example" class="internal xref">Managed Device Example</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-F" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -2142,6 +2151,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="AAUTH">[AAUTH]</dt>
+        <dd>
+<span class="refAuthor">Hardt, D.</span>, <span class="refTitle">"AAuth Protocol"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hardt-oauth-aauth-protocol-10</span>, <time datetime="2026-08-06" class="refDate">6 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10">https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC2104">[RFC2104]</dt>
         <dd>
 <span class="refAuthor">Krawczyk, H.</span>, <span class="refAuthor">Bellare, M.</span>, and <span class="refAuthor">R. Canetti</span>, <span class="refTitle">"HMAC: Keyed-Hashing for Message Authentication"</span>, <span class="seriesInfo">RFC 2104</span>, <span class="seriesInfo">DOI 10.17487/RFC2104</span>, <time datetime="1997-02" class="refDate">February 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2104">https://www.rfc-editor.org/rfc/rfc2104</a>&gt;</span>. </dd>
@@ -2153,6 +2166,14 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <dt id="RFC7591">[RFC7591]</dt>
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Machulak, M.</span>, and <span class="refAuthor">P. Hunt</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Protocol"</span>, <span class="seriesInfo">RFC 7591</span>, <span class="seriesInfo">DOI 10.17487/RFC7591</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7591">https://www.rfc-editor.org/rfc/rfc7591</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7636">[RFC7636]</dt>
+        <dd>
+<span class="refAuthor">Sakimura, N., Ed.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Agarwal</span>, <span class="refTitle">"Proof Key for Code Exchange by OAuth Public Clients"</span>, <span class="seriesInfo">RFC 7636</span>, <span class="seriesInfo">DOI 10.17487/RFC7636</span>, <time datetime="2015-09" class="refDate">September 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7636">https://www.rfc-editor.org/rfc/rfc7636</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8252">[RFC8252]</dt>
+        <dd>
+<span class="refAuthor">Denniss, W.</span> and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 for Native Apps"</span>, <span class="seriesInfo">BCP 212</span>, <span class="seriesInfo">RFC 8252</span>, <span class="seriesInfo">DOI 10.17487/RFC8252</span>, <time datetime="2017-10" class="refDate">October 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8252">https://www.rfc-editor.org/rfc/rfc8252</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="ACTOR-PROFILE">[ACTOR-PROFILE]</dt>
         <dd>
@@ -2238,21 +2259,251 @@ verified key replacement. A refresh token bound to <code>K1</code> cannot be use
 with <code>K2</code> merely because the instance identifier is unchanged.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="history">
+<div id="aauth-example">
 <section id="appendix-B">
+      <h2 id="name-aauth-agent-provider-exampl">
+<a href="#name-aauth-agent-provider-exampl" class="section-name selfRef">AAuth Agent Provider Example</a>
+      </h2>
+<p id="appendix-B-1">This informative example shows an Agent Provider (AP) from <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span>
+also acting as an OAuth Client Attester for a managed agent harness.
+The AP supports both credential formats; its native AAuth agent token
+(<code>typ=aa-agent+jwt</code>) is not a Client Attestation. This example defines
+no conversion or enrollment protocol.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-2">The OAuth authorization server (AS) is configured to trust the AP as
+an attester for Logical Client <code>C1</code> and to permit that client to use the
+client credentials grant for the target resource. AAuth metadata alone
+does not establish this trust. <code>I1</code>, <code>K1</code>, and <code>M1</code> below are symbolic
+labels for an instance identifier, its key, and a recipient-scoped
+identifier, respectively.<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="appendix-B-3">
+<pre>
+Agent harness       AP / Attester       OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) Enrollment-----&gt;                 |                 |
+     &lt;-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Grant + attestation + proof------&gt;                 |
+     &lt;-(4) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(5) Resource request + access token + DPoP proof-------&gt;
+     &lt;-Resource response--------------------------------------|
+</pre><a href="#appendix-B-3" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-B-4">
+<li id="appendix-B-4.1">
+          <p id="appendix-B-4.1.1">The harness proves possession of <code>K1</code> and supplies enrollment
+evidence. The AP validates the managed installation and assigns
+<code>I1</code>. An AAuth agent identifier or a new signing key alone does not
+establish installation continuity.<a href="#appendix-B-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-4.2">
+          <p id="appendix-B-4.2.1">The AP issues a separate Client Attestation with
+<code>typ=oauth-client-attestation+jwt</code>, <code>iss</code> identifying the AP,
+<code>sub=C1</code>, <code>client_instance_id=I1</code>, <code>cnf.jwk</code> containing the public
+part of <code>K1</code>, and <code>exp</code> bounding its lifetime.<a href="#appendix-B-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-4.3">
+          <p id="appendix-B-4.3.1">The harness sends <code>grant_type=client_credentials</code> and <code>client_id=C1</code>
+to the AS token endpoint, presenting the attestation and proof as
+specified by <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. This example uses its combined DPoP mode
+with <code>K1</code>; native AAuth HTTP Message Signatures are not substituted
+for the OAuth proof.<a href="#appendix-B-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-4.4">
+          <p id="appendix-B-4.4.1">The AS validates the attestation, proof, and instance policy, and
+independently authorizes the grant. It issues a DPoP-bound access
+token and includes <code>client_instance</code> with <code>iss</code> identifying the AS
+and <code>id=M1</code>, mapped from the AP's <code>(iss, I1)</code> for this resource.<a href="#appendix-B-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-B-4.5">
+          <p id="appendix-B-4.5.1">The resource validates the access token and DPoP proof, applies its
+authorization policy, and processes the context under
+<a href="#instance-context" class="auto internal xref">Section 7</a>. It can record <code>M1</code> for audit without receiving
+the original attestation or trusting the AP directly.<a href="#appendix-B-4.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="appendix-B-5">After verified replacement of <code>K1</code>, the AP retains <code>I1</code> and the AS
+retains <code>M1</code>, as in <a href="#lifecycle-example" class="auto internal xref">Appendix "Instance Lifecycle Example"</a>. Neither identifier determines
+the token's subject or creates an <code>act</code> claim; delegated access would
+require a separate authorization grant and its delegation semantics.<a href="#appendix-B-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="spiffe-example">
+<section id="appendix-C">
+      <h2 id="name-spiffe-workload-example">
+<a href="#name-spiffe-workload-example" class="section-name selfRef">SPIFFE Workload Example</a>
+      </h2>
+<p id="appendix-C-1">This informative example adds execution-level identification to a
+SPIFFE deployment where replicas share the SPIFFE ID
+<code>spiffe://example.org/agent-worker</code>. Direct OAuth authentication using
+SVIDs follows <span>[<a href="#SPIFFE-OAUTH" class="cite xref">SPIFFE-OAUTH</a>]</span> and remains sufficient when that workload
+identity meets the deployment's needs. Here, a workload attester issues
+a separate Client Attestation to distinguish executions; this is a
+deployment pattern, not an additional requirement on SPIFFE clients.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<p id="appendix-C-2">The workload obtains an X.509-SVID through the SPIFFE Workload API.
+The attester trusts its SPIFFE trust domain, maps the authorized SPIFFE
+ID to Logical Client <code>C1</code>, and can verify execution evidence from the
+managed runtime. The OAuth AS separately trusts the attester for <code>C1</code>
+and permits the client credentials grant for the target resource.
+<code>I1</code>, <code>K1</code>, and <code>M1</code> are symbolic instance, key, and mapped-identifier
+labels as in <a href="#aauth-example" class="auto internal xref">Appendix "AAuth Agent Provider Example"</a>.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="appendix-C-3">
+<pre>
+Workload            Workload attester   OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) mTLS enrollment&gt;                 |                 |
+     &lt;-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Grant + attestation + proof------&gt;                 |
+     &lt;-(4) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(5) Resource request + access token + DPoP proof-------&gt;
+     &lt;-Resource response--------------------------------------|
+</pre><a href="#appendix-C-3" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-C-4">
+<li id="appendix-C-4.1">
+          <p id="appendix-C-4.1.1">The workload authenticates to the attester using its X.509-SVID
+over mutual TLS and proves possession of a separate Client Instance
+Key <code>K1</code>. The attester validates the SVID and correlates the request
+and <code>K1</code> with authenticated runtime evidence identifying this
+execution, then assigns <code>I1</code>. The shared SPIFFE ID or an unverified
+container identifier alone cannot distinguish replicas. The
+enrollment and runtime-evidence mechanisms are deployment-specific.<a href="#appendix-C-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.2">
+          <p id="appendix-C-4.2.1">The attester issues a Client Attestation with
+<code>typ=oauth-client-attestation+jwt</code>, its own <code>iss</code>, <code>sub=C1</code>,
+<code>client_instance_id=I1</code>, <code>cnf.jwk</code> containing the public part of
+<code>K1</code>, and <code>exp</code>. The SPIFFE trust domain and OAuth attester issuer
+remain separate trust relationships.<a href="#appendix-C-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.3">
+          <p id="appendix-C-4.3.1">The workload sends <code>grant_type=client_credentials</code> and <code>client_id=C1</code>
+with the attestation and combined DPoP proof using <code>K1</code> under
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. This request uses attestation-based authentication;
+it does not also present the SVID as an OAuth client credential.<a href="#appendix-C-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.4">
+          <p id="appendix-C-4.4.1">The AS validates the attestation, proof, and instance policy and
+authorizes the grant. It issues a DPoP-bound access token carrying
+<code>client_instance</code> with its own <code>iss</code> and recipient-scoped <code>id=M1</code>.<a href="#appendix-C-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-C-4.5">
+          <p id="appendix-C-4.5.1">The resource validates the token, proof, and context under
+<a href="#instance-context" class="auto internal xref">Section 7</a>. It can correlate this execution for audit
+without validating SVIDs or trusting the workload attester directly.<a href="#appendix-C-4.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="appendix-C-5">SVID renewal alone neither creates a new instance nor proves continuity
+for attestation renewal. Verified continuity of the same execution
+preserves <code>I1</code>; a restart or another replica receives a new identifier
+even when it uses the same SPIFFE ID. Instance Context does not turn
+that execution into an authorization subject or delegated actor.<a href="#appendix-C-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="managed-device-example">
+<section id="appendix-D">
+      <h2 id="name-managed-device-example">
+<a href="#name-managed-device-example" class="section-name selfRef">Managed Device Example</a>
+      </h2>
+<p id="appendix-D-1">This informative example identifies an agent harness installation on
+an enterprise-managed device. A device-management service, or an
+attester it supports, verifies installation evidence and issues Client
+Attestations. Device enrollment alone does not identify a particular
+application installation or authorize access to a user's resources.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+<p id="appendix-D-2">The device is already enrolled in management. The OAuth AS is
+configured to trust the attester for the harness's Logical Client <code>C1</code>.
+This example uses installation granularity and a user-authorized
+authorization code grant. <code>I1</code>, <code>K1</code>, and <code>M1</code> denote the installation
+identifier, Client Instance Key, and recipient-scoped identifier.
+Only step 3 uses the browser. Attestation issuance and the token
+request are direct exchanges by the harness; the browser receives
+neither the Client Attestation nor its proof.<a href="#appendix-D-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-ascii-art art-text artwork" id="appendix-D-3">
+<pre>
+Agent harness       Managed attester    OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) App evidence---&gt;                 |                 |
+     &lt;-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) User authorization (browser)-----&gt;                 |
+     &lt;-Authorization code via redirect------|                 |
+     |-(4) Direct token request------------&gt;                 |
+     &lt;-(5) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(6) Resource request + access token + DPoP proof-------&gt;
+     &lt;-Resource response--------------------------------------|
+</pre><a href="#appendix-D-3" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-D-4">
+<li id="appendix-D-4.1">
+          <p id="appendix-D-4.1.1">The harness creates <code>K1</code> in platform-protected key storage and
+proves possession to the attester. The attester validates device
+enrollment and authenticated evidence binding <code>K1</code> to the approved
+harness installation, for example from a trusted local management
+component that verifies the calling application. It assigns <code>I1</code>.
+Key storage alone does not establish that binding; the evidence
+and enrollment mechanisms are deployment-specific.<a href="#appendix-D-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-D-4.2">
+          <p id="appendix-D-4.2.1">The attester issues a Client Attestation with
+<code>typ=oauth-client-attestation+jwt</code>, its own <code>iss</code>, <code>sub=C1</code>,
+<code>client_instance_id=I1</code>, <code>cnf.jwk</code> containing the public part of
+<code>K1</code>, and <code>exp</code>. <code>I1</code> is opaque; it does not encode a device serial
+number, management identifier, or user account.<a href="#appendix-D-4.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-D-4.3">
+          <p id="appendix-D-4.3.1">The harness initiates authorization in an external browser under
+<span>[<a href="#RFC8252" class="cite xref">RFC8252</a>]</span>, using PKCE with the <code>S256</code> challenge method
+<span>[<a href="#RFC7636" class="cite xref">RFC7636</a>]</span>. The AS authenticates the user and obtains authorization
+for the requested access, then returns a code through the registered
+redirect URI. The diagram abbreviates these browser interactions.<a href="#appendix-D-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-D-4.4">
+          <p id="appendix-D-4.4.1">The harness directly calls the AS token endpoint to redeem the code
+with <code>client_id=C1</code>, the redirect URI, and PKCE verifier. It also
+presents the Client Attestation and
+combined DPoP proof using <code>K1</code> under <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. Client attestation
+does not replace PKCE or the user's authorization.<a href="#appendix-D-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-D-4.5">
+          <p id="appendix-D-4.5.1">The AS validates the code, PKCE verifier, attestation, proof, and
+instance policy. It issues a DPoP-bound access token for the
+authorized access, with <code>client_instance</code> containing its own <code>iss</code>
+and recipient-scoped <code>id=M1</code>. The context adds no <code>act</code> claim;
+subject and delegation semantics follow the authorization profile.<a href="#appendix-D-4.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-D-4.6">
+          <p id="appendix-D-4.6.1">The resource validates the access token, DPoP proof, and context
+under <a href="#instance-context" class="auto internal xref">Section 7</a>, and applies its authorization policy.
+It can correlate the installation for audit without receiving the
+device-management identifier or original enrollment evidence.<a href="#appendix-D-4.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="appendix-D-5">A process restart retains <code>I1</code> when the attester verifies installation
+continuity; a separate installation or clone receives a new identifier.
+Verified key replacement retains <code>I1</code> and <code>M1</code> without transferring
+tokens bound to the old key. If management is withdrawn, the attester
+stops issuing attestations for that installation; downstream token
+handling follows <a href="#lifetime" class="auto internal xref">Section 6</a>, not an implied device-status signal.<a href="#appendix-D-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="history">
+<section id="appendix-E">
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
-<p id="appendix-B-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-E-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-E-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-B-2.1">
-          <p id="appendix-B-2.1.1">Initial draft.<a href="#appendix-B-2.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-E-2.1">
+          <p id="appendix-E-2.1.1">Initial draft.<a href="#appendix-E-2.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-C">
+<section id="appendix-F">
       <h2 id="name-authors-address">
 <a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
       </h2>
