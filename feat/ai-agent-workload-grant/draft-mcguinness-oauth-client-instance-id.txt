@@ -147,6 +147,12 @@ Table of Contents
    tokens to a new key.  Stable identity records continuity; it does not
    prove possession of either key or authorize that transfer.
 
+   Clients that cannot present a Client Attestation, such as those
+   authenticating with a JWT issued by their platform, are outside this
+   profile.  A companion profile could carry client_instance_id in such
+   a credential under the same identifier, continuity, and privacy
+   rules; this document does not define one.
+
    An IdP can act solely as a Receiver, relying on an attester capable
    of establishing the required instance continuity.  Registry import
    alone does not supply that evidence.  Authorization profiles, such as
@@ -158,6 +164,13 @@ Table of Contents
    whether the instance operates as the subject, as a delegated actor,
    or in another explicitly defined relationship.  This profile can be
    used without implementing Actor Profile.
+
+   This document, with draft-mcguinness-oauth-workload-agent-federation,
+   replaces the instance identification and agent identity proposals in
+   draft-mcguinness-oauth-client-instance-assertion and draft-
+   mcguinness-oauth-ai-agent-instance, which are not being progressed.
+   It is not wire-compatible with either; the Document History records
+   what was retained.
 
 2.  Conventions and Definitions
 
@@ -220,10 +233,14 @@ Table of Contents
    authority trusted to assign instance identifiers for the Logical
    Client.  Signature or MAC validation under ATTEST MUST establish that
    association; a JWT's iss or possession of a key alone MUST NOT
-   establish this authority.  Trust management and verification-key
-   resolution follow ATTEST and the deployment's trusted configuration.
-   Issuer and client identifiers are compared as exact strings, without
-   URI normalization.
+   establish this authority.  Client-published metadata MUST NOT
+   establish it either, including attester lists supplied through
+   dynamic client registration [RFC7591] or a client identifier metadata
+   document [CIMD]; the Receiver's own configuration is the only source
+   of attester authority for a client.  Trust management and
+   verification-key resolution follow ATTEST and the deployment's
+   trusted configuration.  Issuer and client identifiers are compared as
+   exact strings, without URI normalization.
 
 4.  Client Attestation Claims
 
@@ -452,6 +469,13 @@ Table of Contents
    granularity of the identity that can be proven; a shared private key
    does not distinguish its individual holders.
 
+   Attestation evidence differs in assurance: reported by the instance
+   about itself, verified by the platform or attester, or rooted in
+   hardware.  An attester MUST NOT represent evidence of a lower tier as
+   a higher one, and a Receiver MUST configure the tier it requires for
+   a Logical Client rather than infer it from the identifier or the
+   attester's name.
+
    Instance identification supports targeted risk response, but does not
    prove software behavior, authorization, or integrity beyond the
    evidence the attester actually evaluated.  Instance revocation
@@ -550,6 +574,17 @@ Table of Contents
               <https://datatracker.ietf.org/doc/html/draft-hardt-oauth-
               aauth-protocol-10>.
 
+   [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
+              Document", Work in Progress, Internet-Draft, draft-ietf-
+              oauth-client-id-metadata-document-02, 6 July 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
+              client-id-metadata-document-02>.
+
+   [RFC7591]  Richer, J., Ed., Jones, M., Bradley, J., Machulak, M., and
+              P. Hunt, "OAuth 2.0 Dynamic Client Registration Protocol",
+              RFC 7591, DOI 10.17487/RFC7591, July 2015,
+              <https://www.rfc-editor.org/rfc/rfc7591>.
+
    [ACTOR-PROFILE]
               McGuinness, K., "OAuth Actor Profile for Delegation", Work
               in Progress, Internet-Draft, draft-mcguinness-oauth-actor-
@@ -617,7 +652,11 @@ Attester Patterns
    An execution attester that reuses a key across restarts still issues
    a new identifier for each execution; the key is not the identifier.
    A shared signing key across replicas prevents instance identification
-   at any granularity finer than the key.
+   at any granularity finer than the key.  The rows also differ in
+   assurance: app-attestation services and hardware-backed device keys
+   can be hardware-rooted, orchestrator and scheduler identities are
+   platform-verified, and evidence an instance reports about itself is
+   self-attested and does not by itself justify an identifier.
 
 Managed Application
 
@@ -740,6 +779,12 @@ Document History
    *  Distinguished client, principal, and instance identities;
       clarified issuance context, mapped identifier continuity, and
       issuer changes; added an informative interoperability checklist.
+
+   *  Stated the relationship to the two drafts this document replaces,
+      noted a companion profile for non-ATTEST credentials as future
+      work, barred client-published metadata from establishing attester
+      authority, and added evidence assurance tiers with a
+      misrepresentation rule.
 
 Author's Address
 
