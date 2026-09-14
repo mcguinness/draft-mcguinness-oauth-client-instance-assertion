@@ -2163,46 +2163,9 @@ with <code>K2</code> merely because the instance identifier is unchanged.<a href
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
 <p id="appendix-B-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<p id="appendix-B-2">This document preserves the key-independent instance identity,
-continuity, and audit-correlation concerns explored in
-draft-mcguinness-oauth-client-instance-assertion and
-draft-mcguinness-oauth-ai-agent-instance. It replaces that part of
-those proposals with an optional claims profile of ATTEST; it is not
-a wire-compatible replacement for either draft. It does not retain
-their standalone assertion protocol or automatic representation of
-instances as token subjects or actors.<a href="#appendix-B-2" class="pilcrow">¶</a></p>
-<p id="appendix-B-3">The proposed division of responsibilities places governed agent
-identity and grant issuance in
-draft-mcguinness-oauth-workload-agent-federation, actor representation
-in <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, and optional runtime identification here.
-Consuming authorization profiles define the relationships between
-those identities; this profile does not require their adoption.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-B-4.1">
-          <p id="appendix-B-4.1.1">Defined issuer-qualified instance identity, continuity and privacy
-rules, and optional <code>client_instance</code> context with <code>iss</code> and <code>id</code>.<a href="#appendix-B-4.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="appendix-B-4.2">
-          <p id="appendix-B-4.2.1">Scoped the document to an optional claims profile, stated when ATTEST
-alone is sufficient, and inherited its authentication, proof,
-algorithm, freshness, and token-binding requirements unchanged.<a href="#appendix-B-4.2.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="appendix-B-4.3">
-          <p id="appendix-B-4.3.1">Distinguished client, principal, and instance identities; clarified
-issuance context, mapped identifier continuity, and issuer changes.<a href="#appendix-B-4.3.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="appendix-B-4.4">
-          <p id="appendix-B-4.4.1">Clarified predecessor status, non-ATTEST scope, Receiver-controlled
-attester authority, and evidence assurance.<a href="#appendix-B-4.4.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="appendix-B-4.5">
-          <p id="appendix-B-4.5.1">Consolidated normative processing, separated lifecycle and context
-rules, and aligned security and IANA sections with RFC conventions.<a href="#appendix-B-4.5.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="appendix-B-4.6">
-          <p id="appendix-B-4.6.1">Kept claim examples and one lifecycle example in the draft; moved
-deployment patterns to an implementation guide and removed the
-repetitive interoperability checklist.<a href="#appendix-B-4.6.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-B-2.1">
+          <p id="appendix-B-2.1.1">Initial draft.<a href="#appendix-B-2.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>

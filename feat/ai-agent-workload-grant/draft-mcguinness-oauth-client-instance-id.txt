@@ -720,44 +720,7 @@ Document History
 
    _RFC EDITOR: Remove this section before publication._
 
-   This document preserves the key-independent instance identity,
-   continuity, and audit-correlation concerns explored in draft-
-   mcguinness-oauth-client-instance-assertion and draft-mcguinness-
-   oauth-ai-agent-instance.  It replaces that part of those proposals
-   with an optional claims profile of ATTEST; it is not a wire-
-   compatible replacement for either draft.  It does not retain their
-   standalone assertion protocol or automatic representation of
-   instances as token subjects or actors.
-
-   The proposed division of responsibilities places governed agent
-   identity and grant issuance in draft-mcguinness-oauth-workload-agent-
-   federation, actor representation in [ACTOR-PROFILE], and optional
-   runtime identification here.  Consuming authorization profiles define
-   the relationships between those identities; this profile does not
-   require their adoption.
-
-   *  Defined issuer-qualified instance identity, continuity and privacy
-      rules, and optional client_instance context with iss and id.
-
-   *  Scoped the document to an optional claims profile, stated when
-      ATTEST alone is sufficient, and inherited its authentication,
-      proof, algorithm, freshness, and token-binding requirements
-      unchanged.
-
-   *  Distinguished client, principal, and instance identities;
-      clarified issuance context, mapped identifier continuity, and
-      issuer changes.
-
-   *  Clarified predecessor status, non-ATTEST scope, Receiver-
-      controlled attester authority, and evidence assurance.
-
-   *  Consolidated normative processing, separated lifecycle and context
-      rules, and aligned security and IANA sections with RFC
-      conventions.
-
-   *  Kept claim examples and one lifecycle example in the draft; moved
-      deployment patterns to an implementation guide and removed the
-      repetitive interoperability checklist.
+   *  Initial draft.
 
 Author's Address
 
