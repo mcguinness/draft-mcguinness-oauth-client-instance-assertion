@@ -1,6 +1,6 @@
 <!-- regenerate: off -->
 
-# OAuth Agent Federation and Client Instance Identification
+# OAuth Drafts
 
 This is the working area for individual Internet-Drafts.
 
@@ -28,33 +28,7 @@ identifiers, attester trust, key continuity, and optional instance
 context. Configuration distinguishes installation and execution lifetimes.
 It does not determine authorization subjects or delegated actors.
 
-## OAuth 2.0 Profile for Agent Federation
-
-* [Draft source](draft-mcguinness-oauth-workload-agent-federation.md)
-* [Local HTML preview](draft-mcguinness-oauth-workload-agent-federation.html) (build with `make`)
-
-A standards-track profile for binding platform-authenticated agents
-to IdP identities through platform-issued JWT subject evidence, ATTEST,
-SPIFFE X.509-SVID, or WIT-SVID authentication. WIT-SVID uses the ATTEST headers directly, with
-attestation proof and a matching DPoP key.
-For self-acting WAG, JWT credentials are exchanged directly. An
-imported platform identity maps through issuer-qualified, exact claims;
-it does not require an OAuth client registration or `sub=client_id`.
-Platform-based delegation requires separate standard client authentication
-and token exchange to obtain the IdP actor credential. An
-intermediate IdP access token is needed for X.509-SVID and as actor
-evidence for user-delegated ID-JAG; an eligible token can be reused.
-Instance tracking is optional;
-delegation uses OAuth Actor Profile. An agent with its
-own client identity uses `client_id`; only shared clients require
-an additional `agent_id`. Existing CIMD/EMA
-flows and provisioning choices are informative deployment guidance;
-examples include downstream client authentication and provisioning
-correlation. WAG interoperability still requires coordination with
-the underlying draft.
-
-The instance-identification and agent-federation drafts have not
-yet been submitted to the IETF.
+This draft has not yet been submitted to the IETF.
 
 ## Contributing
 

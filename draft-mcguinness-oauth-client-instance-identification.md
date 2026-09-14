@@ -38,7 +38,7 @@ informative:
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
     title: "OAuth 2.0 Profile for Agent Federation"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-workload-agent-federation.html
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html
     author:
       - fullname: Karl McGuinness
     date: 2026-09-11
