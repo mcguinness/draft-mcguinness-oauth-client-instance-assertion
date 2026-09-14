@@ -34,11 +34,13 @@ It does not determine authorization subjects or delegated actors.
 * [Local HTML preview](draft-mcguinness-oauth-workload-agent-federation.html) (build with `make`)
 
 A standards-track profile for binding platform-authenticated agents
-to IdP identities through ATTEST, SPIFFE X.509-SVID, or WIT-SVID
-authentication. WIT-SVID uses the ATTEST headers directly, with
+to IdP identities through platform-issued JWTs, ATTEST, SPIFFE
+X.509-SVID, or WIT-SVID authentication. WIT-SVID uses the ATTEST headers directly, with
 attestation proof and a matching DPoP key.
-Eligible IdP-issued access tokens are exchanged for user-delegated
-ID-JAG or provisional self-acting WAG. Instance tracking is optional;
+For self-acting WAG, JWT credentials are exchanged directly. An
+intermediate IdP access token is needed for X.509-SVID and as actor
+evidence for user-delegated ID-JAG; an eligible token can be reused.
+Instance tracking is optional;
 delegation uses OAuth Actor Profile. An agent with its
 own client identity uses `client_id`; only shared clients require
 an additional `agent_id`. Existing CIMD/EMA
