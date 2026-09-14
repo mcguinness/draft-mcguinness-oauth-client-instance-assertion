@@ -2416,7 +2416,10 @@ application installation or authorize access to a user's resources.<a href="#app
 configured to trust the attester for the harness's Logical Client <code>C1</code>.
 This example uses installation granularity and a user-authorized
 authorization code grant. <code>I1</code>, <code>K1</code>, and <code>M1</code> denote the installation
-identifier, Client Instance Key, and recipient-scoped identifier.<a href="#appendix-D-2" class="pilcrow">¶</a></p>
+identifier, Client Instance Key, and recipient-scoped identifier.
+Only step 3 uses the browser. Attestation issuance and the token
+request are direct exchanges by the harness; the browser receives
+neither the Client Attestation nor its proof.<a href="#appendix-D-2" class="pilcrow">¶</a></p>
 <div class="alignLeft art-ascii-art art-text artwork" id="appendix-D-3">
 <pre>
 Agent harness       Managed attester    OAuth AS          Resource
@@ -2424,9 +2427,9 @@ Agent harness       Managed attester    OAuth AS          Resource
      |-(1) App evidence---&gt;                 |                 |
      &lt;-(2) Attestation----|                 |                 |
      |                    |                 |                 |
-     |-(3) Authorization via browser-------&gt;                 |
+     |-(3) User authorization (browser)-----&gt;                 |
      &lt;-Authorization code via redirect------|                 |
-     |-(4) Code + attestation + proofs------&gt;                 |
+     |-(4) Direct token request------------&gt;                 |
      &lt;-(5) Token carrying instance context--|                 |
      |                    |                 |                 |
      |-(6) Resource request + access token + DPoP proof-------&gt;
@@ -2458,8 +2461,9 @@ for the requested access, then returns a code through the registered
 redirect URI. The diagram abbreviates these browser interactions.<a href="#appendix-D-4.3.1" class="pilcrow">¶</a></p>
 </li>
         <li id="appendix-D-4.4">
-          <p id="appendix-D-4.4.1">The harness redeems the code with <code>client_id=C1</code>, the redirect URI,
-and PKCE verifier. It also presents the Client Attestation and
+          <p id="appendix-D-4.4.1">The harness directly calls the AS token endpoint to redeem the code
+with <code>client_id=C1</code>, the redirect URI, and PKCE verifier. It also
+presents the Client Attestation and
 combined DPoP proof using <code>K1</code> under <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. Client attestation
 does not replace PKCE or the user's authorization.<a href="#appendix-D-4.4.1" class="pilcrow">¶</a></p>
 </li>
