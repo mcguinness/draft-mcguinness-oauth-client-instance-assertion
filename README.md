@@ -23,10 +23,12 @@ This is the working area for individual Internet-Drafts.
 * [Draft source](draft-mcguinness-oauth-client-instance-identification.md)
 * [Local HTML preview](draft-mcguinness-oauth-client-instance-identification.html) (build with `make`)
 
-A focused profile of ATTEST-CLIENT-AUTH defining stable instance
-identifiers, attester trust, key continuity, and optional instance
-context. Configuration distinguishes installation and execution lifetimes.
-It does not determine authorization subjects or delegated actors.
+An optional claims profile for deployments needing a common instance
+identifier across attestations and key changes, with optional downstream
+instance context. ATTEST already supplies client instance authentication;
+its proof methods and token-binding rules remain unchanged. Deployments
+that need only authentication or can use internal correlation mappings
+do not require this profile.
 
 This draft has not yet been submitted to the IETF.
 
