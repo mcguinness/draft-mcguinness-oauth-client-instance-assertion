@@ -2,7 +2,7 @@
 title: "Client Instance Identification for Attestation-Based Client Authentication"
 abbrev: "Client Instance Identification"
 category: std
-docname: draft-mcguinness-oauth-client-instance-identification-latest
+docname: draft-mcguinness-oauth-client-instance-id-latest
 submissiontype: IETF
 stand_alone: yes
 date: 2026-09-11
@@ -19,7 +19,7 @@ venue:
   mail: "oauth@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/oauth/"
   github: "mcguinness/draft-mcguinness-oauth-client-instance-assertion"
-  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-identification.html"
+  latest: "https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-id.html"
 author:
  - fullname: Karl McGuinness
    organization: Independent

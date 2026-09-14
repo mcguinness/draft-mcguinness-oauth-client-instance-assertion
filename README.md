@@ -20,8 +20,8 @@ This is the working area for individual Internet-Drafts.
 
 ## Client Instance Identification for Attestation-Based Client Authentication
 
-* [Draft source](draft-mcguinness-oauth-client-instance-identification.md)
-* [Local HTML preview](draft-mcguinness-oauth-client-instance-identification.html) (build with `make`)
+* [Draft source](draft-mcguinness-oauth-client-instance-id.md)
+* [Local HTML preview](draft-mcguinness-oauth-client-instance-id.html) (build with `make`)
 
 An optional claims profile for deployments needing a common instance
 identifier across attestations and key changes, with optional downstream
