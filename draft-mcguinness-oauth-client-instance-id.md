@@ -31,7 +31,6 @@ normative:
   RFC7662:
   RFC8725:
 informative:
-  AAUTH: I-D.hardt-oauth-aauth-protocol
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC7591:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
@@ -513,101 +512,24 @@ or actor profile values.
 
 --- back
 
-# Attester Patterns {#attester-patterns}
+# Instance Lifecycle Example {#lifecycle-example}
 {:numbered="false"}
 
-This appendix is informative. It maps common attester types to the
-identified unit and the continuity evidence each can supply. The
-attester in every row authenticates the instance and verifies its
-possession of the Client Instance Key before issuing an attestation.
+This example is informative. An attester identifies application
+installations under one Logical Client. `I1` and `I2` are symbolic
+labels for distinct opaque identifiers; `K1`, `K2`, and `K3` denote
+Client Instance Keys.
 
-| Attester | Identified unit | Continuity evidence | Not distinguished |
+| Event | Attester-validated result | Identifier | Key |
 |---|---|---|---|
-| Mobile platform app-attestation service | Installation | Platform-attested key generated at install and bound to the app identity | Concurrent processes of one installation |
-| Enterprise device management for a desktop agent | Installation | Device enrollment record and a hardware-backed key held by the managed installation | Reinstallation on the same device without re-enrollment |
-| Container orchestrator or workload runtime | Execution | Runtime-assigned identity for one container execution; a restart yields a new identifier | Processes within that container execution |
-| Function or job scheduler | Execution | Per-invocation or per-job environment identity | Retries that the platform treats as the same job |
+| Initial enrollment | New installation | `I1` | `K1` |
+| Attestation renewal | Same installation | `I1` | `K1` |
+| Verified key replacement | Same installation, new key | `I1` | `K2` |
+| Clone enrolled separately | Different installation | `I2` | `K3` |
 
-The lifecycle rules in {{lifetime}} apply to each pattern. A device key
-alone does not establish installation continuity; a workload identity
-alone does not distinguish replicas. Assurance depends on the evidence
-actually evaluated, as described in the Security Considerations.
-
-## Managed Application
-{:numbered="false"}
-
-Two installations of a managed mobile application share an OAuth
-`client_id`:
-
-1. An enterprise attester validates installation evidence and key
-   possession, then assigns each installation a distinct identifier.
-2. Each installation presents its attestation and proof to the IdP,
-   which uses the issuer-qualified identifier for audit correlation.
-3. Verified key replacement preserves the identifier; a clone or new
-   installation receives another.
-
-## Workload Replicas
-{:numbered="false"}
-
-Two container replicas share a SPIFFE workload identity but hold
-separate Client Instance Keys:
-
-1. A runtime attester validates workload identity, authenticated
-   evidence identifying each execution, and possession of its key.
-2. It issues each execution a Client Attestation for the configured
-   Logical Client with a distinct `client_instance_id`.
-3. The IdP validates the attestation and proof to correlate requests.
-   Renewal preserves the identifier; a new execution receives another.
-
-The shared workload identity alone cannot distinguish the replicas.
-
-## Downstream Audit Correlation
-{:numbered="false"}
-
-An IdP conveys instance context to a downstream recipient:
-
-1. After validating an attestation and proof, it assigns a
-   recipient-scoped identifier and includes `client_instance` in a
-   token or introspection response: `iss` identifies the IdP and `id`
-   contains the mapped identifier.
-2. The recipient validates the token or authenticated response and
-   uses the pair for audit correlation without the original attestation.
-3. The IdP preserves the mapping across verified key changes and uses
-   different mappings for other recipients.
-
-An IdP needing only local correlation can instead use its internal
-enrollment mapping and ATTEST alone, without this profile.
-
-## AAuth Agent Provider
-{:numbered="false"}
-
-An AAuth Agent Provider {{AAUTH}} can also act as an OAuth Client Attester:
-
-1. Its enrollment records and validated evidence establish installation
-   continuity and key possession.
-2. It issues a separate Client Attestation with the approved OAuth
-   `client_id` as `sub` and an opaque `client_instance_id`.
-3. The client presents that credential using ATTEST proof processing.
-
-Native AAuth tokens and HTTP signatures retain their own semantics.
-This example defines no token conversion or enrollment binding.
-
-# Interoperability Checklist
-{:numbered="false"}
-
-This informative checklist summarizes expected behavior under the
-normative requirements above. Each case assumes successful ATTEST
-validation except where the stated condition prevents acceptance.
-
-| Input or event | Expected result |
-|---|---|
-| Renewed attestation for the same instance | Same instance identity and existing recipient mapping |
-| Attester-verified replacement key | Same identity and mapping; existing token bindings remain unchanged |
-| Cloned installation, or new execution at execution granularity | New instance identity and distinct downstream mapping |
-| Equal identifier strings from different Attester Issuers | Distinct identities; equality alone does not establish continuity |
-| Context with an unapproved Instance Authority | Reject context; reject the request when context is required |
-| Different recipients when recipient-scoped mapping is used | Different mapped identifiers, each stable within its recipient scope |
-| Valid instance evidence without delegation authorization | No actor relationship inferred |
+Existing recipient mappings for `I1` remain stable across renewal and
+verified key replacement. A refresh token bound to `K1` cannot be used
+with `K2` merely because the instance identifier is unchanged.
 
 # Document History {#history}
 {:numbered="false"}
@@ -636,9 +558,11 @@ those identities; this profile does not require their adoption.
   alone is sufficient, and inherited its authentication, proof,
   algorithm, freshness, and token-binding requirements unchanged.
 * Distinguished client, principal, and instance identities; clarified
-  issuance context, mapped identifier continuity, and issuer changes;
-  added an informative interoperability checklist.
+  issuance context, mapped identifier continuity, and issuer changes.
 * Clarified predecessor status, non-ATTEST scope, Receiver-controlled
   attester authority, and evidence assurance.
 * Consolidated normative processing, separated lifecycle and context
   rules, and aligned security and IANA sections with RFC conventions.
+* Kept claim examples and one lifecycle example in the draft; moved
+  deployment patterns to an implementation guide and removed the
+  repetitive interoperability checklist.
