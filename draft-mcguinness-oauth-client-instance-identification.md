@@ -440,7 +440,7 @@ possession of the Client Instance Key before issuing an attestation.
 |---|---|---|---|
 | Mobile platform app-attestation service | Installation | Platform-attested key generated at install and bound to the app identity | Concurrent processes of one installation |
 | Enterprise device management for a desktop agent | Installation | Device enrollment record and a hardware-backed key held by the managed installation | Reinstallation on the same device without re-enrollment |
-| Container orchestrator or workload runtime | Execution | Runtime-assigned identity for one container or pod; a restart yields a new identifier | Replicas sharing one image |
+| Container orchestrator or workload runtime | Execution | Runtime-assigned identity for one container execution; a restart yields a new identifier | Processes within that container execution |
 | Function or job scheduler | Execution | Per-invocation or per-job environment identity | Retries that the platform treats as the same job |
 
 An installation attester that cannot verify continuity across a
@@ -449,6 +449,51 @@ requires. An execution attester that reuses a key across restarts
 still issues a new identifier for each execution; the key is not
 the identifier. A shared signing key across replicas prevents
 instance identification at any granularity finer than the key.
+
+## Managed Application
+{:numbered="false"}
+
+Two installations of a managed mobile application use the same OAuth
+`client_id`. An enterprise attester validates installation evidence and
+possession of each installation's key, then assigns distinct
+`client_instance_id` values. Each installation presents its attestation
+and proof to the IdP, which uses the issuer-qualified identifier for
+audit correlation. When the attester verifies continuity across key
+replacement, it retains that installation's identifier; a clone or new
+installation receives a different identifier.
+
+## Workload Replicas
+{:numbered="false"}
+
+Two container replicas share a SPIFFE workload identity but hold
+separate Client Instance Keys. A runtime attester validates the workload
+identity, authenticated evidence identifying each container execution,
+and possession of its key. It assigns each execution a distinct
+`client_instance_id` and issues a Client Attestation for the configured
+Logical Client. The IdP validates the attestation and proof to correlate
+requests from each execution. Renewal within that execution preserves
+its identifier; a new execution receives another. The shared workload
+identity alone cannot establish this distinction.
+
+## Downstream Audit Correlation
+{:numbered="false"}
+
+After validating an attestation and proof, an IdP maps the instance to
+a recipient-scoped identifier and includes `client_instance` in a token
+or introspection response. Its `iss` identifies the IdP and its `id`
+identifies the instance in that recipient's namespace. The recipient
+validates the token or authenticated response and uses the pair for
+local audit correlation without receiving the original attestation.
+The IdP preserves the mapping across attester-verified key changes and
+uses different mappings for other recipients to limit correlation.
+The token issuer authenticates this context; it conveys no additional
+authorization or proof of possession.
+
+An IdP needing only local correlation can instead use its internal
+enrollment mapping and ATTEST alone, without this profile.
+
+## AAuth Agent Provider
+{:numbered="false"}
 
 An AAuth Agent Provider {{AAUTH}} could also act as a Client Attester
 for OAuth deployments. When its enrollment records and validated
