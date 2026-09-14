@@ -1277,30 +1277,13 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
-            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-attester-patterns" class="internal xref">Attester Patterns</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
-                <p id="section-toc.1-1.12.2.1.1"><a href="#appendix-A.1" class="auto internal xref"></a><a href="#name-managed-application" class="internal xref">Managed Application</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
-                <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-A.2" class="auto internal xref"></a><a href="#name-workload-replicas" class="internal xref">Workload Replicas</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
-                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-downstream-audit-correlatio" class="internal xref">Downstream Audit Correlation</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
-                <p id="section-toc.1-1.12.2.4.1"><a href="#appendix-A.4" class="auto internal xref"></a><a href="#name-aauth-agent-provider" class="internal xref">AAuth Agent Provider</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-instance-lifecycle-example" class="internal xref">Instance Lifecycle Example</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
-            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-interoperability-checklist" class="internal xref">Interoperability Checklist</a></p>
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
-            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
-            <p id="section-toc.1-1.15.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+            <p id="section-toc.1-1.14.1"><a href="#appendix-C" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
 </li>
         </ul>
 </nav>
@@ -2082,10 +2065,6 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
-<dt id="AAUTH">[AAUTH]</dt>
-        <dd>
-<span class="refAuthor">Hardt, D.</span>, <span class="refTitle">"AAuth Protocol"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hardt-oauth-aauth-protocol-10</span>, <time datetime="2026-08-06" class="refDate">6 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10">https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="CIMD">[CIMD]</dt>
         <dd>
 <span class="refAuthor">Parecki, A.</span> and <span class="refAuthor">E. Smith</span>, <span class="refTitle">"OAuth Client ID Metadata Document"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-client-id-metadata-document-02</span>, <time datetime="2026-07-06" class="refDate">6 July 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document-02</a>&gt;</span>. </dd>
@@ -2111,251 +2090,125 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 </div>
 </section>
 </div>
-<div id="attester-patterns">
+<div id="lifecycle-example">
 <section id="appendix-A">
-      <h2 id="name-attester-patterns">
-<a href="#name-attester-patterns" class="section-name selfRef">Attester Patterns</a>
+      <h2 id="name-instance-lifecycle-example">
+<a href="#name-instance-lifecycle-example" class="section-name selfRef">Instance Lifecycle Example</a>
       </h2>
-<p id="appendix-A-1">This appendix is informative. It maps common attester types to the
-identified unit and the continuity evidence each can supply. The
-attester in every row authenticates the instance and verifies its
-possession of the Client Instance Key before issuing an attestation.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-1">This example is informative. An attester identifies application
+installations under one Logical Client. <code>I1</code> and <code>I2</code> are symbolic
+labels for distinct opaque identifiers; <code>K1</code>, <code>K2</code>, and <code>K3</code> denote
+Client Instance Keys.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <table class="center" id="table-3">
         <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
 <thead>
           <tr>
-            <th class="text-left" rowspan="1" colspan="1">Attester</th>
-            <th class="text-left" rowspan="1" colspan="1">Identified unit</th>
-            <th class="text-left" rowspan="1" colspan="1">Continuity evidence</th>
-            <th class="text-left" rowspan="1" colspan="1">Not distinguished</th>
+            <th class="text-left" rowspan="1" colspan="1">Event</th>
+            <th class="text-left" rowspan="1" colspan="1">Attester-validated result</th>
+            <th class="text-left" rowspan="1" colspan="1">Identifier</th>
+            <th class="text-left" rowspan="1" colspan="1">Key</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Mobile platform app-attestation service</td>
-            <td class="text-left" rowspan="1" colspan="1">Installation</td>
-            <td class="text-left" rowspan="1" colspan="1">Platform-attested key generated at install and bound to the app identity</td>
-            <td class="text-left" rowspan="1" colspan="1">Concurrent processes of one installation</td>
+            <td class="text-left" rowspan="1" colspan="1">Initial enrollment</td>
+            <td class="text-left" rowspan="1" colspan="1">New installation</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>I1</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>K1</code>
+</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Enterprise device management for a desktop agent</td>
-            <td class="text-left" rowspan="1" colspan="1">Installation</td>
-            <td class="text-left" rowspan="1" colspan="1">Device enrollment record and a hardware-backed key held by the managed installation</td>
-            <td class="text-left" rowspan="1" colspan="1">Reinstallation on the same device without re-enrollment</td>
+            <td class="text-left" rowspan="1" colspan="1">Attestation renewal</td>
+            <td class="text-left" rowspan="1" colspan="1">Same installation</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>I1</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>K1</code>
+</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Container orchestrator or workload runtime</td>
-            <td class="text-left" rowspan="1" colspan="1">Execution</td>
-            <td class="text-left" rowspan="1" colspan="1">Runtime-assigned identity for one container execution; a restart yields a new identifier</td>
-            <td class="text-left" rowspan="1" colspan="1">Processes within that container execution</td>
+            <td class="text-left" rowspan="1" colspan="1">Verified key replacement</td>
+            <td class="text-left" rowspan="1" colspan="1">Same installation, new key</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>I1</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>K2</code>
+</td>
           </tr>
           <tr>
-            <td class="text-left" rowspan="1" colspan="1">Function or job scheduler</td>
-            <td class="text-left" rowspan="1" colspan="1">Execution</td>
-            <td class="text-left" rowspan="1" colspan="1">Per-invocation or per-job environment identity</td>
-            <td class="text-left" rowspan="1" colspan="1">Retries that the platform treats as the same job</td>
+            <td class="text-left" rowspan="1" colspan="1">Clone enrolled separately</td>
+            <td class="text-left" rowspan="1" colspan="1">Different installation</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>I2</code>
+</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>K3</code>
+</td>
           </tr>
         </tbody>
       </table>
-<p id="appendix-A-3">The lifecycle rules in <a href="#lifetime" class="auto internal xref">Section 6</a> apply to each pattern. A device key
-alone does not establish installation continuity; a workload identity
-alone does not distinguish replicas. Assurance depends on the evidence
-actually evaluated, as described in the Security Considerations.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
-<div id="managed-application">
-<section id="appendix-A.1">
-        <h3 id="name-managed-application">
-<a href="#name-managed-application" class="section-name selfRef">Managed Application</a>
-        </h3>
-<p id="appendix-A.1-1">Two installations of a managed mobile application share an OAuth
-<code>client_id</code>:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A.1-2">
-<li id="appendix-A.1-2.1">
-            <p id="appendix-A.1-2.1.1">An enterprise attester validates installation evidence and key
-possession, then assigns each installation a distinct identifier.<a href="#appendix-A.1-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.1-2.2">
-            <p id="appendix-A.1-2.2.1">Each installation presents its attestation and proof to the IdP,
-which uses the issuer-qualified identifier for audit correlation.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.1-2.3">
-            <p id="appendix-A.1-2.3.1">Verified key replacement preserves the identifier; a clone or new
-installation receives another.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-</section>
-</div>
-<div id="workload-replicas">
-<section id="appendix-A.2">
-        <h3 id="name-workload-replicas">
-<a href="#name-workload-replicas" class="section-name selfRef">Workload Replicas</a>
-        </h3>
-<p id="appendix-A.2-1">Two container replicas share a SPIFFE workload identity but hold
-separate Client Instance Keys:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A.2-2">
-<li id="appendix-A.2-2.1">
-            <p id="appendix-A.2-2.1.1">A runtime attester validates workload identity, authenticated
-evidence identifying each execution, and possession of its key.<a href="#appendix-A.2-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.2-2.2">
-            <p id="appendix-A.2-2.2.1">It issues each execution a Client Attestation for the configured
-Logical Client with a distinct <code>client_instance_id</code>.<a href="#appendix-A.2-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.2-2.3">
-            <p id="appendix-A.2-2.3.1">The IdP validates the attestation and proof to correlate requests.
-Renewal preserves the identifier; a new execution receives another.<a href="#appendix-A.2-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-<p id="appendix-A.2-3">The shared workload identity alone cannot distinguish the replicas.<a href="#appendix-A.2-3" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="downstream-audit-correlation">
-<section id="appendix-A.3">
-        <h3 id="name-downstream-audit-correlatio">
-<a href="#name-downstream-audit-correlatio" class="section-name selfRef">Downstream Audit Correlation</a>
-        </h3>
-<p id="appendix-A.3-1">An IdP conveys instance context to a downstream recipient:<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A.3-2">
-<li id="appendix-A.3-2.1">
-            <p id="appendix-A.3-2.1.1">After validating an attestation and proof, it assigns a
-recipient-scoped identifier and includes <code>client_instance</code> in a
-token or introspection response: <code>iss</code> identifies the IdP and <code>id</code>
-contains the mapped identifier.<a href="#appendix-A.3-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.3-2.2">
-            <p id="appendix-A.3-2.2.1">The recipient validates the token or authenticated response and
-uses the pair for audit correlation without the original attestation.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.3-2.3">
-            <p id="appendix-A.3-2.3.1">The IdP preserves the mapping across verified key changes and uses
-different mappings for other recipients.<a href="#appendix-A.3-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-<p id="appendix-A.3-3">An IdP needing only local correlation can instead use its internal
-enrollment mapping and ATTEST alone, without this profile.<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="aauth-agent-provider">
-<section id="appendix-A.4">
-        <h3 id="name-aauth-agent-provider">
-<a href="#name-aauth-agent-provider" class="section-name selfRef">AAuth Agent Provider</a>
-        </h3>
-<p id="appendix-A.4-1">An AAuth Agent Provider <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span> can also act as an OAuth Client Attester:<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="appendix-A.4-2">
-<li id="appendix-A.4-2.1">
-            <p id="appendix-A.4-2.1.1">Its enrollment records and validated evidence establish installation
-continuity and key possession.<a href="#appendix-A.4-2.1.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.4-2.2">
-            <p id="appendix-A.4-2.2.1">It issues a separate Client Attestation with the approved OAuth
-<code>client_id</code> as <code>sub</code> and an opaque <code>client_instance_id</code>.<a href="#appendix-A.4-2.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li id="appendix-A.4-2.3">
-            <p id="appendix-A.4-2.3.1">The client presents that credential using ATTEST proof processing.<a href="#appendix-A.4-2.3.1" class="pilcrow">¶</a></p>
-</li>
-        </ol>
-<p id="appendix-A.4-3">Native AAuth tokens and HTTP signatures retain their own semantics.
-This example defines no token conversion or enrollment binding.<a href="#appendix-A.4-3" class="pilcrow">¶</a></p>
-</section>
-</div>
-</section>
-</div>
-<div id="interoperability-checklist">
-<section id="appendix-B">
-      <h2 id="name-interoperability-checklist">
-<a href="#name-interoperability-checklist" class="section-name selfRef">Interoperability Checklist</a>
-      </h2>
-<p id="appendix-B-1">This informative checklist summarizes expected behavior under the
-normative requirements above. Each case assumes successful ATTEST
-validation except where the stated condition prevents acceptance.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-4">
-        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
-<thead>
-          <tr>
-            <th class="text-left" rowspan="1" colspan="1">Input or event</th>
-            <th class="text-left" rowspan="1" colspan="1">Expected result</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Renewed attestation for the same instance</td>
-            <td class="text-left" rowspan="1" colspan="1">Same instance identity and existing recipient mapping</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Attester-verified replacement key</td>
-            <td class="text-left" rowspan="1" colspan="1">Same identity and mapping; existing token bindings remain unchanged</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Cloned installation, or new execution at execution granularity</td>
-            <td class="text-left" rowspan="1" colspan="1">New instance identity and distinct downstream mapping</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Equal identifier strings from different Attester Issuers</td>
-            <td class="text-left" rowspan="1" colspan="1">Distinct identities; equality alone does not establish continuity</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Context with an unapproved Instance Authority</td>
-            <td class="text-left" rowspan="1" colspan="1">Reject context; reject the request when context is required</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Different recipients when recipient-scoped mapping is used</td>
-            <td class="text-left" rowspan="1" colspan="1">Different mapped identifiers, each stable within its recipient scope</td>
-          </tr>
-          <tr>
-            <td class="text-left" rowspan="1" colspan="1">Valid instance evidence without delegation authorization</td>
-            <td class="text-left" rowspan="1" colspan="1">No actor relationship inferred</td>
-          </tr>
-        </tbody>
-      </table>
+<p id="appendix-A-3">Existing recipient mappings for <code>I1</code> remain stable across renewal and
+verified key replacement. A refresh token bound to <code>K1</code> cannot be used
+with <code>K2</code> merely because the instance identifier is unchanged.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="history">
-<section id="appendix-C">
+<section id="appendix-B">
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
       </h2>
-<p id="appendix-C-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-C-1" class="pilcrow">¶</a></p>
-<p id="appendix-C-2">This document preserves the key-independent instance identity,
+<p id="appendix-B-1"><em>RFC EDITOR: Remove this section before publication.</em><a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-2">This document preserves the key-independent instance identity,
 continuity, and audit-correlation concerns explored in
 draft-mcguinness-oauth-client-instance-assertion and
 draft-mcguinness-oauth-ai-agent-instance. It replaces that part of
 those proposals with an optional claims profile of ATTEST; it is not
 a wire-compatible replacement for either draft. It does not retain
 their standalone assertion protocol or automatic representation of
-instances as token subjects or actors.<a href="#appendix-C-2" class="pilcrow">¶</a></p>
-<p id="appendix-C-3">The proposed division of responsibilities places governed agent
+instances as token subjects or actors.<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<p id="appendix-B-3">The proposed division of responsibilities places governed agent
 identity and grant issuance in
 draft-mcguinness-oauth-workload-agent-federation, actor representation
 in <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, and optional runtime identification here.
 Consuming authorization profiles define the relationships between
-those identities; this profile does not require their adoption.<a href="#appendix-C-3" class="pilcrow">¶</a></p>
+those identities; this profile does not require their adoption.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="appendix-C-4.1">
-          <p id="appendix-C-4.1.1">Defined issuer-qualified instance identity, continuity and privacy
-rules, and optional <code>client_instance</code> context with <code>iss</code> and <code>id</code>.<a href="#appendix-C-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="appendix-B-4.1">
+          <p id="appendix-B-4.1.1">Defined issuer-qualified instance identity, continuity and privacy
+rules, and optional <code>client_instance</code> context with <code>iss</code> and <code>id</code>.<a href="#appendix-B-4.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-C-4.2">
-          <p id="appendix-C-4.2.1">Scoped the document to an optional claims profile, stated when ATTEST
+        <li class="normal" id="appendix-B-4.2">
+          <p id="appendix-B-4.2.1">Scoped the document to an optional claims profile, stated when ATTEST
 alone is sufficient, and inherited its authentication, proof,
-algorithm, freshness, and token-binding requirements unchanged.<a href="#appendix-C-4.2.1" class="pilcrow">¶</a></p>
+algorithm, freshness, and token-binding requirements unchanged.<a href="#appendix-B-4.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-C-4.3">
-          <p id="appendix-C-4.3.1">Distinguished client, principal, and instance identities; clarified
-issuance context, mapped identifier continuity, and issuer changes;
-added an informative interoperability checklist.<a href="#appendix-C-4.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-B-4.3">
+          <p id="appendix-B-4.3.1">Distinguished client, principal, and instance identities; clarified
+issuance context, mapped identifier continuity, and issuer changes.<a href="#appendix-B-4.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-C-4.4">
-          <p id="appendix-C-4.4.1">Clarified predecessor status, non-ATTEST scope, Receiver-controlled
-attester authority, and evidence assurance.<a href="#appendix-C-4.4.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-B-4.4">
+          <p id="appendix-B-4.4.1">Clarified predecessor status, non-ATTEST scope, Receiver-controlled
+attester authority, and evidence assurance.<a href="#appendix-B-4.4.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="appendix-C-4.5">
-          <p id="appendix-C-4.5.1">Consolidated normative processing, separated lifecycle and context
-rules, and aligned security and IANA sections with RFC conventions.<a href="#appendix-C-4.5.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="appendix-B-4.5">
+          <p id="appendix-B-4.5.1">Consolidated normative processing, separated lifecycle and context
+rules, and aligned security and IANA sections with RFC conventions.<a href="#appendix-B-4.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-4.6">
+          <p id="appendix-B-4.6.1">Kept claim examples and one lifecycle example in the draft; moved
+deployment patterns to an implementation guide and removed the
+repetitive interoperability checklist.<a href="#appendix-B-4.6.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
 </div>
 <div id="authors-addresses">
-<section id="appendix-D">
+<section id="appendix-C">
       <h2 id="name-authors-address">
 <a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
       </h2>

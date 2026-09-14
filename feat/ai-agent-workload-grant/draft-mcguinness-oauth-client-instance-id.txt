@@ -109,12 +109,7 @@ Table of Contents
    11. References
      11.1.  Normative References
      11.2.  Informative References
-   Attester Patterns
-     Managed Application
-     Workload Replicas
-     Downstream Audit Correlation
-     AAuth Agent Provider
-   Interoperability Checklist
+   Instance Lifecycle Example
    Document History
    Author's Address
 
@@ -660,11 +655,6 @@ Table of Contents
 
 11.2.  Informative References
 
-   [AAUTH]    Hardt, D., "AAuth Protocol", Work in Progress, Internet-
-              Draft, draft-hardt-oauth-aauth-protocol-10, 6 August 2026,
-              <https://datatracker.ietf.org/doc/html/draft-hardt-oauth-
-              aauth-protocol-10>.
-
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
               oauth-client-id-metadata-document-02, 6 July 2026,
@@ -697,155 +687,34 @@ Table of Contents
               mcguinness-oauth-workload-agent-federation/draft-
               mcguinness-oauth-workload-agent-federation.html>.
 
-Attester Patterns
+Instance Lifecycle Example
 
-   This appendix is informative.  It maps common attester types to the
-   identified unit and the continuity evidence each can supply.  The
-   attester in every row authenticates the instance and verifies its
-   possession of the Client Instance Key before issuing an attestation.
+   This example is informative.  An attester identifies application
+   installations under one Logical Client.  I1 and I2 are symbolic
+   labels for distinct opaque identifiers; K1, K2, and K3 denote Client
+   Instance Keys.
 
-   +=================+============+=====================+==============+
-   | Attester        |Identified  | Continuity          |Not           |
-   |                 |unit        | evidence            |distinguished |
-   +=================+============+=====================+==============+
-   | Mobile platform |Installation| Platform-attested   |Concurrent    |
-   | app-attestation |            | key generated at    |processes of  |
-   | service         |            | install and bound   |one           |
-   |                 |            | to the app          |installation  |
-   |                 |            | identity            |              |
-   +-----------------+------------+---------------------+--------------+
-   | Enterprise      |Installation| Device enrollment   |Reinstallation|
-   | device          |            | record and a        |on the same   |
-   | management for  |            | hardware-backed     |device without|
-   | a desktop agent |            | key held by the     |re-enrollment |
-   |                 |            | managed             |              |
-   |                 |            | installation        |              |
-   +-----------------+------------+---------------------+--------------+
-   | Container       |Execution   | Runtime-assigned    |Processes     |
-   | orchestrator or |            | identity for one    |within that   |
-   | workload        |            | container           |container     |
-   | runtime         |            | execution; a        |execution     |
-   |                 |            | restart yields a    |              |
-   |                 |            | new identifier      |              |
-   +-----------------+------------+---------------------+--------------+
-   | Function or job |Execution   | Per-invocation or   |Retries that  |
-   | scheduler       |            | per-job             |the platform  |
-   |                 |            | environment         |treats as the |
-   |                 |            | identity            |same job      |
-   +-----------------+------------+---------------------+--------------+
+   +====================+===========================+============+=====+
+   | Event              | Attester-validated result | Identifier | Key |
+   +====================+===========================+============+=====+
+   | Initial            | New installation          | I1         | K1  |
+   | enrollment         |                           |            |     |
+   +--------------------+---------------------------+------------+-----+
+   | Attestation        | Same installation         | I1         | K1  |
+   | renewal            |                           |            |     |
+   +--------------------+---------------------------+------------+-----+
+   | Verified key       | Same installation, new    | I1         | K2  |
+   | replacement        | key                       |            |     |
+   +--------------------+---------------------------+------------+-----+
+   | Clone enrolled     | Different installation    | I2         | K3  |
+   | separately         |                           |            |     |
+   +--------------------+---------------------------+------------+-----+
 
                                   Table 3
 
-   The lifecycle rules in Section 6 apply to each pattern.  A device key
-   alone does not establish installation continuity; a workload identity
-   alone does not distinguish replicas.  Assurance depends on the
-   evidence actually evaluated, as described in the Security
-   Considerations.
-
-Managed Application
-
-   Two installations of a managed mobile application share an OAuth
-   client_id:
-
-   1.  An enterprise attester validates installation evidence and key
-       possession, then assigns each installation a distinct identifier.
-
-   2.  Each installation presents its attestation and proof to the IdP,
-       which uses the issuer-qualified identifier for audit correlation.
-
-   3.  Verified key replacement preserves the identifier; a clone or new
-       installation receives another.
-
-Workload Replicas
-
-   Two container replicas share a SPIFFE workload identity but hold
-   separate Client Instance Keys:
-
-   1.  A runtime attester validates workload identity, authenticated
-       evidence identifying each execution, and possession of its key.
-
-   2.  It issues each execution a Client Attestation for the configured
-       Logical Client with a distinct client_instance_id.
-
-   3.  The IdP validates the attestation and proof to correlate
-       requests.  Renewal preserves the identifier; a new execution
-       receives another.
-
-   The shared workload identity alone cannot distinguish the replicas.
-
-Downstream Audit Correlation
-
-   An IdP conveys instance context to a downstream recipient:
-
-   1.  After validating an attestation and proof, it assigns a
-       recipient-scoped identifier and includes client_instance in a
-       token or introspection response: iss identifies the IdP and id
-       contains the mapped identifier.
-
-   2.  The recipient validates the token or authenticated response and
-       uses the pair for audit correlation without the original
-       attestation.
-
-   3.  The IdP preserves the mapping across verified key changes and
-       uses different mappings for other recipients.
-
-   An IdP needing only local correlation can instead use its internal
-   enrollment mapping and ATTEST alone, without this profile.
-
-AAuth Agent Provider
-
-   An AAuth Agent Provider [AAUTH] can also act as an OAuth Client
-   Attester:
-
-   1.  Its enrollment records and validated evidence establish
-       installation continuity and key possession.
-
-   2.  It issues a separate Client Attestation with the approved OAuth
-       client_id as sub and an opaque client_instance_id.
-
-   3.  The client presents that credential using ATTEST proof
-       processing.
-
-   Native AAuth tokens and HTTP signatures retain their own semantics.
-   This example defines no token conversion or enrollment binding.
-
-Interoperability Checklist
-
-   This informative checklist summarizes expected behavior under the
-   normative requirements above.  Each case assumes successful ATTEST
-   validation except where the stated condition prevents acceptance.
-
-     +=========================+=====================================+
-     | Input or event          | Expected result                     |
-     +=========================+=====================================+
-     | Renewed attestation for | Same instance identity and existing |
-     | the same instance       | recipient mapping                   |
-     +-------------------------+-------------------------------------+
-     | Attester-verified       | Same identity and mapping; existing |
-     | replacement key         | token bindings remain unchanged     |
-     +-------------------------+-------------------------------------+
-     | Cloned installation, or | New instance identity and distinct  |
-     | new execution at        | downstream mapping                  |
-     | execution granularity   |                                     |
-     +-------------------------+-------------------------------------+
-     | Equal identifier        | Distinct identities; equality alone |
-     | strings from different  | does not establish continuity       |
-     | Attester Issuers        |                                     |
-     +-------------------------+-------------------------------------+
-     | Context with an         | Reject context; reject the request  |
-     | unapproved Instance     | when context is required            |
-     | Authority               |                                     |
-     +-------------------------+-------------------------------------+
-     | Different recipients    | Different mapped identifiers, each  |
-     | when recipient-scoped   | stable within its recipient scope   |
-     | mapping is used         |                                     |
-     +-------------------------+-------------------------------------+
-     | Valid instance evidence | No actor relationship inferred      |
-     | without delegation      |                                     |
-     | authorization           |                                     |
-     +-------------------------+-------------------------------------+
-
-                                  Table 4
+   Existing recipient mappings for I1 remain stable across renewal and
+   verified key replacement.  A refresh token bound to K1 cannot be used
+   with K2 merely because the instance identifier is unchanged.
 
 Document History
 
@@ -877,7 +746,7 @@ Document History
 
    *  Distinguished client, principal, and instance identities;
       clarified issuance context, mapped identifier continuity, and
-      issuer changes; added an informative interoperability checklist.
+      issuer changes.
 
    *  Clarified predecessor status, non-ATTEST scope, Receiver-
       controlled attester authority, and evidence assurance.
@@ -885,6 +754,10 @@ Document History
    *  Consolidated normative processing, separated lifecycle and context
       rules, and aligned security and IANA sections with RFC
       conventions.
+
+   *  Kept claim examples and one lifecycle example in the draft; moved
+      deployment patterns to an implementation guide and removed the
+      repetitive interoperability checklist.
 
 Author's Address
 
