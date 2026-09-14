@@ -25,10 +25,12 @@ This is the working area for individual Internet-Drafts.
 * [Draft source](draft-mcguinness-oauth-client-instance-id.md)
 * [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-id.html)
 
-An optional claims profile for deployments needing a common instance
-identifier across attestations and key changes, with optional downstream
-instance context. ATTEST already supplies client instance authentication;
-its proof methods and token-binding rules remain unchanged. The profile
+An optional claims profile for administratively configured deployments
+needing instance continuity across attestations and verified key changes.
+Identifiers are scoped to individual Receivers by default, with optional
+mapped context for downstream consumers. ATTEST already supplies client
+instance authentication; its proof methods and token-binding rules remain
+unchanged. The profile
 applies to authorization servers and resource servers that validate
 Client Attestations. Deployments that need only authentication or can
 use internal correlation mappings do not require this profile.
