@@ -582,9 +582,9 @@ Table of Contents
    [AGENT-FEDERATION]
               McGuinness, K., "OAuth 2.0 Profile for Agent Federation",
               Work in Progress, Internet-Draft, draft-mcguinness-oauth-
-              workload-agent-federation, 11 September 2026,
+              workload-agent-federation-latest, 11 September 2026,
               <https://mcguinness.github.io/draft-mcguinness-oauth-
-              client-instance-assertion/draft-mcguinness-oauth-workload-
+              workload-agent-federation/draft-mcguinness-oauth-workload-
               agent-federation.html>.
 
 Attester Patterns
