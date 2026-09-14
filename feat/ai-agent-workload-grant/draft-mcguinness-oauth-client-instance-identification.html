@@ -1339,13 +1339,12 @@ identify its instances. A resource relying on instance context
 configuration. Receiving an instance claim <span class="bcp14">MUST NOT</span> select this
 profile or alter the client's authentication method. This
 document defines no new discovery or client metadata parameters.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">The configuration <span class="bcp14">MUST</span> define the identified unit and its continuity
-rules. This document defines two units: <code>installation</code>, one
-application installation, and <code>execution</code>, one process or container
-execution. Profiles <span class="bcp14">MAY</span> define others. Receivers <span class="bcp14">MUST NOT</span> assume that
-an installation identifier distinguishes its individual processes. A
-change of granularity <span class="bcp14">MUST</span> create a new identifier; it <span class="bcp14">MUST NOT</span>
-silently change the meaning of an existing identifier.<a href="#section-3-2" class="pilcrow">¶</a></p>
+<p id="section-3-2">The attester and Receiver <span class="bcp14">MUST</span> establish the identified granularity
+and its continuity rules through trusted configuration. This document
+distinguishes an application installation from a process or container
+execution; profiles <span class="bcp14">MAY</span> define other granularities. Receivers <span class="bcp14">MUST NOT</span> assume that an installation identifier distinguishes its individual
+processes. A change of granularity <span class="bcp14">MUST</span> create a new identifier; it
+<span class="bcp14">MUST NOT</span> silently change the meaning of an existing identifier.<a href="#section-3-2" class="pilcrow">¶</a></p>
 <p id="section-3-3">For each approved attester, the server <span class="bcp14">MUST</span> configure its exact
 issuer identifier, verification keys or a trusted source for
 those keys, permitted asymmetric signature algorithms, and
@@ -1574,15 +1573,6 @@ identifier. It is not necessarily the enclosing token issuer.<a href="#section-7
           <p id="section-7-2.4.1"><span class="bcp14">REQUIRED</span>. Nonempty StringOrURI identifying the instance in
 that authority's namespace.<a href="#section-7-2.4.1" class="pilcrow">¶</a></p>
 </dd>
-        <dd class="break"></dd>
-<dt id="section-7-2.5">
-<code>unit</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-7-2.6">
-          <p id="section-7-2.6.1"><span class="bcp14">OPTIONAL</span>. String naming the identified unit: <code>installation</code> or
-<code>execution</code> as established in <a href="#configuration" class="auto internal xref">Section 3</a>. Profiles <span class="bcp14">MAY</span>
-define additional values. Absent, the recipient <span class="bcp14">MUST</span> rely on
-its configuration for the unit.<a href="#section-7-2.6.1" class="pilcrow">¶</a></p>
-</dd>
       <dd class="break"></dd>
 </dl>
 <p id="section-7-3">The object <span class="bcp14">MUST</span> identify the instance whose participation and key
@@ -1611,23 +1601,28 @@ recipient <span class="bcp14">MUST</span> ignore members it does not recognize. 
 defining additional members <span class="bcp14">MUST</span> specify their processing for
 recipients implementing that profile and <span class="bcp14">MUST NOT</span> change the meaning
 of <code>iss</code> or <code>id</code>.<a href="#section-7-3" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-7-4">
+<p id="section-7-4">A recipient <span class="bcp14">MAY</span> correlate activity using the opaque <code>(iss, id)</code> pair
+without knowing whether it identifies an installation or an execution.
+If its processing depends on that distinction, it <span class="bcp14">MUST</span> establish the
+granularity and continuity rules through trusted configuration or a
+consuming profile before applying that processing. It <span class="bcp14">MUST NOT</span> infer
+those rules by parsing the identifier.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-7-5">
 <pre>
 {
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
-    "id": "m-f61783ea4cb24d098851d34960a274be",
-    "unit": "execution"
+    "id": "m-f61783ea4cb24d098851d34960a274be"
   }
 }
-</pre><a href="#section-7-4" class="pilcrow">¶</a>
+</pre><a href="#section-7-5" class="pilcrow">¶</a>
 </div>
-<p id="section-7-5">This object conveys identity only. It <span class="bcp14">MUST NOT</span> be interpreted
+<p id="section-7-6">This object conveys identity only. It <span class="bcp14">MUST NOT</span> be interpreted
 as an actor, a separate token, or a grant of authority. A profile
 using it <span class="bcp14">MUST</span> define its association with the token's subject,
 current actor, or other presenter, and how that association is
 preserved during exchange. Proof of possession is validated
-against the enclosing token's binding, not this object.<a href="#section-7-5" class="pilcrow">¶</a></p>
+against the enclosing token's binding, not this object.<a href="#section-7-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="relationship-to-workload-identity">
@@ -1892,8 +1887,8 @@ and revocation or introspection of outstanding tokens; required a
 DPoP proof for key-bound artifacts.<a href="#appendix-B-2.6.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-B-2.7">
-          <p id="appendix-B-2.7.1">Added the optional <code>unit</code> member and the mapped and pass-through
-forms of <code>client_instance</code>, an identifier length bound, a name
+          <p id="appendix-B-2.7.1">Added the mapped and pass-through forms of <code>client_instance</code>,
+an identifier length bound, a name
 disambiguation note, and an informative attester patterns
 appendix.<a href="#appendix-B-2.7.1" class="pilcrow">¶</a></p>
 </li>
@@ -1906,6 +1901,11 @@ enforcement to locally applied status or attestation validity.<a href="#appendix
           <p id="appendix-B-2.9.1">Required unpredictable instance identifiers, bounded their length,
 defined recipient-side context validation and forwarding resistance,
 and aligned the predecessor and deployment scope descriptions.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-2.10">
+          <p id="appendix-B-2.10.1">Limited the defined instance context members to <code>iss</code> and <code>id</code>;
+retained configured lifecycle rules and required recipient knowledge
+of granularity only when its processing depends on that distinction.<a href="#appendix-B-2.10.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
