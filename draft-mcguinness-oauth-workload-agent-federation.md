@@ -94,8 +94,9 @@ informative:
 This specification defines how an identity provider binds a
 platform-authenticated agent to a registered agent principal and
 issues authorization grants for that principal. It profiles
-Attestation-Based Client Authentication, SPIFFE X.509-SVID, or
-WIT-SVID client authentication together with the client credentials
+platform-issued JWT client authentication under RFC 7523,
+Attestation-Based Client Authentication, and SPIFFE X.509-SVID and
+WIT-SVID client authentication, together with the client credentials
 grant and OAuth 2.0 Token Exchange. Stable instance identification is
 an optional extension. The resulting Workload Authorization Grant
 identifies a self-acting agent as subject; an Identity Assertion JWT
@@ -125,13 +126,18 @@ the agent proves, and redeemed at a Resource Authorization Server
 (RAS) for a sender-constrained access token.
 
 The agent authenticates with a credential its platform can produce.
-An agent can have its own OAuth client identity, or a shared OAuth
-client can host several independently governed agents. In the first
-case, `client_id` identifies the agent; in the second, an additional
-`agent_id` distinguishes agents within the shared client. The IdP
-binds that authenticated identity to a Registered Agent in its own
-namespace. Optional instance context identifies the installation or
-execution presenting the request.
+That credential is commonly a JWT the platform issues about the agent,
+such as a cloud provider's workload or agent identity token; it can
+also be a Client Attestation or a SPIFFE SVID. An IdP that imports
+agents from such platforms into its registry binds each imported
+identity to a Registered Agent and accepts the platform's credential
+as authentication. An agent can have its own OAuth client identity, or
+a shared OAuth client can host several independently governed agents.
+In the first case, `client_id` identifies the agent; in the second, an
+additional `agent_id` distinguishes agents within the shared client.
+The IdP binds that authenticated identity to a Registered Agent in its
+own namespace. Optional instance context identifies the installation
+or execution presenting the request.
 
 Issuance has two steps:
 
@@ -171,21 +177,23 @@ specified in {{INSTANCE}}.
 
 ## Relationship to Client Attestation and Actor Profile
 
-{{ATTEST}} supplies one authentication binding. {{SPIFFE-OAUTH}}
+A platform-issued JWT under {{RFC7523}} supplies the authentication
+binding for agents imported from cloud and agent platforms. {{ATTEST}}
+supplies a binding for attested client instances. {{SPIFFE-OAUTH}}
 supplies native X.509-SVID and WIT-SVID bindings. WIT-SVID uses a
-Workload Identity Token {{WIT}} directly in the ATTEST header with
-its key-possession proof; no additional attestation wraps the WIT.
-All inputs resolve to an IdP agent principal and establish a DPoP key.
-{{INSTANCE}} optionally adds
-stable instance context to ATTEST; it is not a prerequisite for
-agent authentication or token exchange. The ATTEST binding retains
-`sub=client_id` and adds `agent_id` only for shared clients.
+Workload Identity Token {{WIT}} directly in the ATTEST header with its
+key-possession proof; no additional attestation wraps the WIT. All
+inputs resolve to an IdP agent principal and establish a DPoP key.
+{{INSTANCE}} optionally adds stable instance context to ATTEST; it is
+not a prerequisite for agent authentication or token exchange. The
+ATTEST binding retains `sub=client_id` and adds `agent_id` only for
+shared clients.
 
-The Client Attestation or SVID is authentication evidence. The IdP-issued
-access token identifies the resolved agent and authorizes exchange
-at the IdP. The resulting WAG or ID-JAG authorizes issuance at a
-Resource Authorization Server (RAS). Those artifacts have different
-purposes and are not interchangeable.
+The platform JWT, Client Attestation, or SVID is authentication
+evidence. The IdP-issued access token identifies the resolved agent
+and authorizes exchange at the IdP. The resulting WAG or ID-JAG
+authorizes issuance at a Resource Authorization Server (RAS). Those
+artifacts have different purposes and are not interchangeable.
 
 For delegation, Actor Profile supplies actor construction and
 preservation rules. The registered agent is the actor; the instance
@@ -203,7 +211,7 @@ the identity the platform can authenticate:
 | Model | Use when | Identity and token path | Reason and cost |
 |---|---|---|---|
 | Existing client-based delegation | The OAuth client is sufficient for policy and no separate registered agent identity is needed | Existing ID-JAG/EMA flow; client context is implicit, or Actor Profile represents the client explicitly | Preserves current deployments without an additional bootstrap; a shared client does not distinguish its agents |
-| Agent with its own client identity | The IdP governs a Registered Agent and that agent can authenticate as its own OAuth client | ATTEST or SPIFFE authenticates `client_id`; map to Registered Agent and exchange an eligible IdP access token | Simplest federation binding; requires managing a client identity for each independently identified agent |
+| Agent with its own client identity | The IdP governs a Registered Agent and that agent can authenticate as its own OAuth client | A platform-issued JWT, ATTEST, or SPIFFE authenticates `client_id`; map to Registered Agent and exchange an eligible IdP access token | Simplest federation binding; requires managing a client identity for each independently identified agent |
 | Agents behind a shared client | The IdP governs agents individually but the platform authenticates through a common OAuth client | ATTEST `sub=client_id` plus `agent_id`; map to Registered Agent, then use the same acquisition and exchange flow | Avoids separate client identities for hosted agents; requires trusting the attester to distinguish agents and authorize their runtimes |
 
 Use the existing client-based path when its identity and policy
@@ -274,15 +282,15 @@ Agent Status:
 A client or IdP claiming this profile MUST implement at least one
 input binding in {{inputs}}, acquisition in {{bootstrap}}, and the
 exchange requirements for its role and supported outputs. Acquisition
-is skipped when an eligible access token is already available.
-The parties MUST establish a common input and supported outputs
-through trusted configuration and existing metadata. The delegated
-output additionally requires {{ACTOR-PROFILE}}. WAG defines the grant
+is skipped when an eligible access token is already available. The
+parties MUST establish a common input and supported outputs through
+trusted configuration and existing metadata. The delegated output
+additionally requires {{ACTOR-PROFILE}}. WAG defines the grant
 concept; {{wag-profile}} defines its issuance by an IdP. Until {{WAG}}
 adopts or references those definitions they are specific to this
-document, and {{coordination}} lists the open items.
-Task authority, delegation chains, and other native input bindings
-are outside this profile.
+document, and {{coordination}} lists the open items. Task authority,
+delegation chains, and input bindings not listed in {{inputs}} are
+outside this profile.
 
 # Profile Selection and Identity Binding {#identity}
 
@@ -292,9 +300,14 @@ permitted outputs. Configuration MUST also identify approved RAS
 issuers, resources, target tenants, and subject and client mappings.
 An unsigned request hint or discovered client metadata MUST NOT
 establish this authority or switch the configured input binding.
+Bindings MAY be established by importing agents from a platform's
+registry. An import is configuration: it MUST be authenticated and
+audited like any other binding change, and it MUST record the platform
+issuer and the identity claim value it binds.
 
 | Input and client model | Federation Binding lookup |
 |---|---|
+| Platform-issued JWT, agent is the client | Approved platform issuer and exact value of the configured identity claim; `client_id` designated by the binding |
 | ATTEST, agent is the client | Exact attestation `(iss, sub)`; no `agent_id` |
 | ATTEST, shared client | Exact attestation `(iss, sub, agent_id)` |
 | SPIFFE X.509-SVID, agent is the client | Approved trust domain and exact SPIFFE ID; `client_id` equals that ID |
@@ -348,12 +361,57 @@ input-specific processing.
   certificate, or claim, and MUST NOT copy unvalidated instance
   claims into issued tokens. {{instance-identification}} is the
   only source of instance context.
-* Input credentials MUST NOT be presented as `subject_token`,
-  `actor_token`, or `client_assertion`; {{exchange}} uses the
-  IdP-issued access token.
+* Input credentials MUST NOT be presented as `subject_token` or
+  `actor_token`; {{exchange}} uses the IdP-issued access token. Only
+  the platform-issued JWT input uses `client_assertion`, and only
+  for client authentication.
 * Renewal or reissuance of an input credential does not rebind an
   existing access token to a different DPoP key. A changed key
   requires new issuance.
+
+### Platform-Issued JWT {#platform-jwt-input}
+
+The client MUST authenticate with a JWT issued by an approved
+platform issuer, presented as `client_assertion` with
+`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`
+under {{RFC7523, Section 2.2}}. This is the credential a cloud or
+agent platform issues about the workload or agent it runs, such as
+a managed-identity token, an agent identity token, or a projected
+service-account token. This input represents the agent as client.
+
+For each approved platform issuer the IdP MUST configure the exact
+issuer identifier; the key source, which MUST be issuer metadata
+under {{OIDC}} or {{RFC8414}} or a configured key set and MUST NOT
+be a URL or key supplied in the JWT; the claim that carries the
+platform's agent identity, `sub` unless configured otherwise; the
+audience values it accepts, which MUST identify the IdP; permitted
+asymmetric algorithms; and a maximum age and lifetime.
+
+The IdP MUST validate the JWT under {{RFC7523, Section 3}},
+including `iss` against the configured issuer, `aud` against the
+configured values, signature, `exp`, and the configured age and
+lifetime limits. The identity claim value MUST equal the external
+identity of exactly one Federation Binding under {{identity}}; a
+value the IdP has not bound MUST cause rejection, and a pattern or
+prefix match MUST NOT substitute for an exact binding. The binding
+designates the logical `client_id`; the IdP MAY use the identity
+claim value itself as `client_id` when it is unambiguous. A
+`client_id` present in the request MUST match the designated value.
+
+A platform-issued JWT is a bearer credential with no key of its
+own. It authenticates the client on its own and MUST be handled as
+a client credential: the IdP MUST require `aud` to identify itself,
+MUST enforce the configured maximum age, and SHOULD reject a `jti`
+presented more than once within that age. A separate DPoP proof
+establishes the token-binding key, which the platform need not
+know. Both MUST be validated in the same request. A renewed
+platform JWT for the same bound identity MAY authenticate an
+exchange with an existing eligible token; the DPoP key MUST still
+match. Validation errors use `invalid_client` under {{RFC6749}}.
+
+There is no registered authentication method name for third-party
+JWT assertions; the IdP expresses support through its platform
+issuer configuration under {{metadata}}.
 
 ### Client Attestation {#agent-evidence}
 
@@ -394,8 +452,8 @@ in the same authenticated token request. At exchange, a renewed SVID
 MAY authenticate the same SPIFFE ID under the same approved binding;
 the DPoP key MUST still match the access token.
 
-WIT-SVID uses the separate binding in {{wit-input}}; JWT-SVID is
-outside this profile.
+WIT-SVID uses the separate binding in {{wit-input}}. A JWT-SVID lacks
+the `iss` claim {{RFC7523}} requires and remains outside this profile.
 
 ### SPIFFE WIT-SVID {#wit-input}
 
@@ -913,11 +971,14 @@ this contract without defining new SCIM attributes.
 
 The IdP MUST advertise `client_credentials`, token exchange, and its
 implemented input methods (`attest_jwt_client_auth_dpop`,
-`spiffe_x509`, or `spiffe_wit`) through existing {{RFC8414}} and input-specification
-metadata, and DPoP `ES256` support under {{RFC9449}}. Profile selection and
+`spiffe_x509`, or `spiffe_wit`) through existing {{RFC8414}} and
+input-specification metadata, and DPoP `ES256` support under
+{{RFC9449}}. Support for the platform-issued JWT input has no
+registered method name and is expressed through the IdP's platform
+issuer configuration and registry import. Profile selection and
 approved identity bindings use the configuration in {{identity}}.
-Delegated implementations use Actor Profile's existing metadata for
-ID Token subject input, JWT access-token actor input, and supported
+Delegated implementations use Actor Profile's existing metadata for ID
+Token subject input, JWT access-token actor input, and supported
 entity profiles, including `ai_agent`. The IdP advertises its
 supported outputs, `urn:ietf:params:oauth:token-type:id-jag` and
 `urn:ietf:params:oauth:token-type:wag`, through
@@ -975,6 +1036,18 @@ limit each attester's approved bindings to the agents it governs, and
 MUST enforce withdrawal of attester trust on subsequent
 authentication. The attester `iss` SHOULD be retained with each
 issuance for audit.
+
+A platform-issued JWT authenticates the client without a key of its
+own, so its theft lets the holder acquire an IdP access token bound to
+a key of the holder's choosing until the JWT expires. Audience
+restriction to the IdP, the configured maximum age, `jti` replay
+rejection, and transport protection are the mitigations, and platform
+tokens with long lifetimes SHOULD be constrained by a short configured
+maximum age. A compromised or mistakenly approved platform issuer can
+impersonate every agent bound to it, so the same scoping and
+withdrawal requirements apply to platform issuers as to attesters.
+Changes to imported bindings alter which platform identity is which
+agent and MUST be authenticated and audited.
 
 Stable agent and instance identifiers can permit correlation.
 The IdP SHOULD release only necessary context and retain internal
@@ -1088,13 +1161,14 @@ do not describe the agent actor's memberships. Provisioning transport,
 synchronization, policy engines, access-token formats, and introspection
 {{RFC7662}} are deployment choices outside this profile.
 
-Native SPIFFE X.509-SVID and WIT-SVID authentication follow
-{{spiffe-input}} and {{wit-input}}, respectively.
-Other credential types need explicit binding and proof rules; support
-for SPIFFE does not imply that every SVID type is accepted.
-Direct WIT actor evidence under Actor Profile is a different input
-path. It would need explicit external-subject mapping and proof
-rules; it does not implicitly substitute for the IdP access token here.
+Platform-issued JWTs follow {{platform-jwt-input}}; native SPIFFE
+X.509-SVID and WIT-SVID authentication follow {{spiffe-input}} and
+{{wit-input}}. Other credential types need explicit binding and proof
+rules; support for one platform's tokens does not imply that every
+token format is accepted. Direct WIT actor evidence under Actor
+Profile is a different input path. It would need explicit
+external-subject mapping and proof rules; it does not implicitly
+substitute for the IdP access token here.
 
 # End-to-End Deployment Examples {#flows}
 {:numbered="false"}
@@ -1106,6 +1180,7 @@ hosting environment, authentication evidence, and acting relationship:
 | Use case | Deployment | Evidence accepted by IdP | Identity model | Grant |
 |---|---|---|---|---|
 | Agent acting for itself | SPIFFE workload | X.509-SVID or WIT-SVID with their required proofs | Agent is the client | WAG |
+| Agent acting for itself | Imported cloud or agent-platform agent | Platform-issued JWT and DPoP | Agent is the client | WAG |
 | Agent acting for itself | Managed platform | Platform Client Attestation and DPoP | Agents share a client | WAG |
 | Agent acting for a user | Managed device | Enterprise Client Attestation and DPoP | Agent is the client | ID-JAG |
 | Agent acting for a user | Managed platform | Platform Client Attestation and DPoP | Agents share a client | ID-JAG |
@@ -1285,6 +1360,53 @@ and 5 above then apply, with WIT-SVID and fresh attestation and
 DPoP proofs authenticating the exchange. For user-delegated access,
 the same IdP token is actor evidence under {{delegated-exchange}};
 the WIT itself remains client authentication evidence at the IdP.
+
+### Platform-Issued JWT Variant
+{:numbered="false"}
+
+Use this model when the IdP has imported the agent from a cloud or
+agent platform and the agent authenticates with the JWT that
+platform issues about it, under {{platform-jwt-input}}. The import
+bound `sub=agent-runtime-8f2c` at issuer
+`https://agents.cloud.example/tenant/acme` to Registered Agent
+`agent-42` and designated `client_id=https://idp.example/clients/agent-42`.
+Decoded platform JWT:
+
+~~~ json
+{
+  "iss": "https://agents.cloud.example/tenant/acme",
+  "sub": "agent-runtime-8f2c",
+  "aud": "https://idp.example/tenant/acme",
+  "iat": 1789128000,
+  "exp": 1789128600,
+  "jti": "plat-4d1e"
+}
+~~~
+
+The harness generates `K` and sends the JWT as its client
+assertion with a DPoP proof from `K`:
+
+~~~ http
+POST /token HTTP/1.1
+Host: idp.example
+Content-Type: application/x-www-form-urlencoded
+DPoP: eyJ...proof-K...
+
+grant_type=client_credentials
+&client_id=https%3A%2F%2Fidp.example%2Fclients%2Fagent-42
+&client_assertion_type=urn%3Aietf%3Aparams%3Aoauth%3Aclient-assertion-type%3Ajwt-bearer
+&client_assertion=eyJ...platform-jwt...
+&resource=https%3A%2F%2Fidp.example%2Ftenant%2Facme
+~~~
+
+The IdP resolves the issuer's keys from its configured metadata,
+matches `sub` to the imported binding, and issues the access token
+with `sub=agent-42` and `cnf.jkt=JKT(K)`. Steps 4 and 5 of the
+X.509-SVID flow then apply, with a fresh platform JWT or the same
+unexpired one authenticating the exchange. The platform never sees
+`K`; the JWT authenticates the agent and the proof binds the token.
+For user-delegated access the same access token is actor evidence
+under {{delegated-exchange}}.
 
 ### Shared Client in a Managed Platform {#platform-flow}
 {:numbered="false"}
@@ -1483,6 +1605,7 @@ Both use cases finish at the same application trust boundary:
 | Example | Application access-token identity | Key binding |
 |---|---|---|
 | SPIFFE workload, self-acting | `sub=agent-42`, no `act` | `cnf.jkt=JKT(K)` |
+| Imported platform agent, self-acting | `sub=agent-42`, no `act` | `cnf.jkt=JKT(K)` |
 | Managed device, delegated | `sub=user-17`, `act.sub=agent-17` | `cnf.jkt=JKT(K)` |
 | Managed platform, self-acting | `sub=agent-42`, no `act` | `cnf.jkt=JKT(K)` |
 | Managed platform, delegated variant | User `sub`, `act.sub=agent-42` | `cnf.jkt=JKT(K)` |
@@ -1546,6 +1669,9 @@ exercise:
 | Shared client omits `agent_id` | Reject; no fallback to client-only binding |
 | Agent with its own client identity supplies `agent_id` | Reject; no switch to the shared-client model |
 | Missing, ambiguous, or disabled binding | Reject issuance |
+| Platform-issued JWT from an approved issuer with a bound identity claim and DPoP proof | IdP access token for the bound agent; no stable instance context |
+| Platform-issued JWT with an unapproved issuer, wrong audience, or expired | Reject client authentication with `invalid_client` |
+| Platform-issued JWT whose identity claim is not bound to a Registered Agent | Reject issuance; no pattern or prefix match |
 | X.509-SVID client with approved exact ID and DPoP proof | IdP access token without stable instance context |
 | WIT-SVID with approved exact ID, attestation PoP, and matching DPoP key; no `iss` | IdP access token for the configured agent; no stable instance context |
 | WIT-SVID with missing attestation PoP, mismatched key or proof algorithm, or expired credential | Reject authentication or proof |
@@ -1580,21 +1706,96 @@ conformance path for this specification.
 
 *RFC EDITOR: Remove this section before publication.*
 
+## WAG Gaps Filled by This Document {#wag-gaps}
+{:numbered="false"}
+
 WAG-00 names IdP issuance through token exchange as an open
-composition and leaves proof of possession, JWT type, token type,
-error responses, Agent Properties, and IANA actions undefined, while
-requiring jwt-bearer redemption with `resource`. {{wag-profile}} and
-{{consumption}} fill those gaps for IdP-issued grants, and {{iana}}
-registers the token type and media type because WAG registers
-nothing. Items that need WAG's agreement: whether WAG references
-these registrations or registers equivalents that this document then
-adopts; `aud` carrying the issuer identifier alone; `cnf.jkt` as the
-proof-of-possession answer for IdP-issued grants; the Agent
-Properties claim names once WAG's Section 8 settles; and WAG's
-Informational status against this document's normative reference.
-Advertising WAG output through
-`identity_chaining_requested_token_types_supported` also needs
-confirmation with identity chaining.
+composition and leaves several properties of the grant undefined.
+This document fills them in {{wag-profile}}, {{consumption}}, and
+{{iana}} so that implementations can proceed. Each item below is a
+property of every Workload Authorization Grant, however obtained,
+and is offered to WAG as upstream text; once WAG defines an item,
+this document will reference WAG and remove its own definition.
+
+Token type for token exchange:
+: Defined here as `urn:ietf:params:oauth:token-type:wag`, registered
+  in {{iana}}. Needed because {{RFC8693}} identifies the requested
+  and issued token by a type URI; without one an IdP cannot issue a
+  WAG through exchange and a client cannot ask for one. Belongs in
+  WAG because every party that obtains a WAG by exchange needs the
+  same value, and WAG Sections 5 and 11 already contemplate
+  exchange-based issuance.
+
+Explicit JWT type:
+: Defined here as `typ=oauth-wag+jwt`, with the media type
+  registered in {{iana}}. Needed because a RAS token endpoint that
+  accepts several JWT grants must distinguish a WAG from an ID-JAG,
+  an access token, or a client assertion; {{RFC8725}} requires
+  explicit typing for that purpose. Belongs in WAG because the type
+  identifies the format, not the issuer; ID-JAG registers its own.
+
+Sender-constrained grant:
+: Defined here as `cnf.jkt` in the grant, a DPoP proof at
+  redemption, a key match, and `invalid_grant` on mismatch. Needed
+  because WAG-00 Section 5.1 leaves the grant a bearer assertion, so
+  a stolen grant is redeemable by anyone within its lifetime, while
+  this document keeps the agent binding key-bound end to end.
+  Belongs in WAG because its own Section 5.1 lists sender constraint
+  as the open option, the check runs at the RAS regardless of
+  issuer, and mirroring ID-JAG's bound-grant procedure lets a RAS
+  implement one procedure for both grants.
+
+`scope` and `resource` claims:
+: Defined here as REQUIRED claims using ID-JAG's definitions. Needed
+  because the grant must carry the authorized downstream access;
+  WAG-00 carries `resource` only as a redemption parameter and has
+  no `scope` claim, so a RAS cannot check the request against the
+  grant. Belongs in WAG because claim definitions are part of the
+  format, and parity with ID-JAG simplifies RAS processing.
+
+Redemption error responses:
+: Defined here as `invalid_grant` for validation and proof
+  failures, `invalid_target` for a `resource` mismatch, and
+  `invalid_scope` for scopes beyond the grant. Needed because
+  WAG-00 defines no error responses, so clients cannot implement
+  interoperable recovery. Belongs in WAG because the responses are
+  RAS behavior common to every WAG.
+
+Single-use grants:
+: Defined here as the RAS tracking `(iss, jti)` for at least the
+  grant lifetime and rejecting replay. Needed because {{RFC7523}}
+  leaves replay detection optional, and a replayed grant mints
+  additional access tokens even when key-bound. Belongs in WAG
+  because it is redemption behavior independent of the issuer.
+
+No actor claim:
+: Defined here as a WAG MUST NOT contain `act`. Needed because a
+  WAG represents a self-acting agent, and an actor claim would make
+  it indistinguishable from a delegated grant at the RAS. Belongs in
+  WAG because it is a statement about the format.
+
+Issuer placement:
+: Defined here as the IdP taking WAG's per-tenancy issuer role,
+  with key resolution by `iss` through the RAS allowlist and `sub`
+  equal to the Registered Agent identifier. Needed because WAG-00
+  Sections 5 and 11 name the enterprise IdP as an issuer but leave
+  the composition open. WAG needs only one paragraph acknowledging
+  the IdP placement and pointing to this document; the mechanics
+  remain here because they depend on the IdP having resolved a
+  governed agent.
+
+Items that need WAG's agreement rather than new text: `aud`
+carrying the issuer identifier alone, which WAG already accepts;
+the Agent Properties claim names once WAG's Section 8 settles, and
+whether `groups`, `roles`, and `name` reference their registered
+{{RFC9068}} and OpenID Connect definitions; and WAG's Informational
+status against this document's normative reference. Advertising
+WAG output through `identity_chaining_requested_token_types_supported`
+also needs confirmation with identity chaining.
+
+
+## Other Coordination Items
+{:numbered="false"}
 
 Actor Profile's generic JWT-grant audience guidance uses a token
 endpoint, while ID-JAG uses the RAS issuer. This document selects
@@ -1666,3 +1867,9 @@ on identity mapping and trust-domain validation when `iss` is absent.
 * Stated the shared-client delegation-approval requirement, explained
   the RAR exclusion, and completed the media type registration
   template.
+* Listed the WAG gaps this document fills, with the reason each is
+  needed and why it belongs in WAG.
+* Added the platform-issued JWT input under RFC 7523 for agents
+  imported from cloud and agent platforms, with binding by registry
+  import, and reframed ATTEST and SPIFFE as two credential types among
+  several.
