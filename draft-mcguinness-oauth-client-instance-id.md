@@ -37,6 +37,8 @@ informative:
   RFC2104:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC7591:
+  RFC7636:
+  RFC8252:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
@@ -714,6 +716,74 @@ for attestation renewal. Verified continuity of the same execution
 preserves `I1`; a restart or another replica receives a new identifier
 even when it uses the same SPIFFE ID. Instance Context does not turn
 that execution into an authorization subject or delegated actor.
+
+# Managed Device Example {#managed-device-example}
+{:numbered="false"}
+
+This informative example identifies an agent harness installation on
+an enterprise-managed device. A device-management service, or an
+attester it supports, verifies installation evidence and issues Client
+Attestations. Device enrollment alone does not identify a particular
+application installation or authorize access to a user's resources.
+
+The device is already enrolled in management. The OAuth AS is
+configured to trust the attester for the harness's Logical Client `C1`.
+This example uses installation granularity and a user-authorized
+authorization code grant. `I1`, `K1`, and `M1` denote the installation
+identifier, Client Instance Key, and recipient-scoped identifier.
+
+~~~ ascii-art
+Agent harness       Managed attester    OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) App evidence--->                 |                 |
+     <-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Authorization via browser------->                 |
+     <-Authorization code via redirect------|                 |
+     |-(4) Code + attestation + proofs------>                 |
+     <-(5) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(6) Resource request + access token + DPoP proof------->
+     <-Resource response--------------------------------------|
+~~~
+
+1. The harness creates `K1` in platform-protected key storage and
+   proves possession to the attester. The attester validates device
+   enrollment and authenticated evidence binding `K1` to the approved
+   harness installation, for example from a trusted local management
+   component that verifies the calling application. It assigns `I1`.
+   Key storage alone does not establish that binding; the evidence
+   and enrollment mechanisms are deployment-specific.
+2. The attester issues a Client Attestation with
+   `typ=oauth-client-attestation+jwt`, its own `iss`, `sub=C1`,
+   `client_instance_id=I1`, `cnf.jwk` containing the public part of
+   `K1`, and `exp`. `I1` is opaque; it does not encode a device serial
+   number, management identifier, or user account.
+3. The harness initiates authorization in an external browser under
+   {{RFC8252}}, using PKCE with the `S256` challenge method
+   {{RFC7636}}. The AS authenticates the user and obtains authorization
+   for the requested access, then returns a code through the registered
+   redirect URI. The diagram abbreviates these browser interactions.
+4. The harness redeems the code with `client_id=C1`, the redirect URI,
+   and PKCE verifier. It also presents the Client Attestation and
+   combined DPoP proof using `K1` under {{ATTEST}}. Client attestation
+   does not replace PKCE or the user's authorization.
+5. The AS validates the code, PKCE verifier, attestation, proof, and
+   instance policy. It issues a DPoP-bound access token for the
+   authorized access, with `client_instance` containing its own `iss`
+   and recipient-scoped `id=M1`. The context adds no `act` claim;
+   subject and delegation semantics follow the authorization profile.
+6. The resource validates the access token, DPoP proof, and context
+   under {{instance-context}}, and applies its authorization policy.
+   It can correlate the installation for audit without receiving the
+   device-management identifier or original enrollment evidence.
+
+A process restart retains `I1` when the attester verifies installation
+continuity; a separate installation or clone receives a new identifier.
+Verified key replacement retains `I1` and `M1` without transferring
+tokens bound to the old key. If management is withdrawn, the attester
+stops issuing attestations for that installation; downstream token
+handling follows {{lifetime}}, not an implied device-status signal.
 
 # Document History {#history}
 {:numbered="false"}
