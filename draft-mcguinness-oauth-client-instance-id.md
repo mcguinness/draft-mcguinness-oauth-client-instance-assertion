@@ -654,6 +654,67 @@ retains `M1`, as in {{lifecycle-example}}. Neither identifier determines
 the token's subject or creates an `act` claim; delegated access would
 require a separate authorization grant and its delegation semantics.
 
+# SPIFFE Workload Example {#spiffe-example}
+{:numbered="false"}
+
+This informative example adds execution-level identification to a
+SPIFFE deployment where replicas share the SPIFFE ID
+`spiffe://example.org/agent-worker`. Direct OAuth authentication using
+SVIDs follows {{SPIFFE-OAUTH}} and remains sufficient when that workload
+identity meets the deployment's needs. Here, a workload attester issues
+a separate Client Attestation to distinguish executions; this is a
+deployment pattern, not an additional requirement on SPIFFE clients.
+
+The workload obtains an X.509-SVID through the SPIFFE Workload API.
+The attester trusts its SPIFFE trust domain, maps the authorized SPIFFE
+ID to Logical Client `C1`, and can verify execution evidence from the
+managed runtime. The OAuth AS separately trusts the attester for `C1`
+and permits the client credentials grant for the target resource.
+`I1`, `K1`, and `M1` are symbolic instance, key, and mapped-identifier
+labels as in {{aauth-example}}.
+
+~~~ ascii-art
+Workload            Workload attester   OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) mTLS enrollment>                 |                 |
+     <-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Grant + attestation + proof------>                 |
+     <-(4) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(5) Resource request + access token + DPoP proof------->
+     <-Resource response--------------------------------------|
+~~~
+
+1. The workload authenticates to the attester using its X.509-SVID
+   over mutual TLS and proves possession of a separate Client Instance
+   Key `K1`. The attester validates the SVID and correlates the request
+   and `K1` with authenticated runtime evidence identifying this
+   execution, then assigns `I1`. The shared SPIFFE ID or an unverified
+   container identifier alone cannot distinguish replicas. The
+   enrollment and runtime-evidence mechanisms are deployment-specific.
+2. The attester issues a Client Attestation with
+   `typ=oauth-client-attestation+jwt`, its own `iss`, `sub=C1`,
+   `client_instance_id=I1`, `cnf.jwk` containing the public part of
+   `K1`, and `exp`. The SPIFFE trust domain and OAuth attester issuer
+   remain separate trust relationships.
+3. The workload sends `grant_type=client_credentials` and `client_id=C1`
+   with the attestation and combined DPoP proof using `K1` under
+   {{ATTEST}}. This request uses attestation-based authentication;
+   it does not also present the SVID as an OAuth client credential.
+4. The AS validates the attestation, proof, and instance policy and
+   authorizes the grant. It issues a DPoP-bound access token carrying
+   `client_instance` with its own `iss` and recipient-scoped `id=M1`.
+5. The resource validates the token, proof, and context under
+   {{instance-context}}. It can correlate this execution for audit
+   without validating SVIDs or trusting the workload attester directly.
+
+SVID renewal alone neither creates a new instance nor proves continuity
+for attestation renewal. Verified continuity of the same execution
+preserves `I1`; a restart or another replica receives a new identifier
+even when it uses the same SPIFFE ID. Instance Context does not turn
+that execution into an authorization subject or delegated actor.
+
 # Document History {#history}
 {:numbered="false"}
 
