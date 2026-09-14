@@ -67,6 +67,16 @@ for that instance additionally supports audit correlation,
 instance-specific risk evaluation, and lifecycle response across
 attestation reissuance and key rotation.
 
+The Client Instance Key alone cannot serve this purpose. Key
+rotation breaks any correlation keyed on a thumbprint, suspension
+and revocation need to target an installation or execution rather
+than a key, and the per-receiver keys that {{ATTEST, Section 11.1}}
+recommends for unlinkability make the key useless as an identifier
+across requests to different Receivers. A stable identifier
+assigned by the attester, scoped to the attester's issuer, supplies
+what the key cannot while leaving key possession as the proof of
+presence.
+
 This document defines that identifier and its relationship to an
 OAuth client {{RFC6749}} as a profile under {{ATTEST, Section 13}}.
 It retains the Client Attestation JWT, HTTP headers, authentication
@@ -80,6 +90,14 @@ principal whose authority it exercises. Authorization profiles,
 such as {{AGENT-FEDERATION}}, determine whether that principal is
 the token subject or an actor. Implementing this document does
 not require implementing an actor profile or producing `act`.
+
+draft-mcguinness-oauth-client-instance-assertion defines a
+standalone client instance assertion presented alongside any client
+authentication method, including `none`. This document takes a
+different approach for clients that already authenticate with a
+Client Attestation: it profiles {{ATTEST}} and defines no separate
+assertion parameter. Deployments using ATTEST SHOULD use this
+profile; the assertion draft remains for clients that cannot.
 
 # Conventions and Definitions
 
@@ -95,12 +113,27 @@ Logical Client:
 Instance Identifier:
 : An opaque identifier assigned by a Client Attester to one
   Client Instance at the configured lifecycle granularity. Its
-  identity is the ordered pair of the
-  attester's issuer identifier and the Instance Identifier.
+  identity is the ordered pair of the Attester Issuer and the
+  Instance Identifier.
 
 Instance Context:
 : A validated reference to the client instance presenting a request.
   It is evidence about execution, not an authorization grant.
+
+Receiver:
+: The authorization server or other party that validates a Client
+  Attestation under this profile. Where it issues tokens carrying
+  Instance Context it is also the token issuer.
+
+Attester Issuer:
+: The value of `iss` in the Client Attestation, identifying the
+  Client Attester.
+
+Instance Authority:
+: The value of `iss` in a `client_instance` object, identifying
+  the namespace of its `id`. It is the Receiver's own issuer
+  identifier in the mapped form or the Attester Issuer in the
+  pass-through form ({{instance-context}}).
 
 # Profile Selection and Trust {#configuration}
 
@@ -115,11 +148,12 @@ profile or alter the client's authentication method. This
 document defines no new discovery or client metadata parameters.
 
 The configuration MUST define the identified unit and its continuity
-rules: for example, one application installation or one process or
-container execution. Receivers MUST NOT assume that an installation
-identifier distinguishes its individual processes. A change of
-granularity MUST create a new identifier; it MUST NOT silently change
-the meaning of an existing identifier.
+rules. This document defines two units: `installation`, one
+application installation, and `execution`, one process or container
+execution. Profiles MAY define others. Receivers MUST NOT assume that
+an installation identifier distinguishes its individual processes. A
+change of granularity MUST create a new identifier; it MUST NOT
+silently change the meaning of an existing identifier.
 
 For each approved attester, the server MUST configure its exact
 issuer identifier, verification keys or a trusted source for
@@ -128,7 +162,7 @@ attestation age and lifetime limits. Client-published information
 or possession of a signing key alone MUST NOT establish an
 attester's authority for a client.
 
-The receiver MUST resolve keys using that configuration and the
+The Receiver MUST resolve keys using that configuration and the
 JWT's `kid`. It MUST NOT obtain authority or replacement keys
 from an unapproved JWT-supplied URL or embedded public key.
 Changes to issuer authority and key configuration MUST be
@@ -150,8 +184,10 @@ In addition to the requirements of {{ATTEST}}, the following apply:
 `client_instance_id`:
 : REQUIRED. A nonempty StringOrURI {{RFC7519}} identifying the Client
   Instance within the issuer's namespace. The identifier MUST be
-  opaque to receivers and MUST NOT be reassigned to another instance.
-  Receivers MUST NOT derive permissions by parsing it.
+  opaque to Receivers and MUST NOT be reassigned to another instance.
+  Receivers MUST NOT derive permissions by parsing it. Attesters
+  SHOULD NOT issue identifiers longer than 256 characters, and
+  Receivers MUST accept identifiers up to that length.
 
 `iat`:
 : REQUIRED. The time at which the attestation was issued, as a
@@ -199,7 +235,7 @@ method. Implementations of this profile MUST support DPoP
 combined mode and `attest_jwt_client_auth_dpop`. Other base
 attestation proof methods MAY be supported by agreement.
 
-The receiver MUST:
+The Receiver MUST:
 
 1. Determine that this profile applies from {{configuration}}.
 2. Validate the Client Attestation and proof according to
@@ -210,25 +246,28 @@ The receiver MUST:
    or expected Logical Client identifier.
 4. Establish the instance identity as `(iss, client_instance_id)`
    and associate it with that Logical Client and the proven key.
-5. Apply any configured instance suspension or other risk policy
-   before accepting the request.
+5. Apply the instance's current status under {{lifetime}} and any
+   other configured risk policy before accepting the request.
 
 In DPoP combined mode, the proof key MUST match `cnf.jwk`. Under
 any other supported proof method, a token-binding key presented
 in the same request MUST also be the validated `cnf.jwk` key, and
-the receiver MUST reject a DPoP proof from a different key. This
+the Receiver MUST reject a DPoP proof from a different key. This
 profile deliberately narrows the base specification's allowance
 for an unrelated DPoP key so that token binding, the instance
 identity established in step 4, and the key-continuity rules in
-{{lifetime}} all refer to one key. Where an issued artifact uses
-`cnf.jkt`, the receiver MUST compute the JWK SHA-256 thumbprint
-according to {{RFC7638}} from that validated `cnf.jwk` key; it
-MUST NOT accept an unrelated requester-selected thumbprint. DPoP
-nonce and replay processing follow {{RFC9449}}. A fresh proof is
-required for each request; the Client Attestation itself can be
-reused within its validity.
+{{lifetime}} all refer to one key. A Receiver MUST NOT bind an
+issued artifact to the instance key unless the request carried a
+DPoP proof from that key under {{RFC9449}}; combined mode is
+therefore the path to a key-bound token. Where an issued artifact
+uses `cnf.jkt`, the Receiver MUST compute the JWK SHA-256
+thumbprint according to {{RFC7638}} from the validated `cnf.jwk`
+key; it MUST NOT accept an unrelated requester-selected
+thumbprint. DPoP nonce and replay processing follow {{RFC9449}}.
+A fresh proof is required for each request; the Client Attestation
+itself can be reused within its validity.
 
-A receiver MUST NOT substitute instance identification for grant
+A Receiver MUST NOT substitute instance identification for grant
 validation. In particular, it MUST NOT set an access token's
 `sub`, add an `act` claim, or extend a delegation chain solely
 because a Client Attestation was accepted. A calling profile
@@ -256,12 +295,25 @@ A suspend/resume operation MAY retain the identifier only when the
 attester establishes continuity and prevents independently restored
 copies of the identified unit from sharing that identity.
 
+An attester suspends or retires an instance by ceasing to issue
+attestations for it. A Receiver MAY additionally hold instance
+status from the attester or its own policy, keyed by
+`(iss, client_instance_id)`. A request from a suspended or retired
+instance MUST be rejected with `invalid_client` {{RFC6749}}, and
+the error response MUST NOT reveal whether the instance is known.
+A Receiver that suspends an instance SHOULD revoke the tokens it
+issued to that instance or report them inactive through
+introspection {{RFC7662}}; the `client_instance` parameter in
+{{instance-context}} lets a resource server apply the same status
+to tokens it has already accepted. Status applied at the Receiver
+does not by itself revoke tokens issued by other parties.
+
 Attestation renewal and key rotation within a continuing instance MUST
 preserve each identifier the attester has assigned to that instance. A
 new key requires a new attestation and authenticated proof of its
 binding to that instance. Possession of an instance identifier, an
 expired attestation, or a former public key alone MUST NOT establish
-continuity. A receiver MUST NOT use a key thumbprint, certificate
+continuity. A Receiver MUST NOT use a key thumbprint, certificate
 serial number, or JWT `jti` as a substitute for the identifier.
 
 This profile does not override refresh-token binding in
@@ -284,22 +336,34 @@ validated instance context. Its value is an object containing:
 : REQUIRED. Nonempty StringOrURI identifying the instance in
   that authority's namespace.
 
-The object MUST identify the instance whose participation and
-key possession were validated for issuance. The tuple MUST
-either be copied from validated evidence or assigned through
-an authenticated, unambiguous mapping maintained by the issuer.
-The issuer MUST NOT copy unvalidated client-supplied context.
-Both members MUST be nonempty strings. Additional members MAY
-be defined by other profiles. A receiver MUST ignore members it
-does not recognize. A profile defining additional members MUST
-specify their processing for receivers implementing that profile
-and MUST NOT change the meaning of `iss` or `id`.
+`unit`:
+: OPTIONAL. String naming the identified unit: `installation` or
+  `execution` as established in {{configuration}}. Profiles MAY
+  define additional values. Absent, the recipient MUST rely on
+  its configuration for the unit.
+
+The object MUST identify the instance whose participation and key
+possession were validated for issuance. The tuple takes one of two
+forms. In the mapped form, which is RECOMMENDED, `iss` is the
+Receiver's own issuer identifier and `id` an identifier the Receiver
+assigned through an authenticated, unambiguous mapping it maintains.
+In the pass-through form, `iss` and `id` are copied from the validated
+attestation; this form requires the recipient to trust the Attester
+Issuer's namespace directly and MUST be used only with recipients
+configured for it. The issuer MUST NOT copy unvalidated
+client-supplied context. The `iss` and `id` members MUST be nonempty
+strings. Additional members MAY be defined by other profiles. A
+recipient MUST ignore members it does not recognize. A profile
+defining additional members MUST specify their processing for
+recipients implementing that profile and MUST NOT change the meaning
+of `iss` or `id`.
 
 ~~~ json
 {
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
-    "id": "runtime-93ab"
+    "id": "runtime-93ab",
+    "unit": "execution"
   }
 }
 ~~~
@@ -339,27 +403,31 @@ a shared private key does not distinguish its individual holders.
 Instance identification supports targeted risk response, but
 does not prove software behavior, authorization, or integrity
 beyond the evidence the attester actually evaluated. Instance
-revocation does not automatically revoke previously issued
-tokens; consuming profiles define those consequences.
+revocation reaches outstanding tokens only through the revocation
+and introspection behavior in {{lifetime}}; consuming profiles
+define any further consequences.
 
 Stable identifiers and keys can correlate activity. A
-`client_instance_id` that survives key rotation also links an instance
-across every receiver that trusts the same attester, which defeats the
-unlinkability mitigation in {{ATTEST, Section 11.1}} of using distinct
-Client Instance Keys per authorization server. Where cross-receiver
-linkability is a concern, the attester SHOULD assign a distinct
-`client_instance_id` per receiver while maintaining its internal
-mapping; receivers MUST NOT assume identifiers seen by different
-receivers are comparable. A Client Attestation carries no audience, so
-a per-receiver identifier requires the attester to issue a distinct
-attestation for each receiver, which is the practice
-{{ATTEST, Section 11.1}} already recommends. Deployments that require
-one identifier across receivers accept that correlation as an explicit
-trade-off. Issuers SHOULD use recipient-scoped instance mappings when
-broader correlation is unnecessary, preserve their internal audit
-mapping, and disclose only needed provenance. Error responses SHOULD
-avoid revealing unrelated instance identities. Logs MUST NOT contain
-raw credentials or private keys.
+`client_instance_id` that survives key rotation also links an
+instance across every Receiver that trusts the same attester, which
+defeats the unlinkability mitigation in {{ATTEST, Section 11.1}} of
+using distinct Client Instance Keys per authorization server. Where
+cross-receiver linkability is a concern, the attester SHOULD assign
+a distinct `client_instance_id` per Receiver while maintaining its
+internal mapping; Receivers MUST NOT assume identifiers seen by
+different Receivers are comparable. A Client Attestation carries no
+audience, so a per-receiver identifier requires the attester to
+issue a distinct attestation for each Receiver, which is the
+practice {{ATTEST, Section 11.1}} already recommends. Deployments
+that require one identifier across Receivers accept that
+correlation as an explicit trade-off.
+
+Receivers issuing Instance Context SHOULD use recipient-scoped
+instance mappings when broader correlation is unnecessary,
+preserve their internal audit mapping, and disclose only needed
+provenance. Error responses SHOULD avoid revealing unrelated
+instance identities. Logs MUST NOT contain raw credentials or
+private keys.
 
 # IANA Considerations
 
@@ -377,7 +445,34 @@ same description and reference, in the "OAuth Token Introspection
 Response" registry established by {{RFC7662}}. The Change
 Controller is IETF.
 
+The claim name `client_instance` is distinct from any Entity
+Profile value of the same spelling; this document registers a JWT
+claim and an introspection response parameter, not a subject or
+actor profile.
+
 --- back
+
+# Attester Patterns {#attester-patterns}
+{:numbered="false"}
+
+This appendix is informative. It maps common attester types to the
+identified unit and the continuity evidence each can supply. The
+attester in every row authenticates the instance and verifies its
+possession of the Client Instance Key before issuing an attestation.
+
+| Attester | Identified unit | Continuity evidence | Not distinguished |
+|---|---|---|---|
+| Mobile platform app-attestation service | Installation | Platform-attested key generated at install and bound to the app identity | Concurrent processes of one installation |
+| Enterprise device management for a desktop agent | Installation | Device enrollment record and a hardware-backed key held by the managed installation | Reinstallation on the same device without re-enrollment |
+| Container orchestrator or workload runtime | Execution | Runtime-assigned identity for one container or pod; a restart yields a new identifier | Replicas sharing one image |
+| Function or job scheduler | Execution | Per-invocation or per-job environment identity | Retries that the platform treats as the same job |
+
+An installation attester that cannot verify continuity across a
+restore or clone MUST issue a new identifier, as {{lifetime}}
+requires. An execution attester that reuses a key across restarts
+still issues a new identifier for each execution; the key is not
+the identifier. A shared signing key across replicas prevents
+instance identification at any granularity finer than the key.
 
 # Document History
 {:numbered="false"}
@@ -397,3 +492,13 @@ Controller is IETF.
 * Clarified that `iss` is required by ATTEST with an exact-match
   constraint here, and that per-receiver identifiers require
   per-receiver attestations.
+* Argued for a stable identifier against the key alone, scoped this
+  profile against the client instance assertion draft, and defined
+  Receiver, Attester Issuer, and Instance Authority.
+* Defined instance status handling, the `invalid_client` rejection,
+  and revocation or introspection of outstanding tokens; required a
+  DPoP proof for key-bound artifacts.
+* Added the optional `unit` member and the mapped and pass-through
+  forms of `client_instance`, an identifier length bound, a name
+  disambiguation note, and an informative attester patterns
+  appendix.
