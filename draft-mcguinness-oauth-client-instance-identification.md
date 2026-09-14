@@ -31,6 +31,7 @@ normative:
   RFC7662:
   RFC8725:
 informative:
+  AAUTH: I-D.hardt-oauth-aauth-protocol
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
     title: "OAuth 2.0 Profile for Agent Federation"
@@ -448,6 +449,16 @@ requires. An execution attester that reuses a key across restarts
 still issues a new identifier for each execution; the key is not
 the identifier. A shared signing key across replicas prevents
 instance identification at any granularity finer than the key.
+
+An AAuth Agent Provider {{AAUTH}} could also act as a Client Attester
+for OAuth deployments. When its enrollment records and validated
+evidence establish installation continuity and key possession, it can
+issue a Client Attestation using the approved OAuth `client_id` as
+`sub` and an opaque `client_instance_id` for that installation. The
+client presents this credential using ATTEST's proof mechanism.
+Native AAuth agent tokens and HTTP signature processing retain their
+own semantics; this example defines no token conversion or enrollment
+binding and introduces no AAuth requirement for this profile.
 
 # Document History
 {:numbered="false"}
