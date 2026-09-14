@@ -507,6 +507,11 @@ Table of Contents
 
 11.2.  Informative References
 
+   [AAUTH]    Hardt, D., "AAuth Protocol", Work in Progress, Internet-
+              Draft, draft-hardt-oauth-aauth-protocol-10, 6 August 2026,
+              <https://datatracker.ietf.org/doc/html/draft-hardt-oauth-
+              aauth-protocol-10>.
+
    [SPIFFE-OAUTH]
               Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
               S., and N. Cam-Winget, "OAuth SPIFFE Client
@@ -567,6 +572,16 @@ Attester Patterns
    a new identifier for each execution; the key is not the identifier.
    A shared signing key across replicas prevents instance identification
    at any granularity finer than the key.
+
+   An AAuth Agent Provider [AAUTH] could also act as a Client Attester
+   for OAuth deployments.  When its enrollment records and validated
+   evidence establish installation continuity and key possession, it can
+   issue a Client Attestation using the approved OAuth client_id as sub
+   and an opaque client_instance_id for that installation.  The client
+   presents this credential using ATTEST's proof mechanism.  Native
+   AAuth agent tokens and HTTP signature processing retain their own
+   semantics; this example defines no token conversion or enrollment
+   binding and introduces no AAuth requirement for this profile.
 
 Document History
 
