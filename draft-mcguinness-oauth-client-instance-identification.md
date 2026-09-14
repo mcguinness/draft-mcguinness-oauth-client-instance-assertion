@@ -178,7 +178,7 @@ not exercise the base specification's subject override.
 In addition to the requirements of {{ATTEST}}, the following apply:
 
 `iss`:
-: REQUIRED by {{ATTEST}}. It MUST equal the exact issuer identifier of
+: REQUIRED by this profile. It MUST equal the exact issuer identifier of
   an approved Client Attester in {{configuration}}.
 
 `client_instance_id`:
@@ -256,10 +256,12 @@ the Receiver MUST reject a DPoP proof from a different key. This
 profile deliberately narrows the base specification's allowance
 for an unrelated DPoP key so that token binding, the instance
 identity established in step 4, and the key-continuity rules in
-{{lifetime}} all refer to one key. A Receiver MUST NOT bind an
-issued artifact to the instance key unless the request carried a
-DPoP proof from that key under {{RFC9449}}; combined mode is
-therefore the path to a key-bound token. Where an issued artifact
+{{lifetime}} all refer to one key. A Receiver MUST NOT issue a
+DPoP-bound access token unless the request carried a DPoP proof
+from that key under {{RFC9449}}, either in combined mode or alongside
+a separate Client Attestation PoP JWT. Refresh tokens and other
+protocol artifacts retain their ATTEST binding rules, including
+when no DPoP proof is present. Where an issued artifact
 uses `cnf.jkt`, the Receiver MUST compute the JWK SHA-256
 thumbprint according to {{RFC7638}} from the validated `cnf.jwk`
 key; it MUST NOT accept an unrelated requester-selected
@@ -295,12 +297,16 @@ A suspend/resume operation MAY retain the identifier only when the
 attester establishes continuity and prevents independently restored
 copies of the identified unit from sharing that identity.
 
-An attester suspends or retires an instance by ceasing to issue
-attestations for it. A Receiver MAY additionally hold instance
-status from the attester or its own policy, keyed by
-`(iss, client_instance_id)`. A request from a suspended or retired
-instance MUST be rejected with `invalid_client` {{RFC6749}}, and
-the error response MUST NOT reveal whether the instance is known.
+When an attester suspends or retires an instance, it MUST cease
+issuing attestations for it. This does not notify Receivers or
+invalidate attestations they already hold. A Receiver MAY additionally
+obtain authenticated instance status from the attester or apply its
+own policy, keyed by `(iss, client_instance_id)`. It MUST reject a
+request once suspended or retired status is applied locally, using
+`invalid_client` {{RFC6749}} without revealing whether the instance
+is known. Without such status, enforcement depends on attestation
+expiration or the configured maximum age. This document defines no
+status distribution protocol.
 A Receiver that suspends an instance SHOULD revoke the tokens it
 issued to that instance or report them inactive through
 introspection {{RFC7662}}; the `client_instance` parameter in
@@ -489,8 +495,8 @@ instance identification at any granularity finer than the key.
 * Bound non-combined proof methods to the attestation key, restored
   the MUST for ignoring unknown `client_instance` members, and
   addressed cross-receiver linkability of stable instance identifiers.
-* Clarified that `iss` is required by ATTEST with an exact-match
-  constraint here, and that per-receiver identifiers require
+* Required `iss` in this profile with an exact-match constraint,
+  and clarified that per-receiver identifiers require
   per-receiver attestations.
 * Argued for a stable identifier against the key alone, scoped this
   profile against the client instance assertion draft, and defined
@@ -502,3 +508,6 @@ instance identification at any granularity finer than the key.
   forms of `client_instance`, an identifier length bound, a name
   disambiguation note, and an informative attester patterns
   appendix.
+* Limited the DPoP issuance prerequisite to DPoP access tokens,
+  preserving ATTEST's other artifact bindings, and tied suspension
+  enforcement to locally applied status or attestation validity.
