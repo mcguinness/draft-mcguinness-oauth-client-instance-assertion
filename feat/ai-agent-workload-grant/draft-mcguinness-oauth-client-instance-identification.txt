@@ -91,6 +91,10 @@ Table of Contents
      11.1.  Normative References
      11.2.  Informative References
    Attester Patterns
+     Managed Application
+     Workload Replicas
+     Downstream Audit Correlation
+     AAuth Agent Provider
    Document History
    Author's Address
 
@@ -552,11 +556,12 @@ Attester Patterns
    |                 |            | managed             |              |
    |                 |            | installation        |              |
    +-----------------+------------+---------------------+--------------+
-   | Container       |Execution   | Runtime-assigned    |Replicas      |
-   | orchestrator or |            | identity for one    |sharing one   |
-   | workload        |            | container or pod;   |image         |
-   | runtime         |            | a restart yields    |              |
-   |                 |            | a new identifier    |              |
+   | Container       |Execution   | Runtime-assigned    |Processes     |
+   | orchestrator or |            | identity for one    |within that   |
+   | workload        |            | container           |container     |
+   | runtime         |            | execution; a        |execution     |
+   |                 |            | restart yields a    |              |
+   |                 |            | new identifier      |              |
    +-----------------+------------+---------------------+--------------+
    | Function or job |Execution   | Per-invocation or   |Retries that  |
    | scheduler       |            | per-job             |the platform  |
@@ -572,6 +577,48 @@ Attester Patterns
    a new identifier for each execution; the key is not the identifier.
    A shared signing key across replicas prevents instance identification
    at any granularity finer than the key.
+
+Managed Application
+
+   Two installations of a managed mobile application use the same OAuth
+   client_id.  An enterprise attester validates installation evidence
+   and possession of each installation's key, then assigns distinct
+   client_instance_id values.  Each installation presents its
+   attestation and proof to the IdP, which uses the issuer-qualified
+   identifier for audit correlation.  When the attester verifies
+   continuity across key replacement, it retains that installation's
+   identifier; a clone or new installation receives a different
+   identifier.
+
+Workload Replicas
+
+   Two container replicas share a SPIFFE workload identity but hold
+   separate Client Instance Keys.  A runtime attester validates the
+   workload identity, authenticated evidence identifying each container
+   execution, and possession of its key.  It assigns each execution a
+   distinct client_instance_id and issues a Client Attestation for the
+   configured Logical Client.  The IdP validates the attestation and
+   proof to correlate requests from each execution.  Renewal within that
+   execution preserves its identifier; a new execution receives another.
+   The shared workload identity alone cannot establish this distinction.
+
+Downstream Audit Correlation
+
+   After validating an attestation and proof, an IdP maps the instance
+   to a recipient-scoped identifier and includes client_instance in a
+   token or introspection response.  Its iss identifies the IdP and its
+   id identifies the instance in that recipient's namespace.  The
+   recipient validates the token or authenticated response and uses the
+   pair for local audit correlation without receiving the original
+   attestation.  The IdP preserves the mapping across attester-verified
+   key changes and uses different mappings for other recipients to limit
+   correlation.  The token issuer authenticates this context; it conveys
+   no additional authorization or proof of possession.
+
+   An IdP needing only local correlation can instead use its internal
+   enrollment mapping and ATTEST alone, without this profile.
+
+AAuth Agent Provider
 
    An AAuth Agent Provider [AAUTH] could also act as a Client Attester
    for OAuth deployments.  When its enrollment records and validated

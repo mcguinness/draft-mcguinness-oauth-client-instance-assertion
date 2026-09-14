@@ -1206,6 +1206,20 @@ authentication do not require this profile.<a href="#section-abstract-1" class="
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
             <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-attester-patterns" class="internal xref">Attester Patterns</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.1">
+                <p id="section-toc.1-1.12.2.1.1"><a href="#appendix-A.1" class="auto internal xref"></a><a href="#name-managed-application" class="internal xref">Managed Application</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.2">
+                <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-A.2" class="auto internal xref"></a><a href="#name-workload-replicas" class="internal xref">Workload Replicas</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
+                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-downstream-audit-correlatio" class="internal xref">Downstream Audit Correlation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
+                <p id="section-toc.1-1.12.2.4.1"><a href="#appendix-A.4" class="auto internal xref"></a><a href="#name-aauth-agent-provider" class="internal xref">AAuth Agent Provider</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
             <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-document-history" class="internal xref">Document History</a></p>
@@ -1753,8 +1767,8 @@ possession of the Client Instance Key before issuing an attestation.<a href="#ap
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Container orchestrator or workload runtime</td>
             <td class="text-left" rowspan="1" colspan="1">Execution</td>
-            <td class="text-left" rowspan="1" colspan="1">Runtime-assigned identity for one container or pod; a restart yields a new identifier</td>
-            <td class="text-left" rowspan="1" colspan="1">Replicas sharing one image</td>
+            <td class="text-left" rowspan="1" colspan="1">Runtime-assigned identity for one container execution; a restart yields a new identifier</td>
+            <td class="text-left" rowspan="1" colspan="1">Processes within that container execution</td>
           </tr>
           <tr>
             <td class="text-left" rowspan="1" colspan="1">Function or job scheduler</td>
@@ -1770,7 +1784,62 @@ requires. An execution attester that reuses a key across restarts
 still issues a new identifier for each execution; the key is not
 the identifier. A shared signing key across replicas prevents
 instance identification at any granularity finer than the key.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
-<p id="appendix-A-4">An AAuth Agent Provider <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span> could also act as a Client Attester
+<div id="managed-application">
+<section id="appendix-A.1">
+        <h3 id="name-managed-application">
+<a href="#name-managed-application" class="section-name selfRef">Managed Application</a>
+        </h3>
+<p id="appendix-A.1-1">Two installations of a managed mobile application use the same OAuth
+<code>client_id</code>. An enterprise attester validates installation evidence and
+possession of each installation's key, then assigns distinct
+<code>client_instance_id</code> values. Each installation presents its attestation
+and proof to the IdP, which uses the issuer-qualified identifier for
+audit correlation. When the attester verifies continuity across key
+replacement, it retains that installation's identifier; a clone or new
+installation receives a different identifier.<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="workload-replicas">
+<section id="appendix-A.2">
+        <h3 id="name-workload-replicas">
+<a href="#name-workload-replicas" class="section-name selfRef">Workload Replicas</a>
+        </h3>
+<p id="appendix-A.2-1">Two container replicas share a SPIFFE workload identity but hold
+separate Client Instance Keys. A runtime attester validates the workload
+identity, authenticated evidence identifying each container execution,
+and possession of its key. It assigns each execution a distinct
+<code>client_instance_id</code> and issues a Client Attestation for the configured
+Logical Client. The IdP validates the attestation and proof to correlate
+requests from each execution. Renewal within that execution preserves
+its identifier; a new execution receives another. The shared workload
+identity alone cannot establish this distinction.<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="downstream-audit-correlation">
+<section id="appendix-A.3">
+        <h3 id="name-downstream-audit-correlatio">
+<a href="#name-downstream-audit-correlatio" class="section-name selfRef">Downstream Audit Correlation</a>
+        </h3>
+<p id="appendix-A.3-1">After validating an attestation and proof, an IdP maps the instance to
+a recipient-scoped identifier and includes <code>client_instance</code> in a token
+or introspection response. Its <code>iss</code> identifies the IdP and its <code>id</code>
+identifies the instance in that recipient's namespace. The recipient
+validates the token or authenticated response and uses the pair for
+local audit correlation without receiving the original attestation.
+The IdP preserves the mapping across attester-verified key changes and
+uses different mappings for other recipients to limit correlation.
+The token issuer authenticates this context; it conveys no additional
+authorization or proof of possession.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.3-2">An IdP needing only local correlation can instead use its internal
+enrollment mapping and ATTEST alone, without this profile.<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="aauth-agent-provider">
+<section id="appendix-A.4">
+        <h3 id="name-aauth-agent-provider">
+<a href="#name-aauth-agent-provider" class="section-name selfRef">AAuth Agent Provider</a>
+        </h3>
+<p id="appendix-A.4-1">An AAuth Agent Provider <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span> could also act as a Client Attester
 for OAuth deployments. When its enrollment records and validated
 evidence establish installation continuity and key possession, it can
 issue a Client Attestation using the approved OAuth <code>client_id</code> as
@@ -1778,7 +1847,9 @@ issue a Client Attestation using the approved OAuth <code>client_id</code> as
 client presents this credential using ATTEST's proof mechanism.
 Native AAuth agent tokens and HTTP signature processing retain their
 own semantics; this example defines no token conversion or enrollment
-binding and introduces no AAuth requirement for this profile.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+binding and introduces no AAuth requirement for this profile.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="document-history">
