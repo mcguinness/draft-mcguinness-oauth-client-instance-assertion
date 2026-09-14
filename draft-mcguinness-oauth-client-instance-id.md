@@ -33,6 +33,7 @@ normative:
   RFC8693:
   RFC8725:
 informative:
+  RFC2104:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC7591:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
@@ -102,8 +103,10 @@ does not authorize transferring existing grants, sessions, or tokens
 to a replacement key.
 
 A Receiver can rely on a separate attester to establish instance
-continuity. Direct presentation to resource servers follows
-{{ATTEST, Section 1.1}}. Credentials other than Client Attestations,
+continuity. Direct resource-server presentation follows
+{{ATTEST, Section 1.1}}, the audience requirement in
+{{ATTEST, Section 5.1}}, and the validation rules in
+{{ATTEST, Section 7}}. Credentials other than Client Attestations,
 including platform-issued JWTs, require a separate carrier profile;
 none is defined here.
 
@@ -171,6 +174,10 @@ through trusted configuration. An instance claim MUST NOT select this
 profile or change the client's authentication method. This document
 adds no discovery or client metadata parameters.
 
+Missing required instance claims produce `invalid_client_attestation`
+({{errors}}). That shared error reports rejection, not discovery of this
+profile; profile selection remains an administrative agreement.
+
 ## Attester Authority
 
 The Receiver's configuration is the sole source of attester authority
@@ -196,7 +203,7 @@ All ATTEST requirements apply. This profile retains
 `typ=oauth-client-attestation+jwt` and `sub=client_id`.
 The claims `exp` and `cnf` remain required; `iat` remains optional.
 
-## Additional Claims
+## Profile Claim Requirements
 
 `iss`:
 : REQUIRED. String exactly matching an approved Attester Issuer in
@@ -209,15 +216,22 @@ The claims `exp` and `cnf` remain required; `iat` remains optional.
 
 The Client Attester MUST:
 
-* generate unpredictable identifiers with at least 128 bits of
-  randomness;
+* generate identifiers unpredictable to parties other than the attester
+  before disclosure, using at least 128 bits of cryptographically secure
+  randomness or at least 128 bits of output from a cryptographically
+  secure keyed pseudorandom function;
 * exclude runtime hostnames, user identifiers, and other embedded
   instance or user attributes; and
 * preserve uniqueness and continuity as specified in {{lifetime}}.
 
+A keyed derivation, such as HMAC {{RFC2104}} over an authenticated
+installation identifier, MUST use an attester-held secret with at least
+128 bits of entropy. Changes to derivation inputs or secrets do not
+relax the continuity and non-reassignment rules in {{lifetime}}.
+
 A URI-form identifier can name the attester's namespace, including its
-authority component; the instance-specific portion remains random and
-opaque. The namespace does not establish trust in the identifier.
+authority component; the instance-specific portion remains unpredictable
+and opaque. The namespace does not establish trust in the identifier.
 
 Receivers MUST treat identifiers as opaque, compare them as exact,
 case-sensitive strings without URI normalization, accept conforming
@@ -288,9 +302,13 @@ disallowed instance, the Receiver MUST return the same error and MUST
 NOT disclose in the response whether the instance is known or its
 lifecycle status. This does not require a registry of known instances.
 
+This profile deliberately reuses ATTEST's validation error for instance
+policy rejection, so the error code does not distinguish policy rejection
+from an invalid claim. Receivers SHOULD avoid distinguishable response
+timing between these failure cases.
+
 Other authentication failures and freshness challenges retain ATTEST
-error processing. An error response does not select this profile or
-replace the configuration required by {{configuration}}.
+error processing.
 A failed profile check MUST NOT trigger fallback to processing without
 the required instance evidence.
 
