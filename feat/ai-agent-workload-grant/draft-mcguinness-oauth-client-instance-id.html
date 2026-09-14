@@ -1233,7 +1233,10 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
                 <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-recipient-processing" class="internal xref">Recipient Processing</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
-                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-authorization-and-token-exc" class="internal xref">Authorization and Token Exchange</a></p>
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-errors-2" class="internal xref">Errors</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.5">
+                <p id="section-toc.1-1.7.2.5.1"><a href="#section-7.5" class="auto internal xref">7.5</a>.  <a href="#name-authorization-and-token-exc" class="internal xref">Authorization and Token Exchange</a></p>
 </li>
             </ul>
 </li>
@@ -1363,9 +1366,10 @@ requirements. It defines no enrollment or key-rotation protocol and
 does not authorize transferring existing grants, sessions, or tokens
 to a replacement key.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
 <p id="section-1.2-2">A Receiver can rely on a separate attester to establish instance
-continuity. Credentials other than Client Attestations, including
-platform-issued JWTs, require a separate carrier profile; none is
-defined here.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+continuity. Direct presentation to resource servers follows
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>. Credentials other than Client Attestations,
+including platform-issued JWTs, require a separate carrier profile;
+none is defined here.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
 <p id="section-1.2-3">Together with Agent Federation, this document replaces the relevant
 parts of draft-mcguinness-oauth-client-instance-assertion and
 draft-mcguinness-oauth-ai-agent-instance, which are not being progressed.
@@ -1476,8 +1480,8 @@ adds no discovery or client metadata parameters.<a href="#section-3.1-3" class="
 <p id="section-3.2-1">The Receiver's configuration is the sole source of attester authority
 for a Logical Client. The Receiver <span class="bcp14">MUST</span> associate each approved
 Attester Issuer with the keys used for ATTEST validation and compare
-issuer and client identifiers as exact strings, without URI
-normalization.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+issuer and client identifiers as exact, case-sensitive strings, without
+URI normalization.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
 <p id="section-3.2-2">The Receiver <span class="bcp14">MUST NOT</span> establish attester authority solely from:<a href="#section-3.2-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3.2-3.1">
@@ -1533,15 +1537,20 @@ The instance identity is <code>(iss, client_instance_id)</code>.<a href="#sectio
 randomness;<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.1-3.2">
-            <p id="section-4.1-3.2.1">exclude hostnames, user identifiers, and other identifying data; and<a href="#section-4.1-3.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-3.2.1">exclude runtime hostnames, user identifiers, and other embedded
+instance or user attributes; and<a href="#section-4.1-3.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-4.1-3.3">
             <p id="section-4.1-3.3.1">preserve uniqueness and continuity as specified in <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-4.1-3.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-4.1-4">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, accept conforming values
-up to 256 characters, and reject longer values. They <span class="bcp14">MUST NOT</span> derive
-permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-4">A URI-form identifier can name the attester's namespace, including its
+authority component; the instance-specific portion remains random and
+opaque. The namespace does not establish trust in the identifier.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+<p id="section-4.1-5">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, compare them as exact,
+case-sensitive strings without URI normalization, accept conforming
+values up to 256 characters, and reject longer values. They <span class="bcp14">MUST NOT</span>
+derive permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-4.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="example">
@@ -1598,12 +1607,17 @@ authority for the Logical Client under <a href="#configuration" class="auto inte
 validated Client Instance Key.<a href="#section-5.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-5.1-2.4">
-            <p id="section-5.1-2.4.1">Apply configured instance policy, rejecting a disallowed instance.<a href="#section-5.1-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-5.1-2.4.1">Apply configured instance policy, rejecting a disallowed instance
+under <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-5.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-5.1-3">An identifier <span class="bcp14">MUST NOT</span> substitute for proof of key possession. Token
 binding follows ATTEST and the selected OAuth mechanism. This profile
 does not require DPoP combined mode or change token-binding rules.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">When the selected method permits a separate token-binding key, the token
+can carry Instance Context associated with the validated Client Instance
+Key even though its binding uses another key. The key-continuity rules
+in <a href="#lifetime" class="auto internal xref">Section 6</a> concern the Client Instance Key, not that separate key.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authorization">
@@ -1622,11 +1636,17 @@ the instance and the token's subject, actor, or other presenter.<a href="#sectio
         <h3 id="name-errors">
 <a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
         </h3>
-<p id="section-5.3-1">Invalid instance claims or missing required claims result in
-<code>invalid_client_attestation</code> as defined by ATTEST. Authentication
-failures and freshness challenges retain ATTEST error processing.
+<p id="section-5.3-1">The Receiver <span class="bcp14">MUST</span> return <code>invalid_client_attestation</code> for invalid
+instance claims or missing required claims, including an absent
+<code>client_instance_id</code> when this profile is configured.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-2">When instance policy rejects an unknown, suspended, retired, or otherwise
+disallowed instance, the Receiver <span class="bcp14">MUST</span> return the same error and <span class="bcp14">MUST NOT</span> disclose in the response whether the instance is known or its
+lifecycle status. This does not require a registry of known instances.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
+<p id="section-5.3-3">Other authentication failures and freshness challenges retain ATTEST
+error processing. An error response does not select this profile or
+replace the configuration required by <a href="#configuration" class="auto internal xref">Section 3</a>.
 A failed profile check <span class="bcp14">MUST NOT</span> trigger fallback to processing without
-the required instance evidence.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+the required instance evidence.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1746,10 +1766,12 @@ authority's namespace.<a href="#section-7.1-2.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 </dl>
-<p id="section-7.1-3">Recipients <span class="bcp14">MUST</span> ignore unrecognized members. Profiles defining
+<p id="section-7.1-3">Recipients <span class="bcp14">MUST</span> compare both members as exact, case-sensitive strings
+without URI normalization.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<p id="section-7.1-4">Recipients <span class="bcp14">MUST</span> ignore unrecognized members. Profiles defining
 additional members <span class="bcp14">MUST</span> specify their processing without changing
-the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-7.1-4">
+the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7.1-4" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-7.1-5">
 <pre>
 {
   "client_instance": {
@@ -1757,7 +1779,7 @@ the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7.1-3" clas
     "id": "m-f61783ea4cb24d098851d34960a274be"
   }
 }
-</pre><a href="#section-7.1-4" class="pilcrow">¶</a>
+</pre><a href="#section-7.1-5" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
@@ -1768,7 +1790,7 @@ the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7.1-3" clas
         </h3>
 <p id="section-7.2-1">The object <span class="bcp14">MUST</span> identify the instance whose participation and key
 possession were validated for issuance. Issuers <span class="bcp14">MUST NOT</span> copy
-unvalidated client-supplied context. Two representations are defined:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+unvalidated client-supplied context. Three representations are defined:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-7.2-2.1">
             <p id="section-7.2-2.1.1"><strong>Mapped (<span class="bcp14">RECOMMENDED</span>):</strong> <code>iss</code> identifies the Receiver issuing the
@@ -1778,6 +1800,11 @@ token; <code>id</code> is assigned through an authenticated mapping it maintains
             <p id="section-7.2-2.2.1"><strong>Pass-through:</strong> <code>iss</code> and <code>id</code> retain the attestation's <code>iss</code> and
 <code>client_instance_id</code>. This form <span class="bcp14">MUST</span> be used only with recipients
 configured to trust that attester's namespace.<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-2.3">
+            <p id="section-7.2-2.3.1"><strong>Preserved:</strong> <code>iss</code> and <code>id</code> retain the values from validated upstream
+token context. This form <span class="bcp14">MUST</span> be used only with recipients configured
+to trust that Instance Authority under <a href="#context-exchange" class="auto internal xref">Section 7.5</a>.<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-7.2-3">A Receiver issuing mapped context <span class="bcp14">MUST</span>:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
@@ -1818,14 +1845,14 @@ verified key replacement within the same instance.<a href="#section-7.2-4.3.1" c
                 <p id="section-7.3-2.3.2.1.1">the token issuer; or<a href="#section-7.3-2.3.2.1.1" class="pilcrow">¶</a></p>
 </li>
               <li class="normal" id="section-7.3-2.3.2.2">
-                <p id="section-7.3-2.3.2.2.1">a pass-through authority explicitly configured for that token
+                <p id="section-7.3-2.3.2.2.1">an external Instance Authority explicitly configured for that token
 issuer and recipient.<a href="#section-7.3-2.3.2.2.1" class="pilcrow">¶</a></p>
 </li>
             </ul>
 </li>
           <li id="section-7.3-2.4">
-            <p id="section-7.3-2.4.1">Reject invalid context. If context is required, also reject the
-request.<a href="#section-7.3-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-7.3-2.4.1">Reject invalid context. If context is required and is missing or
+invalid, also reject the request under <a href="#context-errors" class="auto internal xref">Section 7.4</a>.<a href="#section-7.3-2.4.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 <p id="section-7.3-3">Mapped context requires no direct trust in the original attester.
@@ -1837,29 +1864,50 @@ its granularity. A recipient whose processing depends on granularity
 not by parsing the identifier.<a href="#section-7.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="authorization-and-token-exchange">
+<div id="context-errors">
 <section id="section-7.4">
-        <h3 id="name-authorization-and-token-exc">
-<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-authorization-and-token-exc" class="section-name selfRef">Authorization and Token Exchange</a>
+        <h3 id="name-errors-2">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-errors-2" class="section-name selfRef">Errors</a>
         </h3>
-<p id="section-7.4-1">Instance Context records validated participation at issuance; it does
-not independently authenticate the current token presenter. Proof of
-possession follows the enclosing token's binding.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
-<p id="section-7.4-2">The object <span class="bcp14">MUST NOT</span> be interpreted as an actor, separate token, or
-grant of authority. A consuming profile <span class="bcp14">MUST</span> define:<a href="#section-7.4-2" class="pilcrow">¶</a></p>
+<p id="section-7.4-1">When required context is missing or invalid, a recipient <span class="bcp14">MUST</span> use:<a href="#section-7.4-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.4-3.1">
-            <p id="section-7.4-3.1.1">its association with the token's subject, actor, or other presenter;<a href="#section-7.4-3.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.4-2.1">
+            <p id="section-7.4-2.1.1"><code>invalid_token</code> at a resource server, following <span>[<a href="#RFC6750" class="cite xref">RFC6750</a>], <a href="https://rfc-editor.org/rfc/rfc6750#section-3.1" class="relref">Section 3.1</a></span>
+and the applicable access-token presentation method; or<a href="#section-7.4-2.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.4-3.2">
-            <p id="section-7.4-3.2.1">how that association is validated and preserved during exchange; and<a href="#section-7.4-3.2.1" class="pilcrow">¶</a></p>
-</li>
-          <li class="normal" id="section-7.4-3.3">
-            <p id="section-7.4-3.3.1">any trusted upstream Instance Authority whose context is retained.<a href="#section-7.4-3.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.4-2.2">
+            <p id="section-7.4-2.2.1"><code>invalid_request</code> when rejecting a subject or actor token in an
+RFC 8693 exchange, as required by <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>], <a href="https://rfc-editor.org/rfc/rfc8693#section-2.2.2" class="relref">Section 2.2.2</a></span>.<a href="#section-7.4-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.4-4">An issuer can preserve validated upstream context under those rules,
-subject to the recipient trust checks above.<a href="#section-7.4-4" class="pilcrow">¶</a></p>
+<p id="section-7.4-3">Other consuming profiles <span class="bcp14">MUST</span> specify their error mapping. These
+errors concern token context; failures validating a directly presented
+Client Attestation follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-7.4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="context-exchange">
+<section id="section-7.5">
+        <h3 id="name-authorization-and-token-exc">
+<a href="#section-7.5" class="section-number selfRef">7.5. </a><a href="#name-authorization-and-token-exc" class="section-name selfRef">Authorization and Token Exchange</a>
+        </h3>
+<p id="section-7.5-1">Instance Context records validated participation at issuance; it does
+not independently authenticate the current token presenter. Proof of
+possession follows the enclosing token's binding.<a href="#section-7.5-1" class="pilcrow">¶</a></p>
+<p id="section-7.5-2">The object <span class="bcp14">MUST NOT</span> be interpreted as an actor, separate token, or
+grant of authority. A consuming profile <span class="bcp14">MUST</span> define:<a href="#section-7.5-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.5-3.1">
+            <p id="section-7.5-3.1.1">its association with the token's subject, actor, or other presenter;<a href="#section-7.5-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.5-3.2">
+            <p id="section-7.5-3.2.1">how that association is validated and preserved during exchange; and<a href="#section-7.5-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.5-3.3">
+            <p id="section-7.5-3.3.1">any trusted upstream Instance Authority whose context is retained.<a href="#section-7.5-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.5-4">An issuer can preserve validated upstream context under those rules,
+subject to the recipient trust checks above.<a href="#section-7.5-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2043,6 +2091,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
         <dd>
 <span class="refAuthor">Hardt, D., Ed.</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework"</span>, <span class="seriesInfo">RFC 6749</span>, <span class="seriesInfo">DOI 10.17487/RFC6749</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a>&gt;</span>. </dd>
 <dd class="break"></dd>
+<dt id="RFC6750">[RFC6750]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span> and <span class="refAuthor">D. Hardt</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework: Bearer Token Usage"</span>, <span class="seriesInfo">RFC 6750</span>, <span class="seriesInfo">DOI 10.17487/RFC6750</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6750">https://www.rfc-editor.org/rfc/rfc6750</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="RFC7519">[RFC7519]</dt>
         <dd>
 <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Token (JWT)"</span>, <span class="seriesInfo">RFC 7519</span>, <span class="seriesInfo">DOI 10.17487/RFC7519</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7519">https://www.rfc-editor.org/rfc/rfc7519</a>&gt;</span>. </dd>
@@ -2050,6 +2102,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <dt id="RFC7662">[RFC7662]</dt>
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8693">[RFC8693]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Nadalin, A.</span>, <span class="refAuthor">Campbell, B., Ed.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">C. Mortimore</span>, <span class="refTitle">"OAuth 2.0 Token Exchange"</span>, <span class="seriesInfo">RFC 8693</span>, <span class="seriesInfo">DOI 10.17487/RFC8693</span>, <time datetime="2020-01" class="refDate">January 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8693">https://www.rfc-editor.org/rfc/rfc8693</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8725">[RFC8725]</dt>
         <dd>
