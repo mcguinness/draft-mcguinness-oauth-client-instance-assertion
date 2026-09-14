@@ -33,6 +33,7 @@ normative:
   RFC8693:
   RFC8725:
 informative:
+  AAUTH: I-D.hardt-oauth-aauth-protocol
   RFC2104:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
   RFC7591:
@@ -596,6 +597,62 @@ Client Instance Keys.
 Existing recipient mappings for `I1` remain stable across renewal and
 verified key replacement. A refresh token bound to `K1` cannot be used
 with `K2` merely because the instance identifier is unchanged.
+
+# AAuth Agent Provider Example {#aauth-example}
+{:numbered="false"}
+
+This informative example shows an Agent Provider (AP) from {{AAUTH}}
+also acting as an OAuth Client Attester for a managed agent harness.
+The AP supports both credential formats; its native AAuth agent token
+(`typ=aa-agent+jwt`) is not a Client Attestation. This example defines
+no conversion or enrollment protocol.
+
+The OAuth authorization server (AS) is configured to trust the AP as
+an attester for Logical Client `C1` and to permit that client to use the
+client credentials grant for the target resource. AAuth metadata alone
+does not establish this trust. `I1`, `K1`, and `M1` below are symbolic
+labels for an instance identifier, its key, and a recipient-scoped
+identifier, respectively.
+
+~~~ ascii-art
+Agent harness       AP / Attester       OAuth AS          Resource
+     |                    |                 |                 |
+     |-(1) Enrollment----->                 |                 |
+     <-(2) Attestation----|                 |                 |
+     |                    |                 |                 |
+     |-(3) Grant + attestation + proof------>                 |
+     <-(4) Token carrying instance context--|                 |
+     |                    |                 |                 |
+     |-(5) Resource request + access token + DPoP proof------->
+     <-Resource response--------------------------------------|
+~~~
+
+1. The harness proves possession of `K1` and supplies enrollment
+   evidence. The AP validates the managed installation and assigns
+   `I1`. An AAuth agent identifier or a new signing key alone does not
+   establish installation continuity.
+2. The AP issues a separate Client Attestation with
+   `typ=oauth-client-attestation+jwt`, `iss` identifying the AP,
+   `sub=C1`, `client_instance_id=I1`, `cnf.jwk` containing the public
+   part of `K1`, and `exp` bounding its lifetime.
+3. The harness sends `grant_type=client_credentials` and `client_id=C1`
+   to the AS token endpoint, presenting the attestation and proof as
+   specified by {{ATTEST}}. This example uses its combined DPoP mode
+   with `K1`; native AAuth HTTP Message Signatures are not substituted
+   for the OAuth proof.
+4. The AS validates the attestation, proof, and instance policy, and
+   independently authorizes the grant. It issues a DPoP-bound access
+   token and includes `client_instance` with `iss` identifying the AS
+   and `id=M1`, mapped from the AP's `(iss, I1)` for this resource.
+5. The resource validates the access token and DPoP proof, applies its
+   authorization policy, and processes the context under
+   {{instance-context}}. It can record `M1` for audit without receiving
+   the original attestation or trusting the AP directly.
+
+After verified replacement of `K1`, the AP retains `I1` and the AS
+retains `M1`, as in {{lifecycle-example}}. Neither identifier determines
+the token's subject or creates an `act` claim; delegated access would
+require a separate authorization grant and its delegation semantics.
 
 # Document History {#history}
 {:numbered="false"}
