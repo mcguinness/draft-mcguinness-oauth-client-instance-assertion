@@ -2765,9 +2765,9 @@ Table of Contents
 
    [CIMD]     Parecki, A. and E. Smith, "OAuth Client ID Metadata
               Document", Work in Progress, Internet-Draft, draft-ietf-
-              oauth-client-id-metadata-document-01, 1 March 2026,
+              oauth-client-id-metadata-document-02, 6 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              client-id-metadata-document-01>.
+              client-id-metadata-document-02>.
 
    [ENTITY-PROFILES]
               Mora, S. C., Dingle, P., and K. McGuinness, "OAuth 2.0
@@ -2873,9 +2873,9 @@ Table of Contents
               Looker, T., Bastian, P., and C. Bormann, "OAuth 2.0
               Attestation-Based Client Authentication", Work in
               Progress, Internet-Draft, draft-ietf-oauth-attestation-
-              based-client-auth-09, 25 May 2026,
+              based-client-auth-11, 3 September 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-
-              attestation-based-client-auth-09>.
+              attestation-based-client-auth-11>.
 
    [RFC6755]  Campbell, B. and H. Tschofenig, "An IETF URN Sub-Namespace
               for OAuth", RFC 6755, DOI 10.17487/RFC6755, October 2012,
@@ -2898,9 +2898,9 @@ Table of Contents
               Salowey, J. A., Rosomakho, Y., and H. Tschofenig,
               "Workload Identity in a Multi System Environment (WIMSE)
               Architecture", Work in Progress, Internet-Draft, draft-
-              ietf-wimse-arch-07, 2 March 2026,
+              ietf-wimse-arch-08, 6 July 2026,
               <https://datatracker.ietf.org/doc/html/draft-ietf-wimse-
-              arch-07>.
+              arch-08>.
 
    [WIMSE-CREDS]
               Campbell, B., Salowey, J. A., Schwenkschuster, A.,
