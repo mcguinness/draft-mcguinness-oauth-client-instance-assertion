@@ -8,13 +8,12 @@
 <meta content="Karl McGuinness" name="author">
 <meta content="
        This specification defines an optional claims profile of OAuth 2.0
-Attestation-Based Client Authentication for deployments that need a
-common instance identifier across attestations and key changes. It
-specifies an issuer-qualified identifier, continuity and privacy rules,
-and optional instance context in tokens and introspection responses.
-Authentication, proof of possession, and token binding remain governed
-by the base specification. Deployments needing only client instance
-authentication do not require this profile. 
+Attestation-Based Client Authentication. It adds an issuer-qualified
+client instance identifier, continuity and privacy rules, and optional
+instance context in tokens and introspection responses. The profile
+supports correlation across attestations and verified key changes;
+authentication, proof of possession, and token binding follow the base
+specification. 
     " name="description">
 <meta content="xml2rfc 3.34.0" name="generator">
 <meta content="OAuth" name="keyword">
@@ -1086,13 +1085,12 @@ svg {
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
 <p id="section-abstract-1">This specification defines an optional claims profile of OAuth 2.0
-Attestation-Based Client Authentication for deployments that need a
-common instance identifier across attestations and key changes. It
-specifies an issuer-qualified identifier, continuity and privacy rules,
-and optional instance context in tokens and introspection responses.
-Authentication, proof of possession, and token binding remain governed
-by the base specification. Deployments needing only client instance
-authentication do not require this profile.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+Attestation-Based Client Authentication. It adds an issuer-qualified
+client instance identifier, continuity and privacy rules, and optional
+instance context in tokens and introspection responses. The profile
+supports correlation across attestations and verified key changes;
+authentication, proof of possession, and token binding follow the base
+specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1160,36 +1158,110 @@ authentication do not require this profile.<a href="#section-abstract-1" class="
 <nav class="toc"><ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
             <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-identity-and-authorization" class="internal xref">Identity and Authorization</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-scope" class="internal xref">Scope</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
-            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
-            <p id="section-toc.1-1.3.1" class="keepWithNext"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-profile-selection-and-trust" class="internal xref">Profile Selection and Trust</a></p>
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-profile-selection-and-trust" class="internal xref">Profile Selection and Trust</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-configuration" class="internal xref">Configuration</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
+                <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-attester-authority" class="internal xref">Attester Authority</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-client-attestation-claims" class="internal xref">Client Attestation Claims</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-additional-claims" class="internal xref">Additional Claims</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-example" class="internal xref">Example</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-request-processing" class="internal xref">Request Processing</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-validation" class="internal xref">Validation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-authorization" class="internal xref">Authorization</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-errors" class="internal xref">Errors</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
             <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-instance-lifetime-and-key-c" class="internal xref">Instance Lifetime and Key Continuity</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-assignment-and-granularity" class="internal xref">Assignment and Granularity</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-renewal-and-key-replacement" class="internal xref">Renewal and Key Replacement</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-suspension-and-retirement" class="internal xref">Suspension and Retirement</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
             <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-conveying-instance-context" class="internal xref">Conveying Instance Context</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-claim-format" class="internal xref">Claim Format</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-issuance-and-mapping" class="internal xref">Issuance and Mapping</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.3">
+                <p id="section-toc.1-1.7.2.3.1"><a href="#section-7.3" class="auto internal xref">7.3</a>.  <a href="#name-recipient-processing" class="internal xref">Recipient Processing</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.4">
+                <p id="section-toc.1-1.7.2.4.1"><a href="#section-7.4" class="auto internal xref">7.4</a>.  <a href="#name-authorization-and-token-exc" class="internal xref">Authorization and Token Exchange</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
             <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-relationship-to-workload-id" class="internal xref">Relationship to Workload Identity</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-and-privacy-consid" class="internal xref">Security and Privacy Considerations</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.1">
+                <p id="section-toc.1-1.9.2.1.1"><a href="#section-9.1" class="auto internal xref">9.1</a>.  <a href="#name-attester-compromise-and-ass" class="internal xref">Attester Compromise and Assurance</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.2">
+                <p id="section-toc.1-1.9.2.2.1"><a href="#section-9.2" class="auto internal xref">9.2</a>.  <a href="#name-attestation-forwarding" class="internal xref">Attestation Forwarding</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9.2.3">
+                <p id="section-toc.1-1.9.2.3.1"><a href="#section-9.3" class="auto internal xref">9.3</a>.  <a href="#name-privacy" class="internal xref">Privacy</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
             <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.1">
-                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-jwt-claims-and-introspectio" class="internal xref">JWT Claims and Introspection Response Parameters</a></p>
+                <p id="section-toc.1-1.10.2.1.1"><a href="#section-10.1" class="auto internal xref">10.1</a>.  <a href="#name-json-web-token-claims" class="internal xref">JSON Web Token Claims</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10.2.2">
+                <p id="section-toc.1-1.10.2.2.1"><a href="#section-10.2" class="auto internal xref">10.2</a>.  <a href="#name-oauth-token-introspection-r" class="internal xref">OAuth Token Introspection Response</a></p>
 </li>
             </ul>
 </li>
@@ -1239,70 +1311,83 @@ authentication do not require this profile.<a href="#section-abstract-1" class="
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">Attestation-Based Client Authentication <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> already authenticates
-a deployed client instance using a Client Attestation and proof of
-possession of its Client Instance Key. It defines the authentication
-methods, proof processing, and binding of OAuth artifacts to that key.
-This profile is optional; it is not needed to authenticate an instance.<a href="#section-1-1" class="pilcrow">¶</a></p>
-<p id="section-1-2">An OAuth client identifier identifies the Logical Client. An
-authorization profile determines the principal whose authority is
-represented and, where applicable, the delegated actor. This
-specification identifies a particular installation or execution of
-client software. Several instances can operate for the same principal;
-replacing an instance need not change that principal.<a href="#section-1-2" class="pilcrow">¶</a></p>
-<p id="section-1-3">The additional interoperability need is a common identifier that
-independent attesters, Receivers, and downstream systems can use across
-attestations and key changes. For example, an application installation
-replaces key K1 with K2 and obtains a new attestation. An audit system
-needs to recognize the same installation, while a clone must receive a
-different identity. The new key and attestation alone do not express
-that continuity. The attester must establish it before reusing an
-identifier.<a href="#section-1-3" class="pilcrow">¶</a></p>
-<p id="section-1-4">This document profiles the additional claims permitted by <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>
-under its profiling rules in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-13" class="relref">Section 13</a></span>. It defines:<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-1">Attestation-Based Client Authentication <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> authenticates a
+Client Instance through an attestation and proof of possession of its
+key. A replacement key and attestation do not, by themselves, tell a
+Receiver that this is the same installation or execution. Independent
+systems need a common identifier to correlate that instance while
+distinguishing clones and new executions.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">This document profiles the additional claims permitted by
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-13" class="relref">Section 13</a></span>:<a href="#section-1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1-5.1">
-          <p id="section-1-5.1.1"><code>client_instance_id</code>, an attester-assigned identifier scoped by <code>iss</code>,
-with rules for continuity, non-reassignment, and privacy; and<a href="#section-1-5.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-1-3.1">
+          <p id="section-1-3.1.1"><code>client_instance_id</code> identifies an instance within an attester's
+namespace, independently of its current key.<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-1-5.2">
-          <p id="section-1-5.2.1"><code>client_instance</code>, an optional reference conveyed in tokens or
-introspection responses to recipients that need validated instance
-context without receiving the original attestation.<a href="#section-1-5.2.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-1-3.2">
+          <p id="section-1-3.2.1"><code>client_instance</code> optionally conveys validated instance context to
+downstream recipients without forwarding the original attestation.<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-6">Use this profile when those parties need to exchange and interpret a
-common instance identity. When one IdP can satisfy its correlation
-needs through internal mappings, or correlation need only last for the
-current key, ATTEST alone is sufficient. A stable identifier also
-creates a correlation risk, so it should be released only where needed.<a href="#section-1-6" class="pilcrow">¶</a></p>
-<p id="section-1-7">All authentication and proof requirements come from ATTEST and the
-selected OAuth mechanisms. This profile does not define a key-rotation
-protocol or transfer existing grants, sessions, or refresh tokens to a
-new key. Stable identity records continuity; it does not prove possession
-of either key or authorize that transfer.<a href="#section-1-7" class="pilcrow">¶</a></p>
-<p id="section-1-8">Clients that cannot present a Client Attestation, such as those
-authenticating with a JWT issued by their platform, are outside this
-profile. A companion profile could carry <code>client_instance_id</code> in such
-a credential under the same identifier, continuity, and privacy rules;
-this document does not define one.<a href="#section-1-8" class="pilcrow">¶</a></p>
-<p id="section-1-9">An IdP can act solely as a Receiver, relying on an attester capable of
-establishing the required instance continuity. Registry import alone
-does not supply that evidence. Authorization profiles, such as
-<span>[<a href="#AGENT-FEDERATION" class="cite xref">AGENT-FEDERATION</a>]</span>, separately determine the principal and acting
-relationship; instance identification does not establish delegation.
-Actor representation is separately addressed by <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>.
-Instance evidence does not establish that delegation occurred or
-select an actor. A consuming authorization profile determines whether
-the instance operates as the subject, as a delegated actor, or in
-another explicitly defined relationship. This profile can be used
-without implementing Actor Profile.<a href="#section-1-9" class="pilcrow">¶</a></p>
-<p id="section-1-10">This document, with draft-mcguinness-oauth-workload-agent-federation,
-replaces the instance identification and agent identity proposals in
-draft-mcguinness-oauth-client-instance-assertion and
-draft-mcguinness-oauth-ai-agent-instance, which are not being
-progressed. It is not wire-compatible with either; the Document
-History records what was retained.<a href="#section-1-10" class="pilcrow">¶</a></p>
+<p id="section-1-4">Use this profile when parties need to exchange instance identity across
+attestations or verified key changes. ATTEST alone is sufficient when
+correlation need only last for the current key or an identity provider
+(IdP) can satisfy its needs through internal enrollment mappings.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<div id="identity-and-authorization">
+<section id="section-1.1">
+        <h3 id="name-identity-and-authorization">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-identity-and-authorization" class="section-name selfRef">Identity and Authorization</a>
+        </h3>
+<p id="section-1.1-1">The following identities serve different purposes:<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-1">
+          <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Identity</th>
+              <th class="text-left" rowspan="1" colspan="1">Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Logical Client (<code>client_id</code>)</td>
+              <td class="text-left" rowspan="1" colspan="1">Identifies the OAuth client</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Authorization principal</td>
+              <td class="text-left" rowspan="1" colspan="1">Identifies the subject or delegated actor under the applicable authorization profile</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">Client Instance</td>
+              <td class="text-left" rowspan="1" colspan="1">Identifies an installation or execution of client software</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-1.1-3">Several instances can operate for one principal. Replacing an instance
+need not change that principal or create a delegation relationship.
+<span>[<a href="#AGENT-FEDERATION" class="cite xref">AGENT-FEDERATION</a>]</span> defines agent identity and grant issuance;
+<span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> addresses actor representation. Neither is required
+to implement this profile.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="scope">
+<section id="section-1.2">
+        <h3 id="name-scope">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-scope" class="section-name selfRef">Scope</a>
+        </h3>
+<p id="section-1.2-1">This profile inherits ATTEST authentication, proof, and token-binding
+requirements. It defines no enrollment or key-rotation protocol and
+does not authorize transferring existing grants, sessions, or tokens
+to a replacement key.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+<p id="section-1.2-2">An IdP can act solely as a Receiver of attestations. Registry import
+alone does not establish instance continuity. Credentials other than
+Client Attestations, including platform-issued JWTs, require a separate
+carrier profile; none is defined here.<a href="#section-1.2-2" class="pilcrow">¶</a></p>
+<p id="section-1.2-3">Together with Agent Federation, this document replaces the relevant
+parts of draft-mcguinness-oauth-client-instance-assertion and
+draft-mcguinness-oauth-ai-agent-instance, which are not being progressed.
+It is not wire-compatible with either.<a href="#section-1.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="conventions-and-definitions">
@@ -1333,8 +1418,9 @@ Instance Identifier.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-2-3.5">Instance Context:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.6">
-          <p id="section-2-3.6.1">A validated reference to the client instance presenting a request.
-It is evidence about execution, not an authorization grant.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+          <p id="section-2-3.6.1">A reference to an instance whose participation was validated for token
+issuance. It conveys identity, not authorization or proof of current
+possession.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-2-3.7">Receiver:</dt>
@@ -1366,33 +1452,58 @@ profile.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
       <h2 id="name-profile-selection-and-trust">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-profile-selection-and-trust" class="section-name selfRef">Profile Selection and Trust</a>
       </h2>
-<p id="section-3-1">The Receiver and client <span class="bcp14">MUST</span> establish use of this
-profile through administrative configuration before processing
-requests. That configuration <span class="bcp14">MUST</span> identify the Logical Client,
-its authentication method, and the attesters authorized to
-identify its instances. A resource relying on instance context
-<span class="bcp14">MUST</span> likewise establish that requirement through trusted
-configuration. Receiving an instance claim <span class="bcp14">MUST NOT</span> select this
-profile or alter the client's authentication method. This
-document defines no new discovery or client metadata parameters.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">The attester and Receiver <span class="bcp14">MUST</span> establish the identified granularity
-and its continuity rules through trusted configuration. This document
-distinguishes an application installation from a process or container
-execution; profiles <span class="bcp14">MAY</span> define other granularities. Receivers <span class="bcp14">MUST NOT</span> assume that an installation identifier distinguishes its individual
-processes. A change of granularity <span class="bcp14">MUST</span> create a new identifier; it
-<span class="bcp14">MUST NOT</span> silently change the meaning of an existing identifier.<a href="#section-3-2" class="pilcrow">¶</a></p>
-<p id="section-3-3">The Receiver <span class="bcp14">MUST</span> associate the exact Attester Issuer with an
-authority trusted to assign instance identifiers for the Logical
-Client. Signature or MAC validation under ATTEST <span class="bcp14">MUST</span> establish that
-association; a JWT's <code>iss</code> or possession of a key alone <span class="bcp14">MUST NOT</span>
-establish this authority. Client-published metadata <span class="bcp14">MUST NOT</span> establish
-it either, including attester lists supplied through dynamic client
-registration <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> or a client identifier metadata document
-<span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>; the Receiver's own configuration is the only source of
-attester authority for a client. Trust management and verification-key
-resolution follow ATTEST and the deployment's trusted configuration.
-Issuer and client identifiers are compared as exact strings, without
-URI normalization.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<div id="profile-configuration">
+<section id="section-3.1">
+        <h3 id="name-configuration">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-configuration" class="section-name selfRef">Configuration</a>
+        </h3>
+<p id="section-3.1-1">The client and Receiver <span class="bcp14">MUST</span> establish use of this profile through
+administrative configuration before processing requests. The
+configuration <span class="bcp14">MUST</span> identify:<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.1-2.1">
+            <p id="section-3.1-2.1.1">the Logical Client and its authentication method;<a href="#section-3.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.1-2.2">
+            <p id="section-3.1-2.2.1">the attesters authorized to identify that client's instances; and<a href="#section-3.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.1-2.3">
+            <p id="section-3.1-2.3.1">the instance granularity and continuity rules agreed with those
+attesters (<a href="#lifetime" class="auto internal xref">Section 6</a>).<a href="#section-3.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.1-3">A recipient requiring Instance Context <span class="bcp14">MUST</span> establish that requirement
+through trusted configuration. An instance claim <span class="bcp14">MUST NOT</span> select this
+profile or change the client's authentication method. This document
+adds no discovery or client metadata parameters.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="attester-authority">
+<section id="section-3.2">
+        <h3 id="name-attester-authority">
+<a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-attester-authority" class="section-name selfRef">Attester Authority</a>
+        </h3>
+<p id="section-3.2-1">The Receiver's configuration is the sole source of attester authority
+for a Logical Client. The Receiver <span class="bcp14">MUST</span> associate each approved
+Attester Issuer with the keys used for ATTEST validation and compare
+issuer and client identifiers as exact strings, without URI
+normalization.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">The Receiver <span class="bcp14">MUST NOT</span> establish attester authority solely from:<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.2-3.1">
+            <p id="section-3.2-3.1.1">a credential's <code>iss</code> or proof of key possession; or<a href="#section-3.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-3.2-3.2">
+            <p id="section-3.2-3.2.1">client-published metadata, including attester lists supplied through
+dynamic registration <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> or a client identifier metadata
+document <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>.<a href="#section-3.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-3.2-4">Trust management and verification-key resolution otherwise follow
+ATTEST. Withdrawal of attester trust <span class="bcp14">MUST</span> take effect on subsequent
+authentication.<a href="#section-3.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="claims">
@@ -1400,39 +1511,56 @@ URI normalization.<a href="#section-3-3" class="pilcrow">¶</a></p>
       <h2 id="name-client-attestation-claims">
 <a href="#section-4" class="section-number selfRef">4. </a><a href="#name-client-attestation-claims" class="section-name selfRef">Client Attestation Claims</a>
       </h2>
-<p id="section-4-1">All requirements of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> apply. This profile retains
-<code>typ=oauth-client-attestation+jwt</code> and <code>sub=client_id</code>; it does
-not exercise the base specification's subject override.<a href="#section-4-1" class="pilcrow">¶</a></p>
-<p id="section-4-2">In addition to the requirements of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>, the following apply:<a href="#section-4-2" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-4-3">
-        <dt id="section-4-3.1">
+<p id="section-4-1">All ATTEST requirements apply. This profile retains
+<code>typ=oauth-client-attestation+jwt</code> and <code>sub=client_id</code>.
+The claims <code>exp</code> and <code>cnf</code> remain required; <code>iat</code> remains optional.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<div id="additional-claims">
+<section id="section-4.1">
+        <h3 id="name-additional-claims">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-additional-claims" class="section-name selfRef">Additional Claims</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-4.1-1">
+          <dt id="section-4.1-1.1">
 <code>iss</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-4-3.2">
-          <p id="section-4-3.2.1"><span class="bcp14">REQUIRED</span> by this profile. It <span class="bcp14">MUST</span> equal the exact issuer identifier of
-an approved Client Attester in <a href="#configuration" class="auto internal xref">Section 3</a>.<a href="#section-4-3.2.1" class="pilcrow">¶</a></p>
+          <dd style="margin-left: 1.5em" id="section-4.1-1.2">
+            <p id="section-4.1-1.2.1"><span class="bcp14">REQUIRED</span>. String exactly matching an approved Attester Issuer in
+<a href="#configuration" class="auto internal xref">Section 3</a>.<a href="#section-4.1-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-4.1-1.3">
+<code>client_instance_id</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-4.1-1.4">
+            <p id="section-4.1-1.4.1"><span class="bcp14">REQUIRED</span>. Nonempty StringOrURI <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>, no longer than 256
+characters, identifying the instance within the attester's namespace.
+The instance identity is <code>(iss, client_instance_id)</code>.<a href="#section-4.1-1.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-4-3.3">
-<code>client_instance_id</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-4-3.4">
-          <p id="section-4-3.4.1"><span class="bcp14">REQUIRED</span>. A nonempty StringOrURI <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> identifying the Client
-Instance within the issuer's namespace. The identifier <span class="bcp14">MUST</span> be
-opaque to Receivers and <span class="bcp14">MUST NOT</span> be reassigned to another instance.
-Receivers <span class="bcp14">MUST NOT</span> derive permissions by parsing it. Attesters
-<span class="bcp14">MUST</span> generate unpredictable identifiers with at least 128 bits of
-randomness and <span class="bcp14">MUST NOT</span> embed hostnames, user identifiers, or other
-identifying data. Identifiers <span class="bcp14">MUST NOT</span> exceed 256 characters.
-Receivers <span class="bcp14">MUST</span> accept conforming identifiers up to that length and
-reject longer values with <code>invalid_client_attestation</code>.<a href="#section-4-3.4.1" class="pilcrow">¶</a></p>
-</dd>
-      <dd class="break"></dd>
 </dl>
-<p id="section-4-4">The remaining claims, JWT protection, and proof requirements follow
-ATTEST unchanged. In particular, <code>exp</code> and <code>cnf</code> remain required, and
-<code>iat</code> remains optional. This profile adds no algorithm, key-selection,
-clock-skew, or attestation-lifetime requirements.<a href="#section-4-4" class="pilcrow">¶</a></p>
-<p id="section-4-5">Example decoded attestation payload, including the optional <code>iat</code>:<a href="#section-4-5" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-4-6">
+<p id="section-4.1-2">The Client Attester <span class="bcp14">MUST</span>:<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.1-3.1">
+            <p id="section-4.1-3.1.1">generate unpredictable identifiers with at least 128 bits of
+randomness;<a href="#section-4.1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-3.2">
+            <p id="section-4.1-3.2.1">exclude hostnames, user identifiers, and other identifying data; and<a href="#section-4.1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.1-3.3">
+            <p id="section-4.1-3.3.1">preserve uniqueness and continuity as specified in <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-4.1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.1-4">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, accept conforming values
+up to 256 characters, and reject longer values. They <span class="bcp14">MUST NOT</span> derive
+permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.3</a>.<a href="#section-4.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="example">
+<section id="section-4.2">
+        <h3 id="name-example">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-example" class="section-name selfRef">Example</a>
+        </h3>
+<p id="section-4.2-1">Example decoded attestation payload, including the optional <code>iat</code>:<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-4.2-2">
 <pre>
 {
   "iss": "https://attester.example/tenant/acme",
@@ -1449,7 +1577,9 @@ clock-skew, or attestation-lifetime requirements.<a href="#section-4-4" class="p
     }
   }
 }
-</pre><a href="#section-4-6" class="pilcrow">¶</a>
+</pre><a href="#section-4.2-2" class="pilcrow">¶</a>
+</div>
+</section>
 </div>
 </section>
 </div>
@@ -1458,40 +1588,57 @@ clock-skew, or attestation-lifetime requirements.<a href="#section-4-4" class="p
       <h2 id="name-request-processing">
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-request-processing" class="section-name selfRef">Request Processing</a>
       </h2>
-<p id="section-5-1">The client and Receiver <span class="bcp14">MUST</span> use the presentation and proof processing
-of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> for their configured method. This profile does not require
-DPoP combined mode or change any method's token-binding rules.<a href="#section-5-1" class="pilcrow">¶</a></p>
-<p id="section-5-2">After successful ATTEST validation, the Receiver <span class="bcp14">MUST</span>:<a href="#section-5-2" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-5-3">
-<li id="section-5-3.1">
-          <p id="section-5-3.1.1">Determine that this profile applies under <a href="#configuration" class="auto internal xref">Section 3</a>.<a href="#section-5-3.1.1" class="pilcrow">¶</a></p>
+<div id="validation">
+<section id="section-5.1">
+        <h3 id="name-validation">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-validation" class="section-name selfRef">Validation</a>
+        </h3>
+<p id="section-5.1-1">For a request configured to use this profile, the Receiver <span class="bcp14">MUST</span>:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5.1-2">
+<li id="section-5.1-2.1">
+            <p id="section-5.1-2.1.1">Validate the Client Attestation and proof using the configured
+ATTEST method.<a href="#section-5.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-5-3.2">
-          <p id="section-5-3.2.1">Validate the additional claims and attester authority in <a href="#claims" class="auto internal xref">Section 4</a>.<a href="#section-5-3.2.1" class="pilcrow">¶</a></p>
+          <li id="section-5.1-2.2">
+            <p id="section-5.1-2.2.1">Validate the additional claims in <a href="#claims" class="auto internal xref">Section 4</a> and the attester's
+authority for the Logical Client under <a href="#configuration" class="auto internal xref">Section 3</a>.<a href="#section-5.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-5-3.3">
-          <p id="section-5-3.3.1">Establish the instance identity as <code>(iss, client_instance_id)</code> and
-associate it with the Logical Client and validated Client Instance
-Key. The identifier <span class="bcp14">MUST NOT</span> substitute for proof of key possession.<a href="#section-5-3.3.1" class="pilcrow">¶</a></p>
+          <li id="section-5.1-2.3">
+            <p id="section-5.1-2.3.1">Associate <code>(iss, client_instance_id)</code> with the Logical Client and
+validated Client Instance Key.<a href="#section-5.1-2.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="section-5-3.4">
-          <p id="section-5-3.4.1">Apply any configured policy associated with that instance identity.<a href="#section-5-3.4.1" class="pilcrow">¶</a></p>
+          <li id="section-5.1-2.4">
+            <p id="section-5.1-2.4.1">Apply configured instance policy, rejecting a disallowed instance.<a href="#section-5.1-2.4.1" class="pilcrow">¶</a></p>
 </li>
-      </ol>
-<p id="section-5-4">An additional token-binding key remains subject to the selected OAuth
-mechanism. Instance context records the instance whose attestation and
-proof were validated; it does not change the binding of issued tokens.<a href="#section-5-4" class="pilcrow">¶</a></p>
-<p id="section-5-5">A Receiver <span class="bcp14">MUST NOT</span> substitute instance identification for grant
-validation. In particular, it <span class="bcp14">MUST NOT</span> set an access token's
-<code>sub</code>, add an <code>act</code> claim, or extend a delegation chain solely
-because a Client Attestation was accepted. A calling profile
-<span class="bcp14">MUST</span> establish any instance-to-principal relationship it needs.<a href="#section-5-5" class="pilcrow">¶</a></p>
-<p id="section-5-6">Invalid or missing instance claims are reported using
-<code>invalid_client_attestation</code> from <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. Client
-authentication failures and freshness challenges retain the
-base specification's error processing. A failed profile check
-<span class="bcp14">MUST NOT</span> trigger fallback to authentication without the required
-instance evidence.<a href="#section-5-6" class="pilcrow">¶</a></p>
+        </ol>
+<p id="section-5.1-3">An identifier <span class="bcp14">MUST NOT</span> substitute for proof of key possession. Token
+binding follows ATTEST and the selected OAuth mechanism. This profile
+does not require DPoP combined mode or change token-binding rules.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authorization">
+<section id="section-5.2">
+        <h3 id="name-authorization">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-authorization" class="section-name selfRef">Authorization</a>
+        </h3>
+<p id="section-5.2-1">A Receiver <span class="bcp14">MUST NOT</span> set an access token's <code>sub</code>, add <code>act</code>, or extend
+an actor chain solely because it accepted instance evidence. A
+consuming authorization profile <span class="bcp14">MUST</span> define any relationship between
+the instance and the token's subject, actor, or other presenter.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="errors">
+<section id="section-5.3">
+        <h3 id="name-errors">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
+        </h3>
+<p id="section-5.3-1">Invalid instance claims or missing required claims result in
+<code>invalid_client_attestation</code> as defined by ATTEST. Authentication
+failures and freshness challenges retain ATTEST error processing.
+A failed profile check <span class="bcp14">MUST NOT</span> trigger fallback to processing without
+the required instance evidence.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="lifetime">
@@ -1499,43 +1646,85 @@ instance evidence.<a href="#section-5-6" class="pilcrow">¶</a></p>
       <h2 id="name-instance-lifetime-and-key-c">
 <a href="#section-6" class="section-number selfRef">6. </a><a href="#name-instance-lifetime-and-key-c" class="section-name selfRef">Instance Lifetime and Key Continuity</a>
       </h2>
-<p id="section-6-1">The attester <span class="bcp14">MUST</span> assign a new Instance Identifier for each new unit
-at the granularity established in <a href="#configuration" class="auto internal xref">Section 3</a>. An execution
-identifier changes on process or container restart. An installation
-identifier <span class="bcp14">MAY</span> survive process restarts when the attester verifies
-continuity of that installation. A cloned installation or independently
-created execution <span class="bcp14">MUST</span> receive a distinct identifier. Multiple
-processes within one identified installation are not distinguished
-by its identifier.<a href="#section-6-1" class="pilcrow">¶</a></p>
-<p id="section-6-2">A suspend/resume operation <span class="bcp14">MAY</span> retain the identifier only when the
-attester establishes continuity and prevents independently restored
-copies of the identified unit from sharing that identity.<a href="#section-6-2" class="pilcrow">¶</a></p>
-<p id="section-6-3">When an attester suspends or retires an instance, it <span class="bcp14">MUST</span> cease issuing
-attestations for it. A Receiver <span class="bcp14">MAY</span> use the identifier for local risk
-or lifecycle decisions and <span class="bcp14">MUST</span> reject an instance disallowed by its
-current policy. A Receiver that suspends an instance <span class="bcp14">SHOULD</span> revoke the
-tokens it issued to that instance or report them inactive through
-introspection <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. A stable identifier does not notify other
-parties or invalidate outstanding attestations or tokens. Status
-propagation and revocation mechanisms are outside this profile.<a href="#section-6-3" class="pilcrow">¶</a></p>
-<p id="section-6-4">Attestation renewal and key rotation within a continuing instance <span class="bcp14">MUST</span>
-preserve each identifier the attester has assigned to that instance. A
-new key requires a new attestation and authenticated proof of its
-binding to that instance. Possession of an instance identifier, an
-expired attestation, or a former public key alone <span class="bcp14">MUST NOT</span> establish
-continuity. A Receiver <span class="bcp14">MUST NOT</span> use a key thumbprint, certificate
-serial number, or JWT <code>jti</code> as a substitute for the identifier.<a href="#section-6-4" class="pilcrow">¶</a></p>
-<p id="section-6-5">Different Attester Issuers define different instance namespaces.
-Receivers <span class="bcp14">MUST NOT</span> infer continuity across an issuer change from equal
-identifier strings or a shared key. Preserving an association across
-authorities requires a separately specified procedure establishing
-trust in both authorities and authenticated evidence of continuity;
-this profile does not define that procedure.<a href="#section-6-5" class="pilcrow">¶</a></p>
-<p id="section-6-6">This profile does not override refresh-token binding in
-<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. In particular, a stable identifier does not permit
-use of a key-bound refresh token with a new key. Transferring
-existing grants, tokens, or sessions to a replacement key
-requires a separately specified authorization procedure.<a href="#section-6-6" class="pilcrow">¶</a></p>
+<div id="assignment-and-granularity">
+<section id="section-6.1">
+        <h3 id="name-assignment-and-granularity">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-assignment-and-granularity" class="section-name selfRef">Assignment and Granularity</a>
+        </h3>
+<p id="section-6.1-1">The attester <span class="bcp14">MUST</span> assign a distinct identifier to each new instance
+at the configured granularity and <span class="bcp14">MUST NOT</span> reassign it, including
+after retirement. The following rules apply:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.1-2.1">
+            <p id="section-6.1-2.1.1"><strong>Installation:</strong> an identifier can survive process restarts when
+the attester verifies installation continuity. It does not distinguish
+processes within that installation.<a href="#section-6.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.1-2.2">
+            <p id="section-6.1-2.2.1"><strong>Execution:</strong> a process or container restart creates a new instance
+and requires a new identifier.<a href="#section-6.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.1-2.3">
+            <p id="section-6.1-2.3.1"><strong>Clone:</strong> a cloned installation or independently created execution
+requires a distinct identifier.<a href="#section-6.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.1-2.4">
+            <p id="section-6.1-2.4.1"><strong>Granularity change:</strong> changing what an identifier represents
+requires a new identifier.<a href="#section-6.1-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.1-3">Other profiles can define additional granularities. A Receiver <span class="bcp14">MUST NOT</span> treat an installation identifier as identifying its individual
+processes.<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">After suspend/resume or restore, an attester <span class="bcp14">MUST NOT</span> retain an
+identifier unless it verifies continuity and prevents independently
+restored copies from sharing that identity. Otherwise, it assigns a
+new one.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="renewal-and-key-replacement">
+<section id="section-6.2">
+        <h3 id="name-renewal-and-key-replacement">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-renewal-and-key-replacement" class="section-name selfRef">Renewal and Key Replacement</a>
+        </h3>
+<p id="section-6.2-1">Within a continuing instance, attestation renewal and verified key
+replacement <span class="bcp14">MUST</span> preserve each assigned identifier. A replacement key
+requires a new attestation and authenticated evidence binding that
+key to the instance.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">The following do not establish continuity:<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.2-3.1">
+            <p id="section-6.2-3.1.1">possession of an identifier, expired attestation, or former public
+key alone; or<a href="#section-6.2-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-3.2">
+            <p id="section-6.2-3.2.1">equal identifier strings or a shared key across different Attester
+Issuers.<a href="#section-6.2-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-6.2-4">Receivers <span class="bcp14">MUST NOT</span> infer continuity from those conditions or use a
+key thumbprint, certificate serial number, or JWT <code>jti</code> as the instance
+identifier. Migration across attester authorities requires a separately
+specified procedure establishing trust in both authorities and
+validated continuity evidence.<a href="#section-6.2-4" class="pilcrow">¶</a></p>
+<p id="section-6.2-5">Stable identity does not relax refresh-token binding under ATTEST.
+Existing grants, sessions, or tokens can move to a replacement key
+only through a separately specified authorization procedure.<a href="#section-6.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="suspension-and-retirement">
+<section id="section-6.3">
+        <h3 id="name-suspension-and-retirement">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-suspension-and-retirement" class="section-name selfRef">Suspension and Retirement</a>
+        </h3>
+<p id="section-6.3-1">An attester <span class="bcp14">MUST</span> cease issuing attestations for a suspended or retired
+instance. A Receiver suspending an instance <span class="bcp14">SHOULD</span> revoke tokens it
+issued to that instance or report them inactive through introspection
+<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">An identifier does not distribute status or invalidate credentials.
+Revocation and status propagation beyond these local actions are
+outside this profile.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="instance-context">
@@ -1543,69 +1732,34 @@ requires a separately specified authorization procedure.<a href="#section-6-6" c
       <h2 id="name-conveying-instance-context">
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-conveying-instance-context" class="section-name selfRef">Conveying Instance Context</a>
       </h2>
-<p id="section-7-1">An issuer <span class="bcp14">MAY</span> include a <code>client_instance</code> claim in a token or
-introspection response <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> when the recipient needs
-validated instance context. Its value is an object containing:<a href="#section-7-1" class="pilcrow">¶</a></p>
-<span class="break"></span><dl class="dlParallel" id="section-7-2">
-        <dt id="section-7-2.1">
+<div id="context-claims">
+<section id="section-7.1">
+        <h3 id="name-claim-format">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-claim-format" class="section-name selfRef">Claim Format</a>
+        </h3>
+<p id="section-7.1-1">An issuer <span class="bcp14">MAY</span> include <code>client_instance</code> in a token or introspection
+response <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> when the recipient needs validated instance
+context. Its value is a JSON object with these members:<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-7.1-2">
+          <dt id="section-7.1-2.1">
 <code>iss</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-7-2.2">
-          <p id="section-7-2.2.1"><span class="bcp14">REQUIRED</span>. String identifying the authority for the instance
-identifier. It is not necessarily the enclosing token issuer.<a href="#section-7-2.2.1" class="pilcrow">¶</a></p>
+          <dd style="margin-left: 1.5em" id="section-7.1-2.2">
+            <p id="section-7.1-2.2.1"><span class="bcp14">REQUIRED</span>. Nonempty string identifying the Instance Authority. It is
+not necessarily the enclosing token issuer.<a href="#section-7.1-2.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-7.1-2.3">
+<code>id</code>:</dt>
+          <dd style="margin-left: 1.5em" id="section-7.1-2.4">
+            <p id="section-7.1-2.4.1"><span class="bcp14">REQUIRED</span>. Nonempty StringOrURI identifying the instance within that
+authority's namespace.<a href="#section-7.1-2.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-7-2.3">
-<code>id</code>:</dt>
-        <dd style="margin-left: 1.5em" id="section-7-2.4">
-          <p id="section-7-2.4.1"><span class="bcp14">REQUIRED</span>. Nonempty StringOrURI identifying the instance in
-that authority's namespace.<a href="#section-7-2.4.1" class="pilcrow">¶</a></p>
-</dd>
-      <dd class="break"></dd>
 </dl>
-<p id="section-7-3">The object <span class="bcp14">MUST</span> identify the instance whose participation and key
-possession were validated for issuance. It records that validated
-participation; its presence does not independently authenticate the
-current presenter of the enclosing token. Authentication and proof of
-possession remain governed by that token and its applicable protocol.
-Before using this context,
-a recipient <span class="bcp14">MUST</span> validate the enclosing token or authenticated
-introspection response. It <span class="bcp14">MUST</span> reject a <code>client_instance</code> whose
-<code>iss</code> is neither that token's issuer nor a pass-through Instance
-Authority explicitly configured for that token issuer and recipient.
-A mapped identifier needs no direct attester trust; pass-through
-context does not authorize fetching keys from its <code>iss</code>. If context is
-required, rejection <span class="bcp14">MUST</span> prevent accepting the token for that request.
-The tuple takes one of two forms. In the mapped form, which is <span class="bcp14">RECOMMENDED</span>,
-<code>iss</code> is the Receiver's own issuer identifier and <code>id</code> an identifier
-the Receiver assigned through an authenticated, unambiguous mapping
-it maintains.<a href="#section-7-3" class="pilcrow">¶</a></p>
-<p id="section-7-4">The Receiver <span class="bcp14">MUST NOT</span> assign the same mapped <code>(iss, id)</code> pair to
-different instances or reassign it after an instance is retired. It
-<span class="bcp14">MUST</span> preserve the existing mapping for a recipient across attestation
-renewal and attester-verified key replacement within a continuing
-instance. Distinct source identities <span class="bcp14">MUST</span> remain distinct unless
-their continuity has been established by a separately specified
-procedure as described in <a href="#lifetime" class="auto internal xref">Section 6</a>. Recipient-scoped mappings
-limit correlation as described in <a href="#privacy" class="auto internal xref">Section 9</a>.<a href="#section-7-4" class="pilcrow">¶</a></p>
-<p id="section-7-5">In the pass-through form, <code>iss</code> and <code>id</code> are copied from the validated
-attestation; this form requires the recipient to trust the Attester
-Issuer's namespace directly and <span class="bcp14">MUST</span> be used only with recipients
-configured for it. A consuming profile <span class="bcp14">MAY</span> likewise preserve context
-from a validated upstream token, but <span class="bcp14">MUST</span> define the trusted upstream
-Instance Authority and the association being preserved. The issuer
-<span class="bcp14">MUST NOT</span> copy unvalidated client-supplied context. The <code>iss</code> and <code>id</code>
-members <span class="bcp14">MUST</span> be nonempty strings. Additional members <span class="bcp14">MAY</span> be defined by
-other profiles. A recipient <span class="bcp14">MUST</span> ignore members it does not recognize. A profile
-defining additional members <span class="bcp14">MUST</span> specify their processing for
-recipients implementing that profile and <span class="bcp14">MUST NOT</span> change the meaning
-of <code>iss</code> or <code>id</code>.<a href="#section-7-5" class="pilcrow">¶</a></p>
-<p id="section-7-6">A recipient <span class="bcp14">MAY</span> correlate activity using the opaque <code>(iss, id)</code> pair
-without knowing whether it identifies an installation or an execution.
-If its processing depends on that distinction, it <span class="bcp14">MUST</span> establish the
-granularity and continuity rules through trusted configuration or a
-consuming profile before applying that processing. It <span class="bcp14">MUST NOT</span> infer
-those rules by parsing the identifier.<a href="#section-7-6" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="section-7-7">
+<p id="section-7.1-3">Recipients <span class="bcp14">MUST</span> ignore unrecognized members. Profiles defining
+additional members <span class="bcp14">MUST</span> specify their processing without changing
+the meaning of <code>iss</code> or <code>id</code>.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="section-7.1-4">
 <pre>
 {
   "client_instance": {
@@ -1613,14 +1767,111 @@ those rules by parsing the identifier.<a href="#section-7-6" class="pilcrow">¶<
     "id": "m-f61783ea4cb24d098851d34960a274be"
   }
 }
-</pre><a href="#section-7-7" class="pilcrow">¶</a>
+</pre><a href="#section-7.1-4" class="pilcrow">¶</a>
 </div>
-<p id="section-7-8">This object conveys identity only. It <span class="bcp14">MUST NOT</span> be interpreted
-as an actor, a separate token, or a grant of authority. A profile
-using it <span class="bcp14">MUST</span> define its association with the token's subject,
-current actor, or other presenter, and how that association is
-preserved during exchange. Proof of possession is validated
-against the enclosing token's binding, not this object.<a href="#section-7-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="issuance-and-mapping">
+<section id="section-7.2">
+        <h3 id="name-issuance-and-mapping">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-issuance-and-mapping" class="section-name selfRef">Issuance and Mapping</a>
+        </h3>
+<p id="section-7.2-1">The object <span class="bcp14">MUST</span> identify the instance whose participation and key
+possession were validated for issuance. Issuers <span class="bcp14">MUST NOT</span> copy
+unvalidated client-supplied context. Two representations are defined:<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.2-2.1">
+            <p id="section-7.2-2.1.1"><strong>Mapped (<span class="bcp14">RECOMMENDED</span>):</strong> <code>iss</code> identifies the Receiver issuing the
+token; <code>id</code> is assigned through an authenticated mapping it maintains.<a href="#section-7.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.2-2.2">
+            <p id="section-7.2-2.2.1"><strong>Pass-through:</strong> <code>iss</code> and <code>id</code> retain the attestation's <code>iss</code> and
+<code>client_instance_id</code>. This form <span class="bcp14">MUST</span> be used only with recipients
+configured to trust that attester's namespace.<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.2-3">A Receiver issuing mapped context <span class="bcp14">MUST</span>:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-7.2-4">
+<li id="section-7.2-4.1">
+            <p id="section-7.2-4.1.1">Keep distinct source identities separate unless continuity was
+established under <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-7.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-7.2-4.2">
+            <p id="section-7.2-4.2.1">Never assign a mapped <code>(iss, id)</code> pair to another instance, including
+after retirement.<a href="#section-7.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-7.2-4.3">
+            <p id="section-7.2-4.3.1">Preserve each recipient's mapping across attestation renewal and
+verified key replacement within the same instance.<a href="#section-7.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-7.2-5">Recipient-scoped mappings limit correlation (<a href="#privacy" class="auto internal xref">Section 9.3</a>).<a href="#section-7.2-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="recipient-processing">
+<section id="section-7.3">
+        <h3 id="name-recipient-processing">
+<a href="#section-7.3" class="section-number selfRef">7.3. </a><a href="#name-recipient-processing" class="section-name selfRef">Recipient Processing</a>
+        </h3>
+<p id="section-7.3-1">Before using Instance Context, a recipient <span class="bcp14">MUST</span>:<a href="#section-7.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-7.3-2">
+<li id="section-7.3-2.1">
+            <p id="section-7.3-2.1.1">Validate the enclosing token or authenticated introspection response.<a href="#section-7.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-7.3-2.2">
+            <p id="section-7.3-2.2.1">Validate the object and required members in <a href="#context-claims" class="auto internal xref">Section 7.1</a>.<a href="#section-7.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-7.3-2.3">
+            <p id="section-7.3-2.3.1">Verify that its Instance Authority is either:<a href="#section-7.3-2.3.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.3-2.3.2.1">
+                <p id="section-7.3-2.3.2.1.1">the token issuer; or<a href="#section-7.3-2.3.2.1.1" class="pilcrow">¶</a></p>
+</li>
+              <li class="normal" id="section-7.3-2.3.2.2">
+                <p id="section-7.3-2.3.2.2.1">a pass-through authority explicitly configured for that token
+issuer and recipient.<a href="#section-7.3-2.3.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            </ul>
+</li>
+          <li id="section-7.3-2.4">
+            <p id="section-7.3-2.4.1">Reject invalid context. If context is required, also reject the
+request.<a href="#section-7.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-7.3-3">Mapped context requires no direct trust in the original attester.
+An Instance Authority identifier does not authorize fetching keys from
+that location.<a href="#section-7.3-3" class="pilcrow">¶</a></p>
+<p id="section-7.3-4">Recipients can correlate the opaque <code>(iss, id)</code> pair without knowing
+its granularity. A recipient whose processing depends on granularity
+<span class="bcp14">MUST</span> establish it through trusted configuration or a consuming profile,
+not by parsing the identifier.<a href="#section-7.3-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authorization-and-token-exchange">
+<section id="section-7.4">
+        <h3 id="name-authorization-and-token-exc">
+<a href="#section-7.4" class="section-number selfRef">7.4. </a><a href="#name-authorization-and-token-exc" class="section-name selfRef">Authorization and Token Exchange</a>
+        </h3>
+<p id="section-7.4-1">Instance Context records validated participation at issuance; it does
+not independently authenticate the current token presenter. Proof of
+possession follows the enclosing token's binding.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+<p id="section-7.4-2">The object <span class="bcp14">MUST NOT</span> be interpreted as an actor, separate token, or
+grant of authority. A consuming profile <span class="bcp14">MUST</span> define:<a href="#section-7.4-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-7.4-3.1">
+            <p id="section-7.4-3.1.1">its association with the token's subject, actor, or other presenter;<a href="#section-7.4-3.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.4-3.2">
+            <p id="section-7.4-3.2.1">how that association is validated and preserved during exchange; and<a href="#section-7.4-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-7.4-3.3">
+            <p id="section-7.4-3.3.1">any trusted upstream Instance Authority whose context is retained.<a href="#section-7.4-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-7.4-4">An issuer can preserve validated upstream context under those rules,
+subject to the recipient trust checks above.<a href="#section-7.4-4" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="relationship-to-workload-identity">
@@ -1641,57 +1892,76 @@ by <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. Such a credent
 to this profile.<a href="#section-8-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="privacy">
+<div id="security-considerations">
 <section id="section-9">
-      <h2 id="name-security-and-privacy-consid">
-<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-and-privacy-consid" class="section-name selfRef">Security and Privacy Considerations</a>
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-9-1">The considerations of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> and <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span> apply. Compromise of
-an attester can allow impersonation of any instance within its approved
-client associations. Receivers <span class="bcp14">MUST</span>
-scope those associations and <span class="bcp14">MUST</span> enforce withdrawal of attester
-trust on subsequent authentication. Runtime isolation and key
-custody limit the granularity of the identity that can be proven;
-a shared private key does not distinguish its individual holders.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">Attestation evidence differs in assurance: reported by the instance
-about itself, verified by the platform or attester, or rooted in
-hardware. An attester <span class="bcp14">MUST NOT</span> represent evidence of a lower tier as a
-higher one, and a Receiver <span class="bcp14">MUST</span> configure the tier it requires for a
-Logical Client rather than infer it from the identifier or the
-attester's name.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">Instance identification supports targeted risk response, but
-does not prove software behavior, authorization, or integrity
-beyond the evidence the attester actually evaluated. Instance
-revocation reaches outstanding tokens only through the revocation
-and introspection behavior in <a href="#lifetime" class="auto internal xref">Section 6</a>; consuming profiles
-define any further consequences.<a href="#section-9-3" class="pilcrow">¶</a></p>
-<p id="section-9-4">A Client Attestation has no audience binding. Resistance to
-forwarding depends on validating its proof, including the intended
-Receiver, freshness, and key possession under the selected ATTEST
-proof method. An instance identifier, including a per-Receiver
-identifier, <span class="bcp14">MUST NOT</span>
-substitute for that proof. A copied attestation without a valid proof
-for the receiving endpoint <span class="bcp14">MUST</span> be rejected.<a href="#section-9-4" class="pilcrow">¶</a></p>
-<p id="section-9-5">Stable identifiers and keys can correlate activity. A
-<code>client_instance_id</code> that survives key rotation also links an
-instance across every Receiver that trusts the same attester, which
-defeats the unlinkability mitigation in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span> of
-using distinct Client Instance Keys per authorization server. Where
-cross-receiver linkability is a concern, the attester <span class="bcp14">SHOULD</span> assign
-a distinct <code>client_instance_id</code> per Receiver while maintaining its
-internal mapping; Receivers <span class="bcp14">MUST NOT</span> assume identifiers seen by
-different Receivers are comparable. A Client Attestation carries no
-audience, so a per-receiver identifier requires the attester to
-issue a distinct attestation for each Receiver, which is the
-practice <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span> already recommends. Deployments
-that require one identifier across Receivers accept that
-correlation as an explicit trade-off.<a href="#section-9-5" class="pilcrow">¶</a></p>
-<p id="section-9-6">Receivers issuing Instance Context <span class="bcp14">SHOULD</span> use recipient-scoped
-instance mappings when broader correlation is unnecessary,
-preserve their internal audit mapping, and disclose only needed
-provenance. Error responses <span class="bcp14">SHOULD</span> avoid revealing unrelated
-instance identities. Logs <span class="bcp14">MUST NOT</span> contain raw credentials or
-private keys.<a href="#section-9-6" class="pilcrow">¶</a></p>
+<p id="section-9-1">The security considerations of <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> and <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span> apply.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div id="attester-compromise-and-assurance">
+<section id="section-9.1">
+        <h3 id="name-attester-compromise-and-ass">
+<a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-attester-compromise-and-ass" class="section-name selfRef">Attester Compromise and Assurance</a>
+        </h3>
+<p id="section-9.1-1">A compromised attester can impersonate instances within its approved
+client associations. Receivers <span class="bcp14">MUST</span> limit those associations to the
+clients and evidence assurance they trust. Trust withdrawal follows
+<a href="#configuration" class="auto internal xref">Section 3</a>; instance suspension follows <a href="#lifetime" class="auto internal xref">Section 6</a>.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">Evidence can be self-reported, platform-verified, or hardware-rooted.
+An attester <span class="bcp14">MUST NOT</span> claim stronger assurance than its evidence
+supports. Receivers <span class="bcp14">MUST</span> configure the assurance required for each
+Logical Client rather than infer it from an identifier or attester
+name. This profile defines no assurance-level registry.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<p id="section-9.1-3">Instance identity does not prove software behavior or integrity beyond
+the evaluated evidence. Runtime isolation and key custody limit what
+can be distinguished: holders of a shared private key cannot be
+identified individually by proof of that key.<a href="#section-9.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="attestation-forwarding">
+<section id="section-9.2">
+        <h3 id="name-attestation-forwarding">
+<a href="#section-9.2" class="section-number selfRef">9.2. </a><a href="#name-attestation-forwarding" class="section-name selfRef">Attestation Forwarding</a>
+        </h3>
+<p id="section-9.2-1">Client Attestations have no audience binding. Forwarding resistance
+depends on ATTEST proof validation, including the intended Receiver,
+freshness, and key possession. An instance identifier, even if scoped
+to a Receiver, provides no substitute for that proof.<a href="#section-9.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="privacy">
+<section id="section-9.3">
+        <h3 id="name-privacy">
+<a href="#section-9.3" class="section-number selfRef">9.3. </a><a href="#name-privacy" class="section-name selfRef">Privacy</a>
+        </h3>
+<p id="section-9.3-1">A stable identifier permits correlation across key changes. Using the
+same identifier across Receivers also defeats the unlinkability gained
+by using different keys for each Receiver. To limit disclosure:<a href="#section-9.3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-9.3-2.1">
+            <p id="section-9.3-2.1.1">Attesters <span class="bcp14">SHOULD</span> assign distinct identifiers per Receiver when
+cross-Receiver correlation is unnecessary, retaining an internal
+mapping. This requires separate attestations, as recommended by
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span>.<a href="#section-9.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.2">
+            <p id="section-9.3-2.2.1">Receivers <span class="bcp14">MUST NOT</span> assume identifiers seen by different Receivers
+are comparable.<a href="#section-9.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.3">
+            <p id="section-9.3-2.3.1">Receivers issuing context <span class="bcp14">SHOULD</span> use recipient-scoped mappings when
+broader correlation is unnecessary, retain internal audit mappings,
+and disclose only needed provenance.<a href="#section-9.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-9.3-2.4">
+            <p id="section-9.3-2.4.1">Error responses <span class="bcp14">SHOULD</span> avoid revealing unrelated instance identities.
+Logs <span class="bcp14">MUST NOT</span> contain raw credentials or private keys.<a href="#section-9.3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-9.3-3">Deployments sharing one identifier across Receivers accept that
+correlation as an explicit privacy trade-off.<a href="#section-9.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="iana-considerations">
@@ -1699,25 +1969,67 @@ private keys.<a href="#section-9-6" class="pilcrow">¶</a></p>
       <h2 id="name-iana-considerations">
 <a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<div id="jwt-claims-and-introspection-response-parameters">
+<div id="json-web-token-claims">
 <section id="section-10.1">
-        <h3 id="name-jwt-claims-and-introspectio">
-<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-jwt-claims-and-introspectio" class="section-name selfRef">JWT Claims and Introspection Response Parameters</a>
+        <h3 id="name-json-web-token-claims">
+<a href="#section-10.1" class="section-number selfRef">10.1. </a><a href="#name-json-web-token-claims" class="section-name selfRef">JSON Web Token Claims</a>
         </h3>
-<p id="section-10.1-1">This specification requests registration of <code>client_instance_id</code>
-and <code>client_instance</code> in the "JSON Web Token Claims" registry
-established by <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>. The descriptions are, respectively,
-"Issuer-scoped client instance identifier" (<a href="#claims" class="auto internal xref">Section 4</a>)
-and "Validated client runtime instance context"
-(<a href="#instance-context" class="auto internal xref">Section 7</a>). The Change Controller is IETF.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
-<p id="section-10.1-2">It also requests registration of <code>client_instance</code>, with the
-same description and reference, in the "OAuth Token Introspection
-Response" registry established by <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. The Change
-Controller is IETF.<a href="#section-10.1-2" class="pilcrow">¶</a></p>
-<p id="section-10.1-3">The claim name <code>client_instance</code> is distinct from any Entity
-Profile value of the same spelling; this document registers a JWT
-claim and an introspection response parameter, not a subject or
-actor profile.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
+<p id="section-10.1-1">This document requests the following registrations in the "JSON Web
+Token Claims" registry established by <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span>. The Change Controller
+for both entries is IETF.<a href="#section-10.1-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+          <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Claim Name</th>
+              <th class="text-left" rowspan="1" colspan="1">Claim Description</th>
+              <th class="text-left" rowspan="1" colspan="1">Specification Document(s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client_instance_id</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Issuer-scoped client instance identifier</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#claims" class="auto internal xref">Section 4</a> of this document</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">
+                <code>client_instance</code>
+</td>
+              <td class="text-left" rowspan="1" colspan="1">Validated client instance context</td>
+              <td class="text-left" rowspan="1" colspan="1">
+                <a href="#instance-context" class="auto internal xref">Section 7</a> of this document</td>
+            </tr>
+          </tbody>
+        </table>
+</section>
+</div>
+<div id="oauth-token-introspection-response">
+<section id="section-10.2">
+        <h3 id="name-oauth-token-introspection-r">
+<a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-oauth-token-introspection-r" class="section-name selfRef">OAuth Token Introspection Response</a>
+        </h3>
+<p id="section-10.2-1">This document requests the following registration in the "OAuth Token
+Introspection Response" registry established by <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>:<a href="#section-10.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10.2-2.1">
+            <p id="section-10.2-2.1.1">Parameter Name: <code>client_instance</code><a href="#section-10.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.2">
+            <p id="section-10.2-2.2.1">Parameter Description: Validated client instance context<a href="#section-10.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.3">
+            <p id="section-10.2-2.3.1">Change Controller: IETF<a href="#section-10.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-10.2-2.4">
+            <p id="section-10.2-2.4.1">Specification Document(s): <a href="#instance-context" class="auto internal xref">Section 7</a> of this document<a href="#section-10.2-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-10.2-3">These registrations define claims and a response parameter, not subject
+or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1792,7 +2104,7 @@ actor profile.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
 <dd class="break"></dd>
 <dt id="AGENT-FEDERATION">[AGENT-FEDERATION]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Federation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-workload-agent-federation-latest</span>, <time datetime="2026-09-11" class="refDate">11 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html">https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Federation"</span>, <time datetime="2026-09-11" class="refDate">11 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html">https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
@@ -1808,8 +2120,8 @@ actor profile.<a href="#section-10.1-3" class="pilcrow">¶</a></p>
 identified unit and the continuity evidence each can supply. The
 attester in every row authenticates the instance and verifies its
 possession of the Client Instance Key before issuing an attestation.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-1">
-        <caption><a href="#table-1" class="selfRef">Table 1</a></caption>
+<table class="center" id="table-3">
+        <caption><a href="#table-3" class="selfRef">Table 3</a></caption>
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Attester</th>
@@ -1845,30 +2157,31 @@ possession of the Client Instance Key before issuing an attestation.<a href="#ap
           </tr>
         </tbody>
       </table>
-<p id="appendix-A-3">An installation attester that cannot verify continuity across a
-restore or clone <span class="bcp14">MUST</span> issue a new identifier, as <a href="#lifetime" class="auto internal xref">Section 6</a>
-requires. An execution attester that reuses a key across restarts
-still issues a new identifier for each execution; the key is not the
-identifier. A shared signing key across replicas prevents instance
-identification at any granularity finer than the key. The rows also
-differ in assurance: app-attestation services and hardware-backed
-device keys can be hardware-rooted, orchestrator and scheduler
-identities are platform-verified, and evidence an instance reports
-about itself is self-attested and does not by itself justify an
-identifier.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+<p id="appendix-A-3">The lifecycle rules in <a href="#lifetime" class="auto internal xref">Section 6</a> apply to each pattern. A device key
+alone does not establish installation continuity; a workload identity
+alone does not distinguish replicas. Assurance depends on the evidence
+actually evaluated, as described in the Security Considerations.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
 <div id="managed-application">
 <section id="appendix-A.1">
         <h3 id="name-managed-application">
 <a href="#name-managed-application" class="section-name selfRef">Managed Application</a>
         </h3>
-<p id="appendix-A.1-1">Two installations of a managed mobile application use the same OAuth
-<code>client_id</code>. An enterprise attester validates installation evidence and
-possession of each installation's key, then assigns distinct
-<code>client_instance_id</code> values. Each installation presents its attestation
-and proof to the IdP, which uses the issuer-qualified identifier for
-audit correlation. When the attester verifies continuity across key
-replacement, it retains that installation's identifier; a clone or new
-installation receives a different identifier.<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.1-1">Two installations of a managed mobile application share an OAuth
+<code>client_id</code>:<a href="#appendix-A.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A.1-2">
+<li id="appendix-A.1-2.1">
+            <p id="appendix-A.1-2.1.1">An enterprise attester validates installation evidence and key
+possession, then assigns each installation a distinct identifier.<a href="#appendix-A.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.1-2.2">
+            <p id="appendix-A.1-2.2.1">Each installation presents its attestation and proof to the IdP,
+which uses the issuer-qualified identifier for audit correlation.<a href="#appendix-A.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.1-2.3">
+            <p id="appendix-A.1-2.3.1">Verified key replacement preserves the identifier; a clone or new
+installation receives another.<a href="#appendix-A.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
 </section>
 </div>
 <div id="workload-replicas">
@@ -1877,14 +2190,22 @@ installation receives a different identifier.<a href="#appendix-A.1-1" class="pi
 <a href="#name-workload-replicas" class="section-name selfRef">Workload Replicas</a>
         </h3>
 <p id="appendix-A.2-1">Two container replicas share a SPIFFE workload identity but hold
-separate Client Instance Keys. A runtime attester validates the workload
-identity, authenticated evidence identifying each container execution,
-and possession of its key. It assigns each execution a distinct
-<code>client_instance_id</code> and issues a Client Attestation for the configured
-Logical Client. The IdP validates the attestation and proof to correlate
-requests from each execution. Renewal within that execution preserves
-its identifier; a new execution receives another. The shared workload
-identity alone cannot establish this distinction.<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+separate Client Instance Keys:<a href="#appendix-A.2-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A.2-2">
+<li id="appendix-A.2-2.1">
+            <p id="appendix-A.2-2.1.1">A runtime attester validates workload identity, authenticated
+evidence identifying each execution, and possession of its key.<a href="#appendix-A.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.2-2.2">
+            <p id="appendix-A.2-2.2.1">It issues each execution a Client Attestation for the configured
+Logical Client with a distinct <code>client_instance_id</code>.<a href="#appendix-A.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.2-2.3">
+            <p id="appendix-A.2-2.3.1">The IdP validates the attestation and proof to correlate requests.
+Renewal preserves the identifier; a new execution receives another.<a href="#appendix-A.2-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-A.2-3">The shared workload identity alone cannot distinguish the replicas.<a href="#appendix-A.2-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="downstream-audit-correlation">
@@ -1892,18 +2213,25 @@ identity alone cannot establish this distinction.<a href="#appendix-A.2-1" class
         <h3 id="name-downstream-audit-correlatio">
 <a href="#name-downstream-audit-correlatio" class="section-name selfRef">Downstream Audit Correlation</a>
         </h3>
-<p id="appendix-A.3-1">After validating an attestation and proof, an IdP maps the instance to
-a recipient-scoped identifier and includes <code>client_instance</code> in a token
-or introspection response. Its <code>iss</code> identifies the IdP and its <code>id</code>
-identifies the instance in that recipient's namespace. The recipient
-validates the token or authenticated response and uses the pair for
-local audit correlation without receiving the original attestation.
-The IdP preserves the mapping across attester-verified key changes and
-uses different mappings for other recipients to limit correlation.
-The token issuer authenticates this context; it conveys no additional
-authorization or proof of possession.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
-<p id="appendix-A.3-2">An IdP needing only local correlation can instead use its internal
-enrollment mapping and ATTEST alone, without this profile.<a href="#appendix-A.3-2" class="pilcrow">¶</a></p>
+<p id="appendix-A.3-1">An IdP conveys instance context to a downstream recipient:<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A.3-2">
+<li id="appendix-A.3-2.1">
+            <p id="appendix-A.3-2.1.1">After validating an attestation and proof, it assigns a
+recipient-scoped identifier and includes <code>client_instance</code> in a
+token or introspection response: <code>iss</code> identifies the IdP and <code>id</code>
+contains the mapped identifier.<a href="#appendix-A.3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.3-2.2">
+            <p id="appendix-A.3-2.2.1">The recipient validates the token or authenticated response and
+uses the pair for audit correlation without the original attestation.<a href="#appendix-A.3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.3-2.3">
+            <p id="appendix-A.3-2.3.1">The IdP preserves the mapping across verified key changes and uses
+different mappings for other recipients.<a href="#appendix-A.3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-A.3-3">An IdP needing only local correlation can instead use its internal
+enrollment mapping and ATTEST alone, without this profile.<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aauth-agent-provider">
@@ -1911,15 +2239,22 @@ enrollment mapping and ATTEST alone, without this profile.<a href="#appendix-A.3
         <h3 id="name-aauth-agent-provider">
 <a href="#name-aauth-agent-provider" class="section-name selfRef">AAuth Agent Provider</a>
         </h3>
-<p id="appendix-A.4-1">An AAuth Agent Provider <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span> could also act as a Client Attester
-for OAuth deployments. When its enrollment records and validated
-evidence establish installation continuity and key possession, it can
-issue a Client Attestation using the approved OAuth <code>client_id</code> as
-<code>sub</code> and an opaque <code>client_instance_id</code> for that installation. The
-client presents this credential using ATTEST's proof mechanism.
-Native AAuth agent tokens and HTTP signature processing retain their
-own semantics; this example defines no token conversion or enrollment
-binding and introduces no AAuth requirement for this profile.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+<p id="appendix-A.4-1">An AAuth Agent Provider <span>[<a href="#AAUTH" class="cite xref">AAUTH</a>]</span> can also act as an OAuth Client Attester:<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="appendix-A.4-2">
+<li id="appendix-A.4-2.1">
+            <p id="appendix-A.4-2.1.1">Its enrollment records and validated evidence establish installation
+continuity and key possession.<a href="#appendix-A.4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.4-2.2">
+            <p id="appendix-A.4-2.2.1">It issues a separate Client Attestation with the approved OAuth
+<code>client_id</code> as <code>sub</code> and an opaque <code>client_instance_id</code>.<a href="#appendix-A.4-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="appendix-A.4-2.3">
+            <p id="appendix-A.4-2.3.1">The client presents that credential using ATTEST proof processing.<a href="#appendix-A.4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="appendix-A.4-3">Native AAuth tokens and HTTP signatures retain their own semantics.
+This example defines no token conversion or enrollment binding.<a href="#appendix-A.4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1932,8 +2267,8 @@ binding and introduces no AAuth requirement for this profile.<a href="#appendix-
 <p id="appendix-B-1">This informative checklist summarizes expected behavior under the
 normative requirements above. Each case assumes successful ATTEST
 validation except where the stated condition prevents acceptance.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
-<table class="center" id="table-2">
-        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<table class="center" id="table-4">
+        <caption><a href="#table-4" class="selfRef">Table 4</a></caption>
 <thead>
           <tr>
             <th class="text-left" rowspan="1" colspan="1">Input or event</th>
@@ -1973,7 +2308,7 @@ validation except where the stated condition prevents acceptance.<a href="#appen
       </table>
 </section>
 </div>
-<div id="document-history">
+<div id="history">
 <section id="appendix-C">
       <h2 id="name-document-history">
 <a href="#name-document-history" class="section-name selfRef">Document History</a>
@@ -2009,7 +2344,12 @@ issuance context, mapped identifier continuity, and issuer changes;
 added an informative interoperability checklist.<a href="#appendix-C-4.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="appendix-C-4.4">
-          <p id="appendix-C-4.4.1">Stated the relationship to the two drafts this document replaces, noted a companion profile for non-ATTEST credentials as future work, barred client-published metadata from establishing attester authority, and added evidence assurance tiers with a misrepresentation rule.<a href="#appendix-C-4.4.1" class="pilcrow">¶</a></p>
+          <p id="appendix-C-4.4.1">Clarified predecessor status, non-ATTEST scope, Receiver-controlled
+attester authority, and evidence assurance.<a href="#appendix-C-4.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-C-4.5">
+          <p id="appendix-C-4.5.1">Consolidated normative processing, separated lifecycle and context
+rules, and aligned security and IANA sections with RFC conventions.<a href="#appendix-C-4.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
