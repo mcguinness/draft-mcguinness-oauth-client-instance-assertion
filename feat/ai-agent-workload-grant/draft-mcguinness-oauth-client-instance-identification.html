@@ -1250,13 +1250,23 @@ principal whose authority it exercises. Authorization profiles,
 such as <span>[<a href="#AGENT-FEDERATION" class="cite xref">AGENT-FEDERATION</a>]</span>, determine whether that principal is
 the token subject or an actor. Implementing this document does
 not require implementing an actor profile or producing <code>act</code>.<a href="#section-1-4" class="pilcrow">¶</a></p>
-<p id="section-1-5">draft-mcguinness-oauth-client-instance-assertion defines a
-standalone client instance assertion presented alongside any client
-authentication method, including <code>none</code>. This document takes a
-different approach for clients that already authenticate with a
-Client Attestation: it profiles <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> and defines no separate
-assertion parameter. Deployments using ATTEST <span class="bcp14">SHOULD</span> use this
-profile; the assertion draft remains for clients that cannot.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-5">An IdP can act solely as a Receiver; it need not issue attestations.
+Use of this profile requires an available, trusted attester capable
+of establishing the configured instance granularity. Registry import
+alone does not provide that evidence. Platform JWT and native SVID
+inputs to agent federation do not provide this instance context
+unless an attester separately issues a conforming Client Attestation.
+Deployments that need no stable instance correlation can use ATTEST
+without this profile.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">The proposed replacement for draft-mcguinness-oauth-ai-agent-instance
+is the pair draft-mcguinness-oauth-workload-agent-federation and
+draft-mcguinness-oauth-client-instance-identification. The former
+specifies governed agent identity and grant issuance; the latter
+specifies optional instance identification using ATTEST.
+draft-mcguinness-oauth-client-instance-assertion remains a separate
+proposal for a standalone assertion alongside other client
+authentication methods. These individual drafts do not require
+adoption of one another except where explicitly profiled.<a href="#section-1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="conventions-and-definitions">
@@ -1306,10 +1316,10 @@ Client Attester.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-2-3.11">Instance Authority:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.12">
-          <p id="section-2-3.12.1">The value of <code>iss</code> in a <code>client_instance</code> object, identifying
-the namespace of its <code>id</code>. It is the Receiver's own issuer
-identifier in the mapped form or the Attester Issuer in the
-pass-through form (<a href="#instance-context" class="auto internal xref">Section 7</a>).<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+          <p id="section-2-3.12.1">The namespace authority identified by <code>iss</code> in a <code>client_instance</code>
+object. It can be the token issuer, an attester, or an upstream
+issuer whose validated context is preserved under a consuming
+profile.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1374,8 +1384,11 @@ an approved Client Attester in <a href="#configuration" class="auto internal xre
 Instance within the issuer's namespace. The identifier <span class="bcp14">MUST</span> be
 opaque to Receivers and <span class="bcp14">MUST NOT</span> be reassigned to another instance.
 Receivers <span class="bcp14">MUST NOT</span> derive permissions by parsing it. Attesters
-<span class="bcp14">SHOULD NOT</span> issue identifiers longer than 256 characters, and
-Receivers <span class="bcp14">MUST</span> accept identifiers up to that length.<a href="#section-4-3.4.1" class="pilcrow">¶</a></p>
+<span class="bcp14">MUST</span> generate unpredictable identifiers with at least 128 bits of
+randomness and <span class="bcp14">MUST NOT</span> embed hostnames, user identifiers, or other
+identifying data. Identifiers <span class="bcp14">MUST NOT</span> exceed 256 characters.
+Receivers <span class="bcp14">MUST</span> accept conforming identifiers up to that length and
+reject longer values with <code>invalid_client_attestation</code>.<a href="#section-4-3.4.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-4-3.5">
@@ -1383,8 +1396,15 @@ Receivers <span class="bcp14">MUST</span> accept identifiers up to that length.<
         <dd style="margin-left: 1.5em" id="section-4-3.6">
           <p id="section-4-3.6.1"><span class="bcp14">REQUIRED</span>. The time at which the attestation was issued, as a
 NumericDate. It <span class="bcp14">MUST</span> precede <code>exp</code>. Receivers <span class="bcp14">MUST</span> reject
-attestations outside their configured age and lifetime limits,
-allowing only their configured clock skew.<a href="#section-4-3.6.1" class="pilcrow">¶</a></p>
+attestations outside their configured age and lifetime limits.
+Configured clock skew <span class="bcp14">MUST NOT</span> exceed 30 seconds.<a href="#section-4-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-4-3.7">
+<code>exp</code>:</dt>
+        <dd style="margin-left: 1.5em" id="section-4-3.8">
+          <p id="section-4-3.8.1"><span class="bcp14">REQUIRED</span> by ATTEST. The expiration time as a NumericDate.
+Receivers <span class="bcp14">MUST</span> reject missing or incorrectly typed <code>iat</code> or <code>exp</code>.<a href="#section-4-3.8.1" class="pilcrow">¶</a></p>
 </dd>
       <dd class="break"></dd>
 </dl>
@@ -1404,7 +1424,7 @@ rules in the profile that uses them.<a href="#section-4-5" class="pilcrow">¶</a
 {
   "iss": "https://attester.example/tenant/acme",
   "sub": "https://platform.example/oauth-client",
-  "client_instance_id": "inst-7f3d9a2e",
+  "client_instance_id": "i-7f3d9a2e6c8145b0a923d47e18f602cd",
   "iat": 1789128000,
   "exp": 1789128300,
   "cnf": {
@@ -1566,15 +1586,26 @@ its configuration for the unit.<a href="#section-7-2.6.1" class="pilcrow">¶</a>
       <dd class="break"></dd>
 </dl>
 <p id="section-7-3">The object <span class="bcp14">MUST</span> identify the instance whose participation and key
-possession were validated for issuance. The tuple takes one of two
-forms. In the mapped form, which is <span class="bcp14">RECOMMENDED</span>, <code>iss</code> is the
+possession were validated for issuance. Before using this context,
+a recipient <span class="bcp14">MUST</span> validate the enclosing token or authenticated
+introspection response. It <span class="bcp14">MUST</span> reject a <code>client_instance</code> whose
+<code>iss</code> is neither that token's issuer nor a pass-through Instance
+Authority explicitly configured for that token issuer and recipient.
+A mapped identifier needs no direct attester trust; pass-through context does
+not authorize fetching keys from its <code>iss</code>. If context is required,
+rejection <span class="bcp14">MUST</span> prevent accepting the token for that request. The tuple
+takes one of two forms. In the mapped form, which is <span class="bcp14">RECOMMENDED</span>,
+<code>iss</code> is the
 Receiver's own issuer identifier and <code>id</code> an identifier the Receiver
 assigned through an authenticated, unambiguous mapping it maintains.
 In the pass-through form, <code>iss</code> and <code>id</code> are copied from the validated
 attestation; this form requires the recipient to trust the Attester
 Issuer's namespace directly and <span class="bcp14">MUST</span> be used only with recipients
-configured for it. The issuer <span class="bcp14">MUST NOT</span> copy unvalidated
-client-supplied context. The <code>iss</code> and <code>id</code> members <span class="bcp14">MUST</span> be nonempty
+configured for it. A consuming profile <span class="bcp14">MAY</span> likewise preserve context
+from a validated upstream token, but <span class="bcp14">MUST</span> define the trusted upstream
+Instance Authority and the association being preserved. The issuer
+<span class="bcp14">MUST NOT</span> copy unvalidated client-supplied context. The <code>iss</code> and <code>id</code>
+members <span class="bcp14">MUST</span> be nonempty
 strings. Additional members <span class="bcp14">MAY</span> be defined by other profiles. A
 recipient <span class="bcp14">MUST</span> ignore members it does not recognize. A profile
 defining additional members <span class="bcp14">MUST</span> specify their processing for
@@ -1585,7 +1616,7 @@ of <code>iss</code> or <code>id</code>.<a href="#section-7-3" class="pilcrow">¶
 {
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
-    "id": "runtime-93ab",
+    "id": "m-f61783ea4cb24d098851d34960a274be",
     "unit": "execution"
   }
 }
@@ -1635,7 +1666,13 @@ beyond the evidence the attester actually evaluated. Instance
 revocation reaches outstanding tokens only through the revocation
 and introspection behavior in <a href="#lifetime" class="auto internal xref">Section 6</a>; consuming profiles
 define any further consequences.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">Stable identifiers and keys can correlate activity. A
+<p id="section-9-3">A Client Attestation has no audience binding. Resistance to
+forwarding depends on validating its proof, including the intended
+Receiver, freshness, and key possession under ATTEST and DPoP. An
+instance identifier, including a per-Receiver identifier, <span class="bcp14">MUST NOT</span>
+substitute for that proof. A copied attestation without a valid proof
+for the receiving endpoint <span class="bcp14">MUST</span> be rejected.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-9-4">Stable identifiers and keys can correlate activity. A
 <code>client_instance_id</code> that survives key rotation also links an
 instance across every Receiver that trusts the same attester, which
 defeats the unlinkability mitigation in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span> of
@@ -1648,13 +1685,13 @@ audience, so a per-receiver identifier requires the attester to
 issue a distinct attestation for each Receiver, which is the
 practice <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-11.1" class="relref">Section 11.1</a></span> already recommends. Deployments
 that require one identifier across Receivers accept that
-correlation as an explicit trade-off.<a href="#section-9-3" class="pilcrow">¶</a></p>
-<p id="section-9-4">Receivers issuing Instance Context <span class="bcp14">SHOULD</span> use recipient-scoped
+correlation as an explicit trade-off.<a href="#section-9-4" class="pilcrow">¶</a></p>
+<p id="section-9-5">Receivers issuing Instance Context <span class="bcp14">SHOULD</span> use recipient-scoped
 instance mappings when broader correlation is unnecessary,
 preserve their internal audit mapping, and disclose only needed
 provenance. Error responses <span class="bcp14">SHOULD</span> avoid revealing unrelated
 instance identities. Logs <span class="bcp14">MUST NOT</span> contain raw credentials or
-private keys.<a href="#section-9-4" class="pilcrow">¶</a></p>
+private keys.<a href="#section-9-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="iana-considerations">
@@ -1864,6 +1901,11 @@ appendix.<a href="#appendix-B-2.7.1" class="pilcrow">¶</a></p>
           <p id="appendix-B-2.8.1">Limited the DPoP issuance prerequisite to DPoP access tokens,
 preserving ATTEST's other artifact bindings, and tied suspension
 enforcement to locally applied status or attestation validity.<a href="#appendix-B-2.8.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-2.9">
+          <p id="appendix-B-2.9.1">Required unpredictable instance identifiers, bounded their length,
+defined recipient-side context validation and forwarding resistance,
+and aligned the predecessor and deployment scope descriptions.<a href="#appendix-B-2.9.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
