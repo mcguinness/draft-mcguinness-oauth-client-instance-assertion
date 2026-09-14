@@ -69,6 +69,10 @@ informative:
 
 --- abstract
 
+This document has been superseded and is not being progressed; the
+Introduction names its replacements. This revision makes no other
+change.
+
 This specification defines the Client Instance Assertion: a signed
 JWT identifying a concrete runtime instance of an OAuth 2.0 client.
 It registers the `client_instance_assertion` request parameter for
@@ -100,6 +104,29 @@ sender-constrained to a key the instance possesses.
 --- middle
 
 # Introduction
+
+Note on status: This document is not being progressed beyond this
+revision. Instance identification is addressed by
+draft-mcguinness-oauth-client-instance-id, an optional claims profile
+of Attestation-Based Client Authentication that carries an
+attester-assigned instance identifier and optional instance context.
+Representation of an agent or client instance as a token subject or
+actor is addressed by the OAuth Actor Profile and by
+draft-mcguinness-oauth-workload-agent-federation. The
+`client_instance_assertion` parameter, the `client-instance-jwt` token
+type, the `client_instance_assertion` authentication method, the
+`instance_issuers` metadata, and the subject syntax registry defined
+here are withdrawn from consideration, and the registrations requested
+in the IANA Considerations are not being pursued.
+
+Three concerns from this document are carried forward. Instance
+evidence for clients that cannot present a Client Attestation is noted
+as future work in the instance identification profile. The rule that
+client-published metadata, including dynamic registration and client
+identifier metadata documents, cannot establish an attester's
+authority is adopted there as a requirement. The requirement that
+tokens carrying instance identity be sender-constrained is adopted in
+the agent federation profile.
 
 OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
 client. In deployments where a single OAuth client identifier
@@ -3312,6 +3339,15 @@ matches the access token's `cnf.x5t#S256`.
 {:numbered="false"}
 
 *RFC EDITOR: please remove this section before publication.*
+
+## -02 {#history-02}
+{:numbered="false"}
+
+* Marked this document as superseded by
+  draft-mcguinness-oauth-client-instance-id and
+  draft-mcguinness-oauth-workload-agent-federation; withdrew its
+  parameter, token type, authentication method, metadata, and
+  registry proposals from consideration; no other change.
 
 ## -01 {#history-01}
 {:numbered="false"}
