@@ -14,14 +14,14 @@ Expires: 15 March 2027
 
 Abstract
 
-   This specification profiles OAuth 2.0 Attestation-Based Client
-   Authentication to identify a particular deployed instance of a
-   logical OAuth client.  It defines an issuer-qualified instance
-   identifier, attester configuration, and processing requirements for
-   instance identity and key continuity.  It also defines a claim for
-   conveying validated instance context in issued tokens.  Instance
-   identification does not determine the authorization subject or
-   establish delegation.
+   This specification defines an optional claims profile of OAuth 2.0
+   Attestation-Based Client Authentication for deployments that need a
+   common instance identifier across attestations and key changes.  It
+   specifies an issuer-qualified identifier, continuity and privacy
+   rules, and optional instance context in tokens and introspection
+   responses.  Authentication, proof of possession, and token binding
+   remain governed by the base specification.  Deployments needing only
+   client instance authentication do not require this profile.
 
 About This Document
 
@@ -96,55 +96,50 @@ Table of Contents
 
 1.  Introduction
 
-   An OAuth client identifier can represent software executing in many
-   concurrent instances.  Attestation-Based Client Authentication
-   [ATTEST] authenticates a client instance through a key-bound Client
-   Attestation and proof of possession.  A stable identifier for that
-   instance additionally supports audit correlation, instance-specific
-   risk evaluation, and lifecycle response across attestation reissuance
-   and key rotation.
+   Attestation-Based Client Authentication [ATTEST] already
+   authenticates a deployed client instance using a Client Attestation
+   and proof of possession of its Client Instance Key. It defines the
+   authentication methods, proof processing, and binding of OAuth
+   artifacts to that key.  This profile is optional; it is not needed to
+   authenticate an instance.
 
-   The Client Instance Key alone cannot serve this purpose.  Key
-   rotation breaks any correlation keyed on a thumbprint, suspension and
-   revocation need to target an installation or execution rather than a
-   key, and the per-receiver keys that [ATTEST], Section 11.1 recommends
-   for unlinkability make the key useless as an identifier across
-   requests to different Receivers.  A stable identifier assigned by the
-   attester, scoped to the attester's issuer, supplies what the key
-   cannot while leaving key possession as the proof of presence.
+   The additional interoperability need is a common identifier that
+   independent attesters, Receivers, and downstream systems can use
+   across attestations and key changes.  For example, an application
+   installation replaces key K1 with K2 and obtains a new attestation.
+   An audit system needs to recognize the same installation, while a
+   clone must receive a different identity.  The new key and attestation
+   alone do not express that continuity.  The attester must establish it
+   before reusing an identifier.
 
-   This document defines that identifier and its relationship to an
-   OAuth client [RFC6749] as a profile under [ATTEST], Section 13.  It
-   retains the Client Attestation JWT, HTTP headers, authentication
-   methods, and client subject semantics of ATTEST.  It adds a stable
-   instance identifier and its processing rules; it does not define an
-   alternative assertion format or grant type.  Other ATTEST deployments
-   do not require this instance identification profile.
+   This document profiles the additional claims permitted by [ATTEST]
+   under its profiling rules in [ATTEST], Section 13.  It defines:
 
-   The identity of a client instance is distinct from the identity of
-   the principal whose authority it exercises.  Authorization profiles,
-   such as [AGENT-FEDERATION], determine whether that principal is the
-   token subject or an actor.  Implementing this document does not
-   require implementing an actor profile or producing act.
+   *  client_instance_id, an attester-assigned identifier scoped by iss,
+      with rules for continuity, non-reassignment, and privacy; and
 
-   An IdP can act solely as a Receiver; it need not issue attestations.
-   Use of this profile requires an available, trusted attester capable
-   of establishing the configured instance granularity.  Registry import
-   alone does not provide that evidence.  Platform JWT and native SVID
-   inputs to agent federation do not provide this instance context
-   unless an attester separately issues a conforming Client Attestation.
-   Deployments that need no stable instance correlation can use ATTEST
-   without this profile.
+   *  client_instance, an optional reference conveyed in tokens or
+      introspection responses to recipients that need validated instance
+      context without receiving the original attestation.
 
-   The proposed replacement for draft-mcguinness-oauth-ai-agent-instance
-   is the pair draft-mcguinness-oauth-workload-agent-federation and
-   draft-mcguinness-oauth-client-instance-identification.  The former
-   specifies governed agent identity and grant issuance; the latter
-   specifies optional instance identification using ATTEST. draft-
-   mcguinness-oauth-client-instance-assertion remains a separate
-   proposal for a standalone assertion alongside other client
-   authentication methods.  These individual drafts do not require
-   adoption of one another except where explicitly profiled.
+   Use this profile when those parties need to exchange and interpret a
+   common instance identity.  When one IdP can satisfy its correlation
+   needs through internal mappings, or correlation need only last for
+   the current key, ATTEST alone is sufficient.  A stable identifier
+   also creates a correlation risk, so it should be released only where
+   needed.
+
+   All authentication and proof requirements come from ATTEST and the
+   selected OAuth mechanisms.  This profile does not define a key-
+   rotation protocol or transfer existing grants, sessions, or refresh
+   tokens to a new key.  Stable identity records continuity; it does not
+   prove possession of either key or authorize that transfer.
+
+   An IdP can act solely as a Receiver, relying on an attester capable
+   of establishing the required instance continuity.  Registry import
+   alone does not supply that evidence.  Authorization profiles, such as
+   [AGENT-FEDERATION], separately determine the principal and acting
+   relationship; instance identification does not establish delegation.
 
 2.  Conventions and Definitions
 
@@ -157,8 +152,9 @@ Table of Contents
    The terms Client Attestation, Client Attester, Client Instance, and
    Client Instance Key are used as defined in [ATTEST].
 
-   Logical Client:  The OAuth client identified by client_id.  Several
-      Client Instances can authenticate as the same Logical Client.
+   Logical Client:  The OAuth client [RFC6749] identified by client_id.
+      Several Client Instances can authenticate as the same Logical
+      Client.
 
    Instance Identifier:  An opaque identifier assigned by a Client
       Attester to one Client Instance at the configured lifecycle
@@ -183,13 +179,13 @@ Table of Contents
 
 3.  Profile Selection and Trust
 
-   The authorization server and client MUST establish use of this
-   profile through administrative configuration before processing
-   requests.  That configuration MUST identify the Logical Client, its
-   authentication method, and the attesters authorized to identify its
-   instances.  A resource relying on instance context MUST likewise
-   establish that requirement through trusted configuration.  Receiving
-   an instance claim MUST NOT select this profile or alter the client's
+   The Receiver and client MUST establish use of this profile through
+   administrative configuration before processing requests.  That
+   configuration MUST identify the Logical Client, its authentication
+   method, and the attesters authorized to identify its instances.  A
+   resource relying on instance context MUST likewise establish that
+   requirement through trusted configuration.  Receiving an instance
+   claim MUST NOT select this profile or alter the client's
    authentication method.  This document defines no new discovery or
    client metadata parameters.
 
@@ -202,19 +198,14 @@ Table of Contents
    create a new identifier; it MUST NOT silently change the meaning of
    an existing identifier.
 
-   For each approved attester, the server MUST configure its exact
-   issuer identifier, verification keys or a trusted source for those
-   keys, permitted asymmetric signature algorithms, and attestation age
-   and lifetime limits.  Client-published information or possession of a
-   signing key alone MUST NOT establish an attester's authority for a
-   client.
-
-   The Receiver MUST resolve keys using that configuration and the JWT's
-   kid.  It MUST NOT obtain authority or replacement keys from an
-   unapproved JWT-supplied URL or embedded public key.  Changes to
-   issuer authority and key configuration MUST be authenticated and
-   audited.  Issuer and client identifiers are compared as exact
-   strings, without URI normalization.
+   The Receiver MUST associate the exact Attester Issuer with an
+   authority trusted to assign instance identifiers for the Logical
+   Client.  Signature or MAC validation under ATTEST MUST establish that
+   association; a JWT's iss or possession of a key alone MUST NOT
+   establish this authority.  Trust management and verification-key
+   resolution follow ATTEST and the deployment's trusted configuration.
+   Issuer and client identifiers are compared as exact strings, without
+   URI normalization.
 
 4.  Client Attestation Claims
 
@@ -238,27 +229,12 @@ Table of Contents
       conforming identifiers up to that length and reject longer values
       with invalid_client_attestation.
 
-   iat:  REQUIRED.  The time at which the attestation was issued, as a
-      NumericDate.  It MUST precede exp.  Receivers MUST reject
-      attestations outside their configured age and lifetime limits.
-      Configured clock skew MUST NOT exceed 30 seconds.
+   The remaining claims, JWT protection, and proof requirements follow
+   ATTEST unchanged.  In particular, exp and cnf remain required, and
+   iat remains optional.  This profile adds no algorithm, key-selection,
+   clock-skew, or attestation-lifetime requirements.
 
-   exp:  REQUIRED by ATTEST.  The expiration time as a NumericDate.
-      Receivers MUST reject missing or incorrectly typed iat or exp.
-
-   The protected header MUST contain kid.  Attestations MUST use an
-   asymmetric signature algorithm permitted by the trust configuration.
-   Implementations MUST support ES256 [RFC7518]; none and symmetric MAC
-   algorithms MUST NOT be used.
-
-   The base cnf claim contains the public instance key using the jwk
-   representation [RFC7800].  Private key members MUST NOT be included.
-   The attester MUST authenticate the instance and verify its possession
-   of that key before issuing an attestation.  Any additional identity
-   or provenance claims require processing rules in the profile that
-   uses them.
-
-   Example decoded attestation payload:
+   Example decoded attestation payload, including the optional iat:
 
    {
      "iss": "https://attester.example/tenant/acme",
@@ -278,48 +254,30 @@ Table of Contents
 
 5.  Request Processing
 
-   The client MUST present its attestation and proof through the
-   mechanisms of [ATTEST] and use its configured authentication method.
-   Implementations of this profile MUST support DPoP combined mode and
-   attest_jwt_client_auth_dpop.  Other base attestation proof methods
-   MAY be supported by agreement.
+   The client and Receiver MUST use the presentation and proof
+   processing of [ATTEST] for their configured method.  This profile
+   does not require DPoP combined mode or change any method's token-
+   binding rules.
 
-   The Receiver MUST:
+   After successful ATTEST validation, the Receiver MUST:
 
-   1.  Determine that this profile applies from Section 3.
+   1.  Determine that this profile applies under Section 3.
 
-   2.  Validate the Client Attestation and proof according to [ATTEST],
-       including JWT type, signature, expiration, client identity, key
-       possession, and applicable freshness checks.
+   2.  Validate the additional claims and attester authority in
+       Section 4.
 
-   3.  Validate the additional claims and attester association in
-       Section 4.  The attestation's sub MUST equal the authenticated or
-       expected Logical Client identifier.
+   3.  Establish the instance identity as (iss, client_instance_id) and
+       associate it with the Logical Client and validated Client
+       Instance Key. The identifier MUST NOT substitute for proof of key
+       possession.
 
-   4.  Establish the instance identity as (iss, client_instance_id) and
-       associate it with that Logical Client and the proven key.
+   4.  Apply any configured policy associated with that instance
+       identity.
 
-   5.  Apply the instance's current status under Section 6 and any other
-       configured risk policy before accepting the request.
-
-   In DPoP combined mode, the proof key MUST match cnf.jwk.  Under any
-   other supported proof method, a token-binding key presented in the
-   same request MUST also be the validated cnf.jwk key, and the Receiver
-   MUST reject a DPoP proof from a different key.  This profile
-   deliberately narrows the base specification's allowance for an
-   unrelated DPoP key so that token binding, the instance identity
-   established in step 4, and the key-continuity rules in Section 6 all
-   refer to one key.  A Receiver MUST NOT issue a DPoP-bound access
-   token unless the request carried a DPoP proof from that key under
-   [RFC9449], either in combined mode or alongside a separate Client
-   Attestation PoP JWT.  Refresh tokens and other protocol artifacts
-   retain their ATTEST binding rules, including when no DPoP proof is
-   present.  Where an issued artifact uses cnf.jkt, the Receiver MUST
-   compute the JWK SHA-256 thumbprint according to [RFC7638] from the
-   validated cnf.jwk key; it MUST NOT accept an unrelated requester-
-   selected thumbprint.  DPoP nonce and replay processing follow
-   [RFC9449].  A fresh proof is required for each request; the Client
-   Attestation itself can be reused within its validity.
+   An additional token-binding key remains subject to the selected OAuth
+   mechanism.  Instance context records the instance whose attestation
+   and proof were validated; it does not change the binding of issued
+   tokens.
 
    A Receiver MUST NOT substitute instance identification for grant
    validation.  In particular, it MUST NOT set an access token's sub,
@@ -349,20 +307,14 @@ Table of Contents
    copies of the identified unit from sharing that identity.
 
    When an attester suspends or retires an instance, it MUST cease
-   issuing attestations for it.  This does not notify Receivers or
-   invalidate attestations they already hold.  A Receiver MAY
-   additionally obtain authenticated instance status from the attester
-   or apply its own policy, keyed by (iss, client_instance_id).  It MUST
-   reject a request once suspended or retired status is applied locally,
-   using invalid_client [RFC6749] without revealing whether the instance
-   is known.  Without such status, enforcement depends on attestation
-   expiration or the configured maximum age.  This document defines no
-   status distribution protocol.  A Receiver that suspends an instance
-   SHOULD revoke the tokens it issued to that instance or report them
-   inactive through introspection [RFC7662]; the client_instance
-   parameter in Section 7 lets a resource server apply the same status
-   to tokens it has already accepted.  Status applied at the Receiver
-   does not by itself revoke tokens issued by other parties.
+   issuing attestations for it.  A Receiver MAY use the identifier for
+   local risk or lifecycle decisions and MUST reject an instance
+   disallowed by its current policy.  A Receiver that suspends an
+   instance SHOULD revoke the tokens it issued to that instance or
+   report them inactive through introspection [RFC7662].  A stable
+   identifier does not notify other parties or invalidate outstanding
+   attestations or tokens.  Status propagation and revocation mechanisms
+   are outside this profile.
 
    Attestation renewal and key rotation within a continuing instance
    MUST preserve each identifier the attester has assigned to that
@@ -454,13 +406,13 @@ Table of Contents
 
 9.  Security and Privacy Considerations
 
-   The considerations of [ATTEST], [RFC8725], and [RFC9449] apply.
-   Compromise of an attester can allow impersonation of any instance
-   within its approved client associations.  Receivers MUST scope those
-   associations and MUST enforce withdrawal of attester trust on
-   subsequent authentication.  Runtime isolation and key custody limit
-   the granularity of the identity that can be proven; a shared private
-   key does not distinguish its individual holders.
+   The considerations of [ATTEST] and [RFC8725] apply.  Compromise of an
+   attester can allow impersonation of any instance within its approved
+   client associations.  Receivers MUST scope those associations and
+   MUST enforce withdrawal of attester trust on subsequent
+   authentication.  Runtime isolation and key custody limit the
+   granularity of the identity that can be proven; a shared private key
+   does not distinguish its individual holders.
 
    Instance identification supports targeted risk response, but does not
    prove software behavior, authorization, or integrity beyond the
@@ -471,10 +423,10 @@ Table of Contents
 
    A Client Attestation has no audience binding.  Resistance to
    forwarding depends on validating its proof, including the intended
-   Receiver, freshness, and key possession under ATTEST and DPoP.  An
-   instance identifier, including a per-Receiver identifier, MUST NOT
-   substitute for that proof.  A copied attestation without a valid
-   proof for the receiving endpoint MUST be rejected.
+   Receiver, freshness, and key possession under the selected ATTEST
+   proof method.  An instance identifier, including a per-Receiver
+   identifier, MUST NOT substitute for that proof.  A copied attestation
+   without a valid proof for the receiving endpoint MUST be rejected.
 
    Stable identifiers and keys can correlate activity.  A
    client_instance_id that survives key rotation also links an instance
@@ -531,36 +483,18 @@ Table of Contents
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6749>.
 
-   [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
-              DOI 10.17487/RFC7518, May 2015,
-              <https://www.rfc-editor.org/rfc/rfc7518>.
-
    [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
               (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
               <https://www.rfc-editor.org/rfc/rfc7519>.
-
-   [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
-              Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
-              2015, <https://www.rfc-editor.org/rfc/rfc7638>.
 
    [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
               RFC 7662, DOI 10.17487/RFC7662, October 2015,
               <https://www.rfc-editor.org/rfc/rfc7662>.
 
-   [RFC7800]  Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-
-              Possession Key Semantics for JSON Web Tokens (JWTs)",
-              RFC 7800, DOI 10.17487/RFC7800, April 2016,
-              <https://www.rfc-editor.org/rfc/rfc7800>.
-
    [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
               Current Practices", BCP 225, RFC 8725,
               DOI 10.17487/RFC8725, February 2020,
               <https://www.rfc-editor.org/rfc/rfc8725>.
-
-   [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
-              Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
-              Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
-              September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -638,49 +572,23 @@ Document History
 
    _RFC EDITOR: Remove this section before publication._
 
-   *  Replaced the instance-authentication portions of draft-mcguinness-
-      oauth-client-instance-assertion, using ATTEST as the sole protocol
-      foundation and separating instance evidence from agent federation
-      and actor semantics.
+   The proposed replacement for draft-mcguinness-oauth-ai-agent-instance
+   is the pair draft-mcguinness-oauth-workload-agent-federation and
+   draft-mcguinness-oauth-client-instance-identification.  The former
+   specifies governed agent identity and grant issuance; the latter
+   specifies optional instance identification using ATTEST. draft-
+   mcguinness-oauth-client-instance-assertion remains a separate
+   proposal for a standalone assertion alongside other client
+   authentication methods.  These individual drafts do not require
+   adoption of one another except where explicitly profiled.
 
-   *  Made the identified unit explicitly configured and distinguished
-      installation continuity from process or container execution
-      lifetime.
+   *  Defined issuer-qualified instance identity, continuity and privacy
+      rules, and optional client_instance context with iss and id.
 
-   *  Bound non-combined proof methods to the attestation key, restored
-      the MUST for ignoring unknown client_instance members, and
-      addressed cross-receiver linkability of stable instance
-      identifiers.
-
-   *  Required iss in this profile with an exact-match constraint, and
-      clarified that per-receiver identifiers require per-receiver
-      attestations.
-
-   *  Argued for a stable identifier against the key alone, scoped this
-      profile against the client instance assertion draft, and defined
-      Receiver, Attester Issuer, and Instance Authority.
-
-   *  Defined instance status handling, the invalid_client rejection,
-      and revocation or introspection of outstanding tokens; required a
-      DPoP proof for key-bound artifacts.
-
-   *  Added the mapped and pass-through forms of client_instance, an
-      identifier length bound, a name disambiguation note, and an
-      informative attester patterns appendix.
-
-   *  Limited the DPoP issuance prerequisite to DPoP access tokens,
-      preserving ATTEST's other artifact bindings, and tied suspension
-      enforcement to locally applied status or attestation validity.
-
-   *  Required unpredictable instance identifiers, bounded their length,
-      defined recipient-side context validation and forwarding
-      resistance, and aligned the predecessor and deployment scope
-      descriptions.
-
-   *  Limited the defined instance context members to iss and id;
-      retained configured lifecycle rules and required recipient
-      knowledge of granularity only when its processing depends on that
-      distinction.
+   *  Scoped the document to an optional claims profile, stated when
+      ATTEST alone is sufficient, and inherited its authentication,
+      proof, algorithm, freshness, and token-binding requirements
+      unchanged.
 
 Author's Address
 
