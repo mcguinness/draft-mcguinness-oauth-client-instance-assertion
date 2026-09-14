@@ -32,6 +32,7 @@ normative:
   RFC8725:
 informative:
   AAUTH: I-D.hardt-oauth-aauth-protocol
+  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
     title: "OAuth 2.0 Profile for Agent Federation"
@@ -61,6 +62,13 @@ a deployed client instance using a Client Attestation and proof of
 possession of its Client Instance Key. It defines the authentication
 methods, proof processing, and binding of OAuth artifacts to that key.
 This profile is optional; it is not needed to authenticate an instance.
+
+An OAuth client identifier identifies the Logical Client. An
+authorization profile determines the principal whose authority is
+represented and, where applicable, the delegated actor. This
+specification identifies a particular installation or execution of
+client software. Several instances can operate for the same principal;
+replacing an instance need not change that principal.
 
 The additional interoperability need is a common identifier that
 independent attesters, Receivers, and downstream systems can use across
@@ -97,6 +105,12 @@ establishing the required instance continuity. Registry import alone
 does not supply that evidence. Authorization profiles, such as
 {{AGENT-FEDERATION}}, separately determine the principal and acting
 relationship; instance identification does not establish delegation.
+Actor representation is separately addressed by {{ACTOR-PROFILE}}.
+Instance evidence does not establish that delegation occurred or
+select an actor. A consuming authorization profile determines whether
+the instance operates as the subject, as a delegated actor, or in
+another explicitly defined relationship. This profile can be used
+without implementing Actor Profile.
 
 # Conventions and Definitions
 
@@ -274,6 +288,13 @@ expired attestation, or a former public key alone MUST NOT establish
 continuity. A Receiver MUST NOT use a key thumbprint, certificate
 serial number, or JWT `jti` as a substitute for the identifier.
 
+Different Attester Issuers define different instance namespaces.
+Receivers MUST NOT infer continuity across an issuer change from equal
+identifier strings or a shared key. Preserving an association across
+authorities requires a separately specified procedure establishing
+trust in both authorities and authenticated evidence of continuity;
+this profile does not define that procedure.
+
 This profile does not override refresh-token binding in
 {{ATTEST}}. In particular, a stable identifier does not permit
 use of a key-bound refresh token with a new key. Transferring
@@ -295,18 +316,32 @@ validated instance context. Its value is an object containing:
   that authority's namespace.
 
 The object MUST identify the instance whose participation and key
-possession were validated for issuance. Before using this context,
+possession were validated for issuance. It records that validated
+participation; its presence does not independently authenticate the
+current presenter of the enclosing token. Authentication and proof of
+possession remain governed by that token and its applicable protocol.
+Before using this context,
 a recipient MUST validate the enclosing token or authenticated
 introspection response. It MUST reject a `client_instance` whose
 `iss` is neither that token's issuer nor a pass-through Instance
 Authority explicitly configured for that token issuer and recipient.
 A mapped identifier needs no direct attester trust; pass-through
 context does not authorize fetching keys from its `iss`. If context is
-required, rejection MUST prevent accepting the token for that request. The tuple
-takes one of two forms. In the mapped form, which is RECOMMENDED,
+required, rejection MUST prevent accepting the token for that request.
+The tuple takes one of two forms. In the mapped form, which is RECOMMENDED,
 `iss` is the Receiver's own issuer identifier and `id` an identifier
 the Receiver assigned through an authenticated, unambiguous mapping
 it maintains.
+
+The Receiver MUST NOT assign the same mapped `(iss, id)` pair to
+different instances or reassign it after an instance is retired. It
+MUST preserve the existing mapping for a recipient across attestation
+renewal and attester-verified key replacement within a continuing
+instance. Distinct source identities MUST remain distinct unless
+their continuity has been established by a separately specified
+procedure as described in {{lifetime}}. Recipient-scoped mappings
+limit correlation as described in {{privacy}}.
+
 In the pass-through form, `iss` and `id` are copied from the validated
 attestation; this form requires the recipient to trust the Attester
 Issuer's namespace directly and MUST be used only with recipients
@@ -358,7 +393,7 @@ profile defining replacement client-mapping checks as allowed
 by {{ATTEST}}. Such a credential is not implicitly conformant
 to this profile.
 
-# Security and Privacy Considerations
+# Security and Privacy Considerations {#privacy}
 
 The considerations of {{ATTEST}} and {{RFC8725}} apply. Compromise of
 an attester can allow impersonation of any instance within its approved
@@ -505,23 +540,49 @@ Native AAuth agent tokens and HTTP signature processing retain their
 own semantics; this example defines no token conversion or enrollment
 binding and introduces no AAuth requirement for this profile.
 
+# Interoperability Checklist
+{:numbered="false"}
+
+This informative checklist summarizes expected behavior under the
+normative requirements above. Each case assumes successful ATTEST
+validation except where the stated condition prevents acceptance.
+
+| Input or event | Expected result |
+|---|---|
+| Renewed attestation for the same instance | Same instance identity and existing recipient mapping |
+| Attester-verified replacement key | Same identity and mapping; existing token bindings remain unchanged |
+| Cloned installation, or new execution at execution granularity | New instance identity and distinct downstream mapping |
+| Equal identifier strings from different Attester Issuers | Distinct identities; equality alone does not establish continuity |
+| Context with an unapproved Instance Authority | Reject context; reject the request when context is required |
+| Different recipients when recipient-scoped mapping is used | Different mapped identifiers, each stable within its recipient scope |
+| Valid instance evidence without delegation authorization | No actor relationship inferred |
+
 # Document History
 {:numbered="false"}
 
 *RFC EDITOR: Remove this section before publication.*
 
-The proposed replacement for draft-mcguinness-oauth-ai-agent-instance
-is the pair draft-mcguinness-oauth-workload-agent-federation and
-draft-mcguinness-oauth-client-instance-identification. The former
-specifies governed agent identity and grant issuance; the latter
-specifies optional instance identification using ATTEST.
-draft-mcguinness-oauth-client-instance-assertion remains a separate
-proposal for a standalone assertion alongside other client
-authentication methods. These individual drafts do not require
-adoption of one another except where explicitly profiled.
+This document preserves the key-independent instance identity,
+continuity, and audit-correlation concerns explored in
+draft-mcguinness-oauth-client-instance-assertion and
+draft-mcguinness-oauth-ai-agent-instance. It replaces that part of
+those proposals with an optional claims profile of ATTEST; it is not
+a wire-compatible replacement for either draft. It does not retain
+their standalone assertion protocol or automatic representation of
+instances as token subjects or actors.
+
+The proposed division of responsibilities places governed agent
+identity and grant issuance in
+draft-mcguinness-oauth-workload-agent-federation, actor representation
+in {{ACTOR-PROFILE}}, and optional runtime identification here.
+Consuming authorization profiles define the relationships between
+those identities; this profile does not require their adoption.
 
 * Defined issuer-qualified instance identity, continuity and privacy
   rules, and optional `client_instance` context with `iss` and `id`.
 * Scoped the document to an optional claims profile, stated when ATTEST
   alone is sufficient, and inherited its authentication, proof,
   algorithm, freshness, and token-binding requirements unchanged.
+* Distinguished client, principal, and instance identities; clarified
+  issuance context, mapped identifier continuity, and issuer changes;
+  added an informative interoperability checklist.
