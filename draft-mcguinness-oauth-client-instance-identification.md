@@ -158,13 +158,13 @@ configuration. Receiving an instance claim MUST NOT select this
 profile or alter the client's authentication method. This
 document defines no new discovery or client metadata parameters.
 
-The configuration MUST define the identified unit and its continuity
-rules. This document defines two units: `installation`, one
-application installation, and `execution`, one process or container
-execution. Profiles MAY define others. Receivers MUST NOT assume that
-an installation identifier distinguishes its individual processes. A
-change of granularity MUST create a new identifier; it MUST NOT
-silently change the meaning of an existing identifier.
+The attester and Receiver MUST establish the identified granularity
+and its continuity rules through trusted configuration. This document
+distinguishes an application installation from a process or container
+execution; profiles MAY define other granularities. Receivers MUST
+NOT assume that an installation identifier distinguishes its individual
+processes. A change of granularity MUST create a new identifier; it
+MUST NOT silently change the meaning of an existing identifier.
 
 For each approved attester, the server MUST configure its exact
 issuer identifier, verification keys or a trusted source for
@@ -360,12 +360,6 @@ validated instance context. Its value is an object containing:
 : REQUIRED. Nonempty StringOrURI identifying the instance in
   that authority's namespace.
 
-`unit`:
-: OPTIONAL. String naming the identified unit: `installation` or
-  `execution` as established in {{configuration}}. Profiles MAY
-  define additional values. Absent, the recipient MUST rely on
-  its configuration for the unit.
-
 The object MUST identify the instance whose participation and key
 possession were validated for issuance. Before using this context,
 a recipient MUST validate the enclosing token or authenticated
@@ -393,12 +387,18 @@ defining additional members MUST specify their processing for
 recipients implementing that profile and MUST NOT change the meaning
 of `iss` or `id`.
 
+A recipient MAY correlate activity using the opaque `(iss, id)` pair
+without knowing whether it identifies an installation or an execution.
+If its processing depends on that distinction, it MUST establish the
+granularity and continuity rules through trusted configuration or a
+consuming profile before applying that processing. It MUST NOT infer
+those rules by parsing the identifier.
+
 ~~~ json
 {
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
-    "id": "m-f61783ea4cb24d098851d34960a274be",
-    "unit": "execution"
+    "id": "m-f61783ea4cb24d098851d34960a274be"
   }
 }
 ~~~
@@ -540,8 +540,8 @@ instance identification at any granularity finer than the key.
 * Defined instance status handling, the `invalid_client` rejection,
   and revocation or introspection of outstanding tokens; required a
   DPoP proof for key-bound artifacts.
-* Added the optional `unit` member and the mapped and pass-through
-  forms of `client_instance`, an identifier length bound, a name
+* Added the mapped and pass-through forms of `client_instance`,
+  an identifier length bound, a name
   disambiguation note, and an informative attester patterns
   appendix.
 * Limited the DPoP issuance prerequisite to DPoP access tokens,
@@ -550,3 +550,6 @@ instance identification at any granularity finer than the key.
 * Required unpredictable instance identifiers, bounded their length,
   defined recipient-side context validation and forwarding resistance,
   and aligned the predecessor and deployment scope descriptions.
+* Limited the defined instance context members to `iss` and `id`;
+  retained configured lifecycle rules and required recipient knowledge
+  of granularity only when its processing depends on that distinction.
