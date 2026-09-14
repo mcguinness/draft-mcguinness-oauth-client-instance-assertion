@@ -28,9 +28,10 @@ This is the working area for individual Internet-Drafts.
 An optional claims profile for deployments needing a common instance
 identifier across attestations and key changes, with optional downstream
 instance context. ATTEST already supplies client instance authentication;
-its proof methods and token-binding rules remain unchanged. Deployments
-that need only authentication or can use internal correlation mappings
-do not require this profile.
+its proof methods and token-binding rules remain unchanged. The profile
+applies to authorization servers and resource servers that validate
+Client Attestations. Deployments that need only authentication or can
+use internal correlation mappings do not require this profile.
 
 This draft has not yet been submitted to the IETF.
 

@@ -56,11 +56,12 @@ specification.
 # Introduction
 
 Attestation-Based Client Authentication {{ATTEST}} authenticates a
-Client Instance through an attestation and proof of possession of its
-key. A replacement key and attestation do not, by themselves, tell a
-Receiver that this is the same installation or execution. Independent
-systems need a common identifier to correlate that instance while
-distinguishing clones and new executions.
+Client Instance to an authorization server or resource server through
+an attestation and proof of possession of its key. A replacement key
+and attestation do not, by themselves, tell a Receiver that this is the
+same installation or execution. Independent systems need a common
+identifier to correlate that instance while distinguishing clones and
+new executions.
 
 This document profiles the additional claims permitted by
 {{ATTEST, Section 13}}:
@@ -72,8 +73,8 @@ This document profiles the additional claims permitted by
 
 Use this profile when parties need to exchange instance identity across
 attestations or verified key changes. ATTEST alone is sufficient when
-correlation need only last for the current key or an identity provider
-(IdP) can satisfy its needs through internal enrollment mappings.
+correlation need only last for the current key or a Receiver can
+satisfy its needs through internal enrollment mappings.
 
 ## Identity and Authorization
 
@@ -98,10 +99,10 @@ requirements. It defines no enrollment or key-rotation protocol and
 does not authorize transferring existing grants, sessions, or tokens
 to a replacement key.
 
-An IdP can act solely as a Receiver of attestations. Registry import
-alone does not establish instance continuity. Credentials other than
-Client Attestations, including platform-issued JWTs, require a separate
-carrier profile; none is defined here.
+A Receiver can rely on a separate attester to establish instance
+continuity. Credentials other than Client Attestations, including
+platform-issued JWTs, require a separate carrier profile; none is
+defined here.
 
 Together with Agent Federation, this document replaces the relevant
 parts of draft-mcguinness-oauth-client-instance-assertion and
@@ -131,9 +132,13 @@ Instance Context:
   possession.
 
 Receiver:
-: The authorization server or other party that validates a Client
-  Attestation under this profile. Where it issues tokens carrying
-  Instance Context it is also the token issuer.
+: A party that validates a Client Attestation under this profile,
+  such as an authorization server or resource server. A Receiver that
+  issues tokens carrying Instance Context also acts as a token issuer.
+
+Recipient:
+: A party that consumes Instance Context from a token or introspection
+  response. It need not receive the original Client Attestation.
 
 Attester Issuer:
 : The value of `iss` in the Client Attestation, identifying the
@@ -350,7 +355,7 @@ the meaning of `iss` or `id`.
 ~~~ json
 {
   "client_instance": {
-    "iss": "https://idp.example/tenant/acme",
+    "iss": "https://as.example",
     "id": "m-f61783ea4cb24d098851d34960a274be"
   }
 }
