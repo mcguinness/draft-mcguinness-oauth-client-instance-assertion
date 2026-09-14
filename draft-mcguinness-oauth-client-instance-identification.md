@@ -91,13 +91,24 @@ such as {{AGENT-FEDERATION}}, determine whether that principal is
 the token subject or an actor. Implementing this document does
 not require implementing an actor profile or producing `act`.
 
-draft-mcguinness-oauth-client-instance-assertion defines a
-standalone client instance assertion presented alongside any client
-authentication method, including `none`. This document takes a
-different approach for clients that already authenticate with a
-Client Attestation: it profiles {{ATTEST}} and defines no separate
-assertion parameter. Deployments using ATTEST SHOULD use this
-profile; the assertion draft remains for clients that cannot.
+An IdP can act solely as a Receiver; it need not issue attestations.
+Use of this profile requires an available, trusted attester capable
+of establishing the configured instance granularity. Registry import
+alone does not provide that evidence. Platform JWT and native SVID
+inputs to agent federation do not provide this instance context
+unless an attester separately issues a conforming Client Attestation.
+Deployments that need no stable instance correlation can use ATTEST
+without this profile.
+
+The proposed replacement for draft-mcguinness-oauth-ai-agent-instance
+is the pair draft-mcguinness-oauth-workload-agent-federation and
+draft-mcguinness-oauth-client-instance-identification. The former
+specifies governed agent identity and grant issuance; the latter
+specifies optional instance identification using ATTEST.
+draft-mcguinness-oauth-client-instance-assertion remains a separate
+proposal for a standalone assertion alongside other client
+authentication methods. These individual drafts do not require
+adoption of one another except where explicitly profiled.
 
 # Conventions and Definitions
 
@@ -130,10 +141,10 @@ Attester Issuer:
   Client Attester.
 
 Instance Authority:
-: The value of `iss` in a `client_instance` object, identifying
-  the namespace of its `id`. It is the Receiver's own issuer
-  identifier in the mapped form or the Attester Issuer in the
-  pass-through form ({{instance-context}}).
+: The namespace authority identified by `iss` in a `client_instance`
+  object. It can be the token issuer, an attester, or an upstream
+  issuer whose validated context is preserved under a consuming
+  profile.
 
 # Profile Selection and Trust {#configuration}
 
@@ -186,14 +197,21 @@ In addition to the requirements of {{ATTEST}}, the following apply:
   Instance within the issuer's namespace. The identifier MUST be
   opaque to Receivers and MUST NOT be reassigned to another instance.
   Receivers MUST NOT derive permissions by parsing it. Attesters
-  SHOULD NOT issue identifiers longer than 256 characters, and
-  Receivers MUST accept identifiers up to that length.
+  MUST generate unpredictable identifiers with at least 128 bits of
+  randomness and MUST NOT embed hostnames, user identifiers, or other
+  identifying data. Identifiers MUST NOT exceed 256 characters.
+  Receivers MUST accept conforming identifiers up to that length and
+  reject longer values with `invalid_client_attestation`.
 
 `iat`:
 : REQUIRED. The time at which the attestation was issued, as a
   NumericDate. It MUST precede `exp`. Receivers MUST reject
-  attestations outside their configured age and lifetime limits,
-  allowing only their configured clock skew.
+  attestations outside their configured age and lifetime limits.
+  Configured clock skew MUST NOT exceed 30 seconds.
+
+`exp`:
+: REQUIRED by ATTEST. The expiration time as a NumericDate.
+  Receivers MUST reject missing or incorrectly typed `iat` or `exp`.
 
 The protected header MUST contain `kid`. Attestations MUST use
 an asymmetric signature algorithm permitted by the trust
@@ -213,7 +231,7 @@ Example decoded attestation payload:
 {
   "iss": "https://attester.example/tenant/acme",
   "sub": "https://platform.example/oauth-client",
-  "client_instance_id": "inst-7f3d9a2e",
+  "client_instance_id": "i-7f3d9a2e6c8145b0a923d47e18f602cd",
   "iat": 1789128000,
   "exp": 1789128300,
   "cnf": {
@@ -349,15 +367,26 @@ validated instance context. Its value is an object containing:
   its configuration for the unit.
 
 The object MUST identify the instance whose participation and key
-possession were validated for issuance. The tuple takes one of two
-forms. In the mapped form, which is RECOMMENDED, `iss` is the
+possession were validated for issuance. Before using this context,
+a recipient MUST validate the enclosing token or authenticated
+introspection response. It MUST reject a `client_instance` whose
+`iss` is neither that token's issuer nor a pass-through Instance
+Authority explicitly configured for that token issuer and recipient.
+A mapped identifier needs no direct attester trust; pass-through context does
+not authorize fetching keys from its `iss`. If context is required,
+rejection MUST prevent accepting the token for that request. The tuple
+takes one of two forms. In the mapped form, which is RECOMMENDED,
+`iss` is the
 Receiver's own issuer identifier and `id` an identifier the Receiver
 assigned through an authenticated, unambiguous mapping it maintains.
 In the pass-through form, `iss` and `id` are copied from the validated
 attestation; this form requires the recipient to trust the Attester
 Issuer's namespace directly and MUST be used only with recipients
-configured for it. The issuer MUST NOT copy unvalidated
-client-supplied context. The `iss` and `id` members MUST be nonempty
+configured for it. A consuming profile MAY likewise preserve context
+from a validated upstream token, but MUST define the trusted upstream
+Instance Authority and the association being preserved. The issuer
+MUST NOT copy unvalidated client-supplied context. The `iss` and `id`
+members MUST be nonempty
 strings. Additional members MAY be defined by other profiles. A
 recipient MUST ignore members it does not recognize. A profile
 defining additional members MUST specify their processing for
@@ -368,7 +397,7 @@ of `iss` or `id`.
 {
   "client_instance": {
     "iss": "https://idp.example/tenant/acme",
-    "id": "runtime-93ab",
+    "id": "m-f61783ea4cb24d098851d34960a274be",
     "unit": "execution"
   }
 }
@@ -412,6 +441,13 @@ beyond the evidence the attester actually evaluated. Instance
 revocation reaches outstanding tokens only through the revocation
 and introspection behavior in {{lifetime}}; consuming profiles
 define any further consequences.
+
+A Client Attestation has no audience binding. Resistance to
+forwarding depends on validating its proof, including the intended
+Receiver, freshness, and key possession under ATTEST and DPoP. An
+instance identifier, including a per-Receiver identifier, MUST NOT
+substitute for that proof. A copied attestation without a valid proof
+for the receiving endpoint MUST be rejected.
 
 Stable identifiers and keys can correlate activity. A
 `client_instance_id` that survives key rotation also links an
@@ -511,3 +547,6 @@ instance identification at any granularity finer than the key.
 * Limited the DPoP issuance prerequisite to DPoP access tokens,
   preserving ATTEST's other artifact bindings, and tied suspension
   enforcement to locally applied status or attestation validity.
+* Required unpredictable instance identifiers, bounded their length,
+  defined recipient-side context validation and forwarding resistance,
+  and aligned the predecessor and deployment scope descriptions.
