@@ -32,6 +32,8 @@ normative:
   RFC8725:
 informative:
   AAUTH: I-D.hardt-oauth-aauth-protocol
+  CIMD: I-D.ietf-oauth-client-id-metadata-document
+  RFC7591:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   AGENT-FEDERATION:
@@ -100,6 +102,12 @@ protocol or transfer existing grants, sessions, or refresh tokens to a
 new key. Stable identity records continuity; it does not prove possession
 of either key or authorize that transfer.
 
+Clients that cannot present a Client Attestation, such as those
+authenticating with a JWT issued by their platform, are outside this
+profile. A companion profile could carry `client_instance_id` in such
+a credential under the same identifier, continuity, and privacy rules;
+this document does not define one.
+
 An IdP can act solely as a Receiver, relying on an attester capable of
 establishing the required instance continuity. Registry import alone
 does not supply that evidence. Authorization profiles, such as
@@ -111,6 +119,13 @@ select an actor. A consuming authorization profile determines whether
 the instance operates as the subject, as a delegated actor, or in
 another explicitly defined relationship. This profile can be used
 without implementing Actor Profile.
+
+This document, with draft-mcguinness-oauth-workload-agent-federation,
+replaces the instance identification and agent identity proposals in
+draft-mcguinness-oauth-client-instance-assertion and
+draft-mcguinness-oauth-ai-agent-instance, which are not being
+progressed. It is not wire-compatible with either; the Document
+History records what was retained.
 
 # Conventions and Definitions
 
@@ -168,13 +183,18 @@ NOT assume that an installation identifier distinguishes its individual
 processes. A change of granularity MUST create a new identifier; it
 MUST NOT silently change the meaning of an existing identifier.
 
-The Receiver MUST associate the exact Attester Issuer with an authority
-trusted to assign instance identifiers for the Logical Client. Signature
-or MAC validation under ATTEST MUST establish that association; a JWT's
-`iss` or possession of a key alone MUST NOT establish this authority.
-Trust management and verification-key resolution follow ATTEST and the
-deployment's trusted configuration. Issuer and client identifiers are
-compared as exact strings, without URI normalization.
+The Receiver MUST associate the exact Attester Issuer with an
+authority trusted to assign instance identifiers for the Logical
+Client. Signature or MAC validation under ATTEST MUST establish that
+association; a JWT's `iss` or possession of a key alone MUST NOT
+establish this authority. Client-published metadata MUST NOT establish
+it either, including attester lists supplied through dynamic client
+registration {{RFC7591}} or a client identifier metadata document
+{{CIMD}}; the Receiver's own configuration is the only source of
+attester authority for a client. Trust management and verification-key
+resolution follow ATTEST and the deployment's trusted configuration.
+Issuer and client identifiers are compared as exact strings, without
+URI normalization.
 
 # Client Attestation Claims {#claims}
 
@@ -403,6 +423,13 @@ trust on subsequent authentication. Runtime isolation and key
 custody limit the granularity of the identity that can be proven;
 a shared private key does not distinguish its individual holders.
 
+Attestation evidence differs in assurance: reported by the instance
+about itself, verified by the platform or attester, or rooted in
+hardware. An attester MUST NOT represent evidence of a lower tier as a
+higher one, and a Receiver MUST configure the tier it requires for a
+Logical Client rather than infer it from the identifier or the
+attester's name.
+
 Instance identification supports targeted risk response, but
 does not prove software behavior, authorization, or integrity
 beyond the evidence the attester actually evaluated. Instance
@@ -481,9 +508,14 @@ possession of the Client Instance Key before issuing an attestation.
 An installation attester that cannot verify continuity across a
 restore or clone MUST issue a new identifier, as {{lifetime}}
 requires. An execution attester that reuses a key across restarts
-still issues a new identifier for each execution; the key is not
-the identifier. A shared signing key across replicas prevents
-instance identification at any granularity finer than the key.
+still issues a new identifier for each execution; the key is not the
+identifier. A shared signing key across replicas prevents instance
+identification at any granularity finer than the key. The rows also
+differ in assurance: app-attestation services and hardware-backed
+device keys can be hardware-rooted, orchestrator and scheduler
+identities are platform-verified, and evidence an instance reports
+about itself is self-attested and does not by itself justify an
+identifier.
 
 ## Managed Application
 {:numbered="false"}
@@ -586,3 +618,4 @@ those identities; this profile does not require their adoption.
 * Distinguished client, principal, and instance identities; clarified
   issuance context, mapped identifier continuity, and issuer changes;
   added an informative interoperability checklist.
+* Stated the relationship to the two drafts this document replaces, noted a companion profile for non-ATTEST credentials as future work, barred client-published metadata from establishing attester authority, and added evidence assurance tiers with a misrepresentation rule.
