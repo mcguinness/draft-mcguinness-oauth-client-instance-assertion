@@ -1548,42 +1548,51 @@ type, the <code>client_instance_assertion</code> authentication method, the
 <code>instance_issuers</code> metadata, and the subject syntax registry defined
 here are withdrawn from consideration, and the registrations requested
 in the IANA Considerations are not being pursued.<a href="#section-1-1" class="pilcrow">¶</a></p>
-<p id="section-1-2">Three concerns from this document are carried forward. Instance
-evidence for clients that cannot present a Client Attestation is noted
-as future work in the instance identification profile. The rule that
-client-published metadata, including dynamic registration and client
-identifier metadata documents, cannot establish an attester's
-authority is adopted there as a requirement. The requirement that
-tokens carrying instance identity be sender-constrained is adopted in
-the agent federation profile.<a href="#section-1-2" class="pilcrow">¶</a></p>
-<p id="section-1-3">OAuth 2.0 <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span> defines <code>client_id</code> as the identifier of a
+<p id="section-1-2">The client-published endorsement concept returns in OAuth 2.0 Client
+Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
+<code>client_attesters</code> with CLIENT-ATTEST rather than this draft's wire
+format. Its narrower trust model requires both a current client
+endorsement and AS policy approval; publisher-supplied key locations
+cannot override independently configured attester trust.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">Together with CLIENT-ATTEST, those companion profiles replace this
+draft's client-instance authentication, attester trust, and identification
+mechanisms. They are not wire-compatible or complete replacements for
+its authorization flows. Actor construction and grant semantics require
+consuming authorization profiles. Native SPIFFE authentication follows
+SPIFFE Client Authentication; this draft's direct SVID carriage and
+automatic instance-as-actor mapping are not carried forward.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">The companion profiles require administrative agreement; ATTEST method
+discovery alone does not establish their support. Endorsement withdrawal
+controls future authentication, while termination of existing access
+requires configured grant revocation covering access and refresh tokens.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">OAuth 2.0 <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span> defines <code>client_id</code> as the identifier of a
 client. In deployments where a single OAuth client identifier
 represents many short-lived runtime instances, resource servers
 and authorization servers need to know not only <em>which</em> client
 made a request but <em>which instance</em> of that client made it.
 Instances may be acting on a user's behalf or as the principal
-themselves; this specification covers both.<a href="#section-1-3" class="pilcrow">¶</a></p>
-<p id="section-1-4">OAuth 2.0 Token Exchange <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> defines the <code>actor_token</code> and
+themselves; this specification covers both.<a href="#section-1-5" class="pilcrow">¶</a></p>
+<p id="section-1-6">OAuth 2.0 Token Exchange <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span> defines the <code>actor_token</code> and
 <code>actor_token_type</code> token request parameters and the <code>act</code> claim for
 representing an actor in an issued token, scoped to the
 token-exchange grant. The OAuth Actor Profile <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>
 further constrains the <code>act</code> claim and registers actor-related
 claims, but explicitly leaves out a token request parameter for
-proving an actor in flows other than token exchange.<a href="#section-1-4" class="pilcrow">¶</a></p>
-<p id="section-1-5">This document defines a profile for representing client instance
-identity at the OAuth 2.0 token endpoint. It:<a href="#section-1-5" class="pilcrow">¶</a></p>
+proving an actor in flows other than token exchange.<a href="#section-1-6" class="pilcrow">¶</a></p>
+<p id="section-1-7">This document defines a profile for representing client instance
+identity at the OAuth 2.0 token endpoint. It:<a href="#section-1-7" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-1-6.1">
-          <p id="section-1-6.1.1">Recognizes that an OAuth <code>client_id</code> commonly abstracts over many
+<li class="normal" id="section-1-8.1">
+          <p id="section-1-8.1.1">Recognizes that an OAuth <code>client_id</code> commonly abstracts over many
 concrete runtime instances (a relationship already implicit in
 deployed OAuth practice; see <a href="#client-instance-model" class="auto internal xref">Section 5</a>), and
 defines client metadata describing the <em>instance issuers</em> trusted
 to attest those instances. The metadata applies whether
 the client is identified by a Client ID Metadata Document <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>
-or registered via <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>; see <a href="#registration-models" class="auto internal xref">Section 5.2</a>.<a href="#section-1-6.1.1" class="pilcrow">¶</a></p>
+or registered via <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>; see <a href="#registration-models" class="auto internal xref">Section 5.2</a>.<a href="#section-1-8.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li class="normal" id="section-1-6.2">
-          <p id="section-1-6.2.1">Defines the Client Instance Assertion, a JSON Web Token (JWT)
+        <li class="normal" id="section-1-8.2">
+          <p id="section-1-8.2.1">Defines the Client Instance Assertion, a JSON Web Token (JWT)
 <span>[<a href="#RFC7519" class="cite xref">RFC7519</a>]</span> signed by an instance issuer published in the client's
 metadata, and registers the <code>client_instance_assertion</code> request
 parameter for carrying it at the OAuth 2.0 token endpoint on the
@@ -1591,45 +1600,45 @@ grants listed in <a href="#permitted-grants" class="auto internal xref">Section 
 (<span>[<a href="#RFC8693" class="cite xref">RFC8693</a>]</span>), the same assertion is presented as <code>actor_token</code>
 with <code>actor_token_type</code> set to
 <code>urn:ietf:params:oauth:token-type:client-instance-jwt</code>, also
-registered by this profile.<a href="#section-1-6.2.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-6.3">
-          <p id="section-1-6.3.1">Requires issued access tokens to be sender-constrained to a key
-the instance possesses, and specifies how the instance
-assertion's <code>cnf</code> claim drives that binding in the interoperable
-re-minted assertion format.<a href="#section-1-6.3.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-6.4">
-          <p id="section-1-6.4.1">Registers <code>client_instance_assertion</code> as a
-<code>token_endpoint_auth_method</code> value, allowing deployments without
-an online client-controlled credential to authenticate the client
-via the instance assertion alone.<a href="#section-1-6.4.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-6.5">
-          <p id="section-1-6.5.1">Defines first-class support for SPIFFE workload identity, including
-optional direct presentation of JWT-SVIDs without re-minting.<a href="#section-1-6.5.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-6.6">
-          <p id="section-1-6.6.1">Defines authorization server metadata so that clients can
-discover support.<a href="#section-1-6.6.1" class="pilcrow">¶</a></p>
-</li>
-      </ul>
-<p id="section-1-7">What this document does <em>not</em> do:<a href="#section-1-7" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-1-8.1">
-          <p id="section-1-8.1.1">It does not introduce a <code>client_instance</code> identifier parameter
-flowing through the authorization request, token request,
-introspection, or access token (see
-<a href="#rationale-no-instance-identifier" class="auto internal xref">Appendix "Why not a client_instance identifier parameter?"</a>).<a href="#section-1-8.1.1" class="pilcrow">¶</a></p>
-</li>
-        <li class="normal" id="section-1-8.2">
-          <p id="section-1-8.2.1">It does not change the syntax or processing of the <code>act</code> claim
-beyond what <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> already defines.<a href="#section-1-8.2.1" class="pilcrow">¶</a></p>
+registered by this profile.<a href="#section-1-8.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-8.3">
-          <p id="section-1-8.3.1">It does not define authorization endpoint interactions for
+          <p id="section-1-8.3.1">Requires issued access tokens to be sender-constrained to a key
+the instance possesses, and specifies how the instance
+assertion's <code>cnf</code> claim drives that binding in the interoperable
+re-minted assertion format.<a href="#section-1-8.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-8.4">
+          <p id="section-1-8.4.1">Registers <code>client_instance_assertion</code> as a
+<code>token_endpoint_auth_method</code> value, allowing deployments without
+an online client-controlled credential to authenticate the client
+via the instance assertion alone.<a href="#section-1-8.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-8.5">
+          <p id="section-1-8.5.1">Defines first-class support for SPIFFE workload identity, including
+optional direct presentation of JWT-SVIDs without re-minting.<a href="#section-1-8.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-8.6">
+          <p id="section-1-8.6.1">Defines authorization server metadata so that clients can
+discover support.<a href="#section-1-8.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-1-9">What this document does <em>not</em> do:<a href="#section-1-9" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-10.1">
+          <p id="section-1-10.1.1">It does not introduce a <code>client_instance</code> identifier parameter
+flowing through the authorization request, token request,
+introspection, or access token (see
+<a href="#rationale-no-instance-identifier" class="auto internal xref">Appendix "Why not a client_instance identifier parameter?"</a>).<a href="#section-1-10.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-10.2">
+          <p id="section-1-10.2.1">It does not change the syntax or processing of the <code>act</code> claim
+beyond what <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span> already defines.<a href="#section-1-10.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-10.3">
+          <p id="section-1-10.3.1">It does not define authorization endpoint interactions for
 conveying actor identity; like <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, this is left for
-future work.<a href="#section-1-8.3.1" class="pilcrow">¶</a></p>
+future work.<a href="#section-1-10.3.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
