@@ -33,6 +33,7 @@ normative:
   RFC7517:
   RFC7519:
   RFC7591:
+  RFC7662:
   RFC8725:
   RFC9111:
 informative:
@@ -143,9 +144,11 @@ meaning of an endorsement for implementations that ignore them.
 Each entry endorses only attestation for the `client_id` whose metadata
 contains it. It does not authorize further delegation or reuse for
 another client. An `issuer` identifies a namespace, not a discovery
-endpoint. For an HTTPS `issuer`, `jwks_uri` MUST have the same origin
-{{RFC6454}}. This check limits key-location substitution; it does not
-isolate tenants sharing an origin or establish trust in an issuer name.
+endpoint. For a publisher-selected key source, `issuer` MUST be an HTTPS
+URL and `jwks_uri` MUST have the same origin {{RFC6454}}. An independently
+configured issuer-to-key association under {{key-resolution}} MAY use
+a different HTTPS origin. The origin check alone neither isolates tenants
+sharing an origin nor establishes trust in an issuer name.
 
 {{ATTEST, Section 10.8}} recommends, among other options, resolving `kid`
 through client metadata `jwks_uri`. This profile extends that option
@@ -250,9 +253,16 @@ For planned key rotation, publish the new key before using it and
 retain the old key while attestations signed with it should remain
 acceptable. Metadata caches and JWKS caches have separate propagation
 windows; the AS's configured maximum ages bound stale acceptance.
-Withdrawal does not itself invalidate issued access tokens. Refresh
-requests requiring client attestation are checked again under
-{{processing}}; revoking already issued tokens requires separate action.
+
+Endorsement withdrawal prevents future authentication under the removed
+endorsement; it does not itself revoke existing grants or access tokens.
+Refresh requests requiring client attestation are checked again under
+{{processing}}. Deployments using withdrawal to terminate existing access
+MUST configure the AS to revoke affected grants, including their access
+and refresh tokens, and prevent further refresh issuance. Introspection
+{{RFC7662}} reports revoked tokens inactive; offline token validation
+requires a separate revocation mechanism or expiration to enforce that
+decision.
 
 # Security Considerations
 

@@ -33,6 +33,7 @@ normative:
   RFC8693:
   RFC8725:
 informative:
+  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ATTESTER-ENDORSEMENT:
     title: "OAuth 2.0 Client Attester Endorsement"
     target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html
@@ -272,6 +273,27 @@ identifies the instance associated with the Client Instance Key.
 Continuity of that key does not transfer existing tokens or grants to
 a replacement key; such transfer requires separate authorization.
 
+## Grant Continuity {#grant-continuity}
+
+When issuing a refresh token under this profile, the AS MUST record the
+validated `(iss, client_instance_id)` with the grant, in addition to
+ATTEST's client and key bindings. On refresh, it MUST validate the
+current attestation and require that pair to match the recorded identity.
+Possession of the original key alone does not permit a different identity.
+
+A refresh request MUST NOT introduce or change the recorded instance
+identity without an explicitly authorized grant-migration procedure.
+Such a procedure MUST establish continuity under {{processing}} and
+separately satisfy the applicable key-binding requirements; this profile
+defines no grant-migration protocol. A valid attestation inconsistent
+with the grant's instance binding MUST produce `invalid_grant` under
+{{RFC6749}}, without disclosing the expected instance identity.
+
+If authorization-time policy bound a code or other artifact to an
+instance, the AS MUST enforce that binding at redemption. Attestation
+does not replace the grant's authorization, redirect, PKCE, or replay
+checks. ATTEST's protocol-artifact binding guidance applies independently.
+
 ## Errors {#errors}
 
 Missing or invalid required instance claims and rejection by instance
@@ -282,7 +304,8 @@ avoid distinguishable response timing. Unknown instances are rejected
 only when local policy requires prior enrollment at the Receiver.
 
 A failed profile check MUST NOT trigger fallback without the required
-evidence. Other authentication and freshness errors follow ATTEST.
+evidence. Grant-binding errors follow {{grant-continuity}}; other
+authentication and freshness errors follow ATTEST.
 
 # Attester Requirements {#lifetime}
 
@@ -353,6 +376,12 @@ report them inactive through introspection {{RFC7662}}. Attesters and
 Receivers SHOULD agree on short attestation lifetimes where timely
 status enforcement matters.
 
+When an AS revokes a grant because of instance suspension, retirement,
+or attester trust withdrawal, it MUST invalidate all access and refresh
+tokens associated with that grant and prevent further refresh issuance.
+Revoked tokens are inactive under {{RFC7662}}. This local enforcement
+does not itself notify resource servers validating tokens offline.
+
 Without a status channel, existing attestations can remain acceptable
 until expiration plus clock skew, and issued tokens for their own
 lifetimes. Security Event Tokens {{RFC8417}} and delivery under
@@ -392,6 +421,11 @@ response {{RFC7662}}. Its JSON object has two REQUIRED members:
 | `iss` | Nonempty string | Token issuer that assigned the context |
 | `id` | Nonempty StringOrURI | Instance identifier in that issuer's namespace |
 
+For direct issuance from a validated Client Attestation, context MUST
+identify the authenticated presenting instance. On refresh, that identity
+is subject to {{grant-continuity}}. Token exchange follows
+{{context-exchange}} rather than implicitly inheriting this association.
+
 The context MUST refer to validated instance participation; issuers
 MUST NOT copy unvalidated client-supplied context. From a Client
 Attestation, the issuer MUST map `(iss, client_instance_id)` to its own
@@ -413,6 +447,15 @@ context in a JWT access token and an introspection response.
 
 ## Preservation and Authorization {#context-exchange}
 
+An exchange issuing Instance Context MUST use a consuming profile that
+selects whether the context identifies the authenticated presenting
+instance or an instance represented by validated input-token context.
+That profile MUST define the association with the subject, actor, or
+presenter, its validation, and when input context is replaced or preserved.
+An issuer MUST NOT silently treat upstream context as identifying a
+different presenting instance. The single object identifies one instance;
+it does not record a chain of participating instances.
+
 An issuer MAY preserve validated upstream `(iss, id)` instead of
 mapping it when configured trust and correlation scope authorize its
 disclosure to the downstream consumer. Otherwise it MUST map or omit
@@ -426,9 +469,7 @@ rules. This permits one preservation hop by default; the two-member
 object itself carries no forwarding history.
 
 Context records participation at issuance, not current possession,
-actor identity, or a grant of authority. A consuming profile MUST define
-its association with the subject, actor, or presenter and how that
-association is validated during exchange. Proof of possession follows
+actor identity, or a grant of authority. Proof of possession follows
 the enclosing token's binding. Context MUST NOT be treated as a
 separate token or delegated actor.
 
@@ -575,8 +616,9 @@ or actor profile values.
 # Wire Examples {#wire-examples}
 {:numbered="false"}
 
-These examples are informative. They use the managed-device flow in
-{{managed-device-example}}: the user is the authorization subject,
+These examples are informative. The access-token and introspection
+examples use the managed-device flow in {{managed-device-example}}:
+the user is the authorization subject,
 and the installation is additional context. The AS maps the attester's
 identifier to a value scoped to `https://api.example`.
 
@@ -640,6 +682,36 @@ Cache-Control: no-store
   }
 }
 ~~~
+
+## Governed Actor and Runtime Context
+{:numbered="false"}
+
+An exchange profile can authorize instance B to continue work begun by
+instance A for the same governed agent. In this example, that profile
+selects the authenticated presenting instance for output context and
+authorizes `agent-42` to act for `user-17` under {{ACTOR-PROFILE}}.
+The AS validates B's attestation and proof, replaces A's input context
+with B's resource-scoped mapping, and binds the output token under the
+exchange profile. The relevant output claims are:
+
+~~~ json
+{
+  "sub": "user-17",
+  "act": {
+    "iss": "https://as.example",
+    "sub": "agent-42"
+  },
+  "client_instance": {
+    "iss": "https://as.example",
+    "id": "m-2b58e0d760954a5a9ce64f3e718d02ac"
+  }
+}
+~~~
+
+The governed actor remains `agent-42`; the mapped identifier identifies
+B. Neither B's authentication nor continuity of the agent identity alone
+authorizes this exchange. A profile preserving A's context instead would
+have to define its upstream association explicitly.
 
 ## Attestation Rejection
 {:numbered="false"}
