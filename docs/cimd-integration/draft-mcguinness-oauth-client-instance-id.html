@@ -1053,7 +1053,7 @@ svg {
 </tr></thead>
 <tfoot><tr>
 <td class="left">McGuinness</td>
-<td class="center">Expires 15 March 2027</td>
+<td class="center">Expires 19 March 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1066,12 +1066,12 @@ svg {
 <dd class="internet-draft">draft-mcguinness-oauth-client-instance-id-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-09-11" class="published">11 September 2026</time>
+<time datetime="2026-09-15" class="published">15 September 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-03-15">15 March 2027</time></dd>
+<dd class="expires"><time datetime="2027-03-19">19 March 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1127,7 +1127,7 @@ tokens carrying instance context are sender-constrained.<a href="#section-abstra
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 15 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 19 March 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1351,11 +1351,11 @@ introspection response, so a resource server can correlate requests
 with the instance validated when the token was issued.<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-4">For example, an authorization server (AS) validates a harness's attestation
-and proof, then includes a mapped instance identifier in its access token.
-A resource server can use that identifier for audit without receiving
-the attestation. The token's proof-of-possession mechanism authenticates
-its current presenter.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-4">For example, an authorization server (AS) validates a harness's
+attestation and proof, then includes a mapped instance identifier in
+its access token. A resource server can use that identifier for audit
+without receiving the attestation. The token's proof-of-possession
+mechanism authenticates its current presenter.<a href="#section-1-4" class="pilcrow">¶</a></p>
 <p id="section-1-5">The attester verifies continuity under <a href="#lifetime" class="auto internal xref">Section 6</a>. ATTEST alone is
 sufficient when correlation need only last for the current key or can
 remain internal to one system.<a href="#section-1-5" class="pilcrow">¶</a></p>
@@ -1406,8 +1406,9 @@ general-purpose device or wallet identifier. It adds sender constraint
 for access tokens carrying Instance Context (<a href="#context-binding" class="auto internal xref">Section 7.2</a>) but
 defines no enrollment, key-rotation, or status-distribution protocol.<a href="#section-1.1-5" class="pilcrow">¶</a></p>
 <p id="section-1.1-6">ATTEST supplies the authentication and proof methods. Direct
-resource-server presentation follows <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>, <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-4" class="relref">Section 4</a></span>,
-<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.1" class="relref">Section 5.1</a></span>, and <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7" class="relref">Section 7</a></span>.<a href="#section-1.1-6" class="pilcrow">¶</a></p>
+resource-server presentation follows <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>,
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-4" class="relref">Section 4</a></span>, <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.1" class="relref">Section 5.1</a></span>, and
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7" class="relref">Section 7</a></span>.<a href="#section-1.1-6" class="pilcrow">¶</a></p>
 <p id="section-1.1-7">When selected under <a href="#configuration" class="auto internal xref">Section 3</a>, this profile applies whether the
 Client Attestation is the client authentication method or an additional
 security signal under <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7.6" class="relref">Section 7.6</a></span>. Additional attestation
@@ -1539,19 +1540,24 @@ management follows ATTEST.<a href="#section-3.1-4" class="pilcrow">¶</a></p>
 <p id="section-3.2-1">Conformance is role-specific:<a href="#section-3.2-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3.2-2.1">
-            <p id="section-3.2-2.1.1">Client Attesters implement claim, identifier, and enrollment requirements.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.1.1">Client Attesters implement claim, identifier, and enrollment
+requirements.<a href="#section-3.2-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.2-2.2">
-            <p id="section-3.2-2.2.1">Clients implement scoped attestation use and the selected ATTEST proof method.<a href="#section-3.2-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.2.1">Clients implement scoped attestation use and the selected ATTEST
+proof method.<a href="#section-3.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.2-2.3">
-            <p id="section-3.2-2.3.1">Receivers implement trust, validation, and applicable grant-continuity rules.<a href="#section-3.2-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.3.1">Receivers implement trust, validation, and applicable
+grant-continuity rules.<a href="#section-3.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.2-2.4">
-            <p id="section-3.2-2.4.1">Token issuers conveying context implement mapping, binding, and preservation.<a href="#section-3.2-2.4.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.4.1">Token issuers conveying context implement mapping, binding, and
+preservation.<a href="#section-3.2-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-3.2-2.5">
-            <p id="section-3.2-2.5.1">Context Consumers implement context validation and applicable proof checks.<a href="#section-3.2-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-3.2-2.5.1">Context Consumers implement context validation and applicable proof
+checks.<a href="#section-3.2-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-3.2-3">An implementation serving several roles satisfies each role's
@@ -1592,7 +1598,8 @@ The instance identity is <code>(iss, client_instance_id)</code>.<a href="#sectio
 </dd>
         <dd class="break"></dd>
 </dl>
-<p id="section-4.1-2">Assignment, Receiver scoping, and generation follow <a href="#attester-requirements" class="auto internal xref">Section 6.1</a>.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">Assignment, Receiver scoping, and generation follow
+<a href="#attester-requirements" class="auto internal xref">Section 6.1</a>.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
 <p id="section-4.1-3">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, compare them as exact,
 case-sensitive strings without URI normalization, accept conforming
 values up to that limit, and reject longer values. They <span class="bcp14">MUST NOT</span>
@@ -1706,7 +1713,7 @@ pair to match the recorded identity.<a href="#section-5.1-2.2.1" class="pilcrow"
 <p id="section-5.1-3">Possession of the original key alone does not permit a different identity.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
 <p id="section-5.1-4">A refresh request for such a grant <span class="bcp14">MUST NOT</span> introduce or change the
 recorded instance identity without an explicitly authorized migration.
-The migration <span class="bcp14">MUST</span> establish continuity under <a href="#processing" class="auto internal xref">Section 5</a> and satisfy
+The migration <span class="bcp14">MUST</span> establish continuity under <a href="#continuity" class="auto internal xref">Section 6.2</a> and satisfy
 the applicable key-binding requirements; no migration protocol is defined
 here. An otherwise valid attestation that conflicts with the grant's
 instance binding <span class="bcp14">MUST</span> produce <code>invalid_grant</code> under <span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>, without
@@ -1867,10 +1874,11 @@ tokens associated with that grant and prevent further refresh issuance.
 Revoked tokens are inactive under <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. This local enforcement
 does not itself notify resource servers validating tokens offline.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
 <p id="section-6.3-3">Without a status channel, existing attestations can remain acceptable
-until expiration plus clock skew, and issued tokens for their own
-lifetimes. Security Event Tokens <span>[<a href="#RFC8417" class="cite xref">RFC8417</a>]</span> and delivery under
-<span>[<a href="#RFC8935" class="cite xref">RFC8935</a>]</span> can support a separate integration; this profile defines
-no status event, subject mapping, or revocation-delay guarantee.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
+until expiration plus clock skew, and issued tokens remain valid for
+their own lifetimes. Security Event Tokens <span>[<a href="#RFC8417" class="cite xref">RFC8417</a>]</span> and delivery
+under <span>[<a href="#RFC8935" class="cite xref">RFC8935</a>]</span> can support a separate integration; this profile
+defines no status event, subject mapping, or revocation-delay
+guarantee.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="state">
@@ -1885,9 +1893,10 @@ Deleting continuity records requires new enrollment. Attesters <span class="bcp1
 allow retired credentials to recreate their old identifiers.<a href="#section-6.4-1" class="pilcrow">¶</a></p>
 <p id="section-6.4-2">A validating Receiver need not maintain an instance allowlist. Local
 suspension, revocation, and mapped context require the corresponding
-status, token associations, and mappings. Issuers <span class="bcp14">MUST</span> retain or securely
-reproduce mappings while accepted attestations or continuing grants,
-including refresh tokens and allowed clock skew, require continuity.<a href="#section-6.4-2" class="pilcrow">¶</a></p>
+status, token associations, and mappings. Issuers <span class="bcp14">MUST</span> retain or
+securely reproduce a mapping for as long as any accepted attestation
+or continuing grant, including refresh tokens, requires its
+continuity, plus allowed clock skew.<a href="#section-6.4-2" class="pilcrow">¶</a></p>
 <p id="section-6.4-3">Random generation satisfies non-reassignment probabilistically without
 an indefinite retired-identifier list; derivation depends on never
 reusing enrollment inputs. After continuity and status obligations end,
@@ -1974,10 +1983,12 @@ context in a JWT access token and an introspection response.<a href="#section-7.
         </h3>
 <p id="section-7.2-1">An AS <span class="bcp14">MUST</span> sender-constrain access tokens carrying <code>client_instance</code>,
 including when context is conveyed only through introspection, using
-DPoP <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, mutual TLS <span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>, or another mechanism defined by
-the consuming profile. A resource server consuming such a token <span class="bcp14">MUST</span>
-validate its binding and required proof, and reject an unconstrained token
-under <a href="#context-errors" class="auto internal xref">Section 7.5</a>. Proof errors follow the selected binding mechanism.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+Demonstrating Proof of Possession (DPoP) <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>, mutual TLS
+<span>[<a href="#RFC8705" class="cite xref">RFC8705</a>]</span>, or another mechanism defined by the consuming profile. A
+resource server consuming such a token <span class="bcp14">MUST</span> validate its binding and
+required proof, and reject an unconstrained token under
+<a href="#context-errors" class="auto internal xref">Section 7.5</a>. Proof errors follow the selected binding
+mechanism.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
 <p id="section-7.2-2">The binding authenticates the authorized token presenter. It does not
 establish that the presenter is the instance named in preserved upstream
 context. Key selection follows ATTEST; any presenter or key change during
@@ -2173,10 +2184,10 @@ not prove software integrity beyond the evaluated evidence.<a href="#section-9.1
         </h3>
 <ul class="normal">
 <li class="normal" id="section-9.2-1.1">
-            <p id="section-9.2-1.1.1"><strong>Proof binding:</strong> the Client Attestation has no audience. Its PoP
-JWT identifies the Receiver; combined DPoP binds the HTTP request.
-Forwarding resistance depends on ATTEST proof validation, freshness,
-and key possession, not identifier scope.<a href="#section-9.2-1.1.1" class="pilcrow">¶</a></p>
+            <p id="section-9.2-1.1.1"><strong>Proof binding:</strong> the Client Attestation has no audience. Its
+proof-of-possession (PoP) JWT identifies the Receiver; combined DPoP
+binds the HTTP request. Forwarding resistance depends on ATTEST proof
+validation, freshness, and key possession, not identifier scope.<a href="#section-9.2-1.1.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.2-1.2">
             <p id="section-9.2-1.2.1"><strong>Correlation:</strong> <a href="#identifier-scope" class="auto internal xref">Section 4.2</a> requires separate identifiers
@@ -2342,7 +2353,7 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <dd class="break"></dd>
 <dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <time datetime="2026-09-14" class="refDate">14 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="AAUTH">[AAUTH]</dt>
         <dd>
@@ -2395,10 +2406,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#name-wire-examples" class="section-name selfRef">Wire Examples</a>
       </h2>
 <p id="appendix-A-1">These examples are informative. The access-token and introspection
-examples use the managed-device flow in <a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>:
-the user is the authorization subject,
-and the installation is additional context. The AS maps the attester's
-identifier to a value scoped to <code>https://api.example</code>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+examples use the managed-device flow in <a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>: the
+user is the authorization subject, and the installation is additional
+context. The AS maps the attester's identifier to a value scoped to
+<code>https://api.example</code>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <div id="access-token-payload">
 <section id="appendix-A.1">
         <h3 id="name-access-token-payload">
@@ -2552,12 +2563,12 @@ proof, and context without receiving the enrollment evidence.<a href="#appendix-
 <a href="#name-cimd-client" class="section-name selfRef">CIMD Client</a>
         </h3>
 <p id="appendix-B.1-1">Let <code>C1</code> be <code>https://platform.example/oauth-client</code>. Its CIMD declares
-<code>attest_jwt_client_auth_dpop</code>; <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span> provides a metadata
-example. The AS validates the CIMD and uses configured attester trust or
-an accepted <code>client_attesters</code> endorsement. Instance-profile selection
-remains separately configured. Installations share <code>C1</code>, with distinct
-instance identifiers and keys; key renewal does not change the CIMD.
-User-authorized access follows <a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>.<a href="#appendix-B.1-1" class="pilcrow">¶</a></p>
+<code>attest_jwt_client_auth_dpop</code>; <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span> provides a
+metadata example. The AS validates the CIMD and uses configured attester
+trust or an accepted <code>client_attesters</code> endorsement. Instance-profile
+selection remains separately configured. Installations share <code>C1</code>, with
+distinct instance identifiers and keys; key renewal does not change the
+CIMD. User-authorized access follows <a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>.<a href="#appendix-B.1-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="aauth-example">

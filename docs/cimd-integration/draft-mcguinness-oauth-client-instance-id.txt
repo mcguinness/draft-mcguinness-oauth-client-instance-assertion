@@ -4,8 +4,8 @@
 
 Web Authorization Protocol                                 K. McGuinness
 Internet-Draft                                               Independent
-Intended status: Standards Track                       11 September 2026
-Expires: 15 March 2027
+Intended status: Standards Track                       15 September 2026
+Expires: 19 March 2027
 
 
       Client Instance Identification for Attestation-Based Client
@@ -58,7 +58,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 March 2027.
+   This Internet-Draft will expire on 19 March 2027.
 
 Copyright Notice
 
@@ -418,7 +418,7 @@ Table of Contents
 
    A refresh request for such a grant MUST NOT introduce or change the
    recorded instance identity without an explicitly authorized
-   migration.  The migration MUST establish continuity under Section 5
+   migration.  The migration MUST establish continuity under Section 6.2
    and satisfy the applicable key-binding requirements; no migration
    protocol is defined here.  An otherwise valid attestation that
    conflicts with the grant's instance binding MUST produce
@@ -560,10 +560,11 @@ Table of Contents
    servers validating tokens offline.
 
    Without a status channel, existing attestations can remain acceptable
-   until expiration plus clock skew, and issued tokens for their own
-   lifetimes.  Security Event Tokens [RFC8417] and delivery under
-   [RFC8935] can support a separate integration; this profile defines no
-   status event, subject mapping, or revocation-delay guarantee.
+   until expiration plus clock skew, and issued tokens remain valid for
+   their own lifetimes.  Security Event Tokens [RFC8417] and delivery
+   under [RFC8935] can support a separate integration; this profile
+   defines no status event, subject mapping, or revocation-delay
+   guarantee.
 
 6.4.  State and Retention
 
@@ -577,9 +578,9 @@ Table of Contents
    A validating Receiver need not maintain an instance allowlist.  Local
    suspension, revocation, and mapped context require the corresponding
    status, token associations, and mappings.  Issuers MUST retain or
-   securely reproduce mappings while accepted attestations or continuing
-   grants, including refresh tokens and allowed clock skew, require
-   continuity.
+   securely reproduce a mapping for as long as any accepted attestation
+   or continuing grant, including refresh tokens, requires its
+   continuity, plus allowed clock skew.
 
    Random generation satisfies non-reassignment probabilistically
    without an indefinite retired-identifier list; derivation depends on
@@ -638,11 +639,11 @@ Table of Contents
 
    An AS MUST sender-constrain access tokens carrying client_instance,
    including when context is conveyed only through introspection, using
-   DPoP [RFC9449], mutual TLS [RFC8705], or another mechanism defined by
-   the consuming profile.  A resource server consuming such a token MUST
-   validate its binding and required proof, and reject an unconstrained
-   token under Section 7.5.  Proof errors follow the selected binding
-   mechanism.
+   Demonstrating Proof of Possession (DPoP) [RFC9449], mutual TLS
+   [RFC8705], or another mechanism defined by the consuming profile.  A
+   resource server consuming such a token MUST validate its binding and
+   required proof, and reject an unconstrained token under Section 7.5.
+   Proof errors follow the selected binding mechanism.
 
    The binding authenticates the authorized token presenter.  It does
    not establish that the presenter is the instance named in preserved
@@ -793,10 +794,11 @@ Table of Contents
 
 9.2.  Forwarding and Privacy
 
-   *  *Proof binding:* the Client Attestation has no audience.  Its PoP
-      JWT identifies the Receiver; combined DPoP binds the HTTP request.
-      Forwarding resistance depends on ATTEST proof validation,
-      freshness, and key possession, not identifier scope.
+   *  *Proof binding:* the Client Attestation has no audience.  Its
+      proof-of-possession (PoP) JWT identifies the Receiver; combined
+      DPoP binds the HTTP request.  Forwarding resistance depends on
+      ATTEST proof validation, freshness, and key possession, not
+      identifier scope.
 
    *  *Correlation:* Section 4.2 requires separate identifiers and keys
       across Receiver scopes, consistent with [ATTEST], Section 11.1.
@@ -920,7 +922,7 @@ Table of Contents
 
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
-              15 September 2026, <https://mcguinness.github.io/draft-
+              14 September 2026, <https://mcguinness.github.io/draft-
               mcguinness-oauth-client-instance-assertion/draft-
               mcguinness-oauth-client-attesters.html>.
 

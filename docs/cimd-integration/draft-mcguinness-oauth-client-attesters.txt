@@ -207,16 +207,16 @@ Table of Contents
    registered metadata under [RFC7591].  Its value is an array of
    objects:
 
-   +==========+=============================+==========================+
-   | Member   | Requirement                 | Meaning                  |
-   +==========+=============================+==========================+
-   | issuer   | REQUIRED, nonempty          | Exact iss of the         |
-   |          | StringOrURI [RFC7519]       | endorsed Client Attester |
-   +----------+-----------------------------+--------------------------+
-   | jwks_uri | REQUIRED, HTTPS URL         | Location of the          |
-   |          | without userinfo or         | attester's public JWK    |
-   |          | fragment                    | Set [RFC7517]            |
-   +----------+-----------------------------+--------------------------+
+     +==========+=======================+============================+
+     | Member   | Requirement           | Meaning                    |
+     +==========+=======================+============================+
+     | issuer   | REQUIRED, nonempty    | Exact iss of the endorsed  |
+     |          | StringOrURI [RFC7519] | Client Attester            |
+     +----------+-----------------------+----------------------------+
+     | jwks_uri | REQUIRED, HTTPS URL   | Location of the attester's |
+     |          | without userinfo or   | public JSON Web Key (JWK)  |
+     |          | fragment              | Set [RFC7517]              |
+     +----------+-----------------------+----------------------------+
 
                                   Table 1
 
@@ -373,7 +373,7 @@ Table of Contents
 
    For planned key rotation, publish the new key before using it and
    retain the old key while attestations signed with it should remain
-   acceptable.  Metadata caches and JWKS caches have separate
+   acceptable.  Metadata caches and JWK Set caches have separate
    propagation windows; the AS's configured maximum ages bound stale
    acceptance.
 
@@ -381,7 +381,7 @@ Table of Contents
 
    Endorsement withdrawal prevents future authentication under the
    removed endorsement; it does not itself revoke existing grants or
-   access tokens.  Refresh requests requiring client attestation are
+   access tokens.  Refresh requests requiring a Client Attestation are
    checked again under Section 4.
 
    Deployments using withdrawal to terminate existing access MUST
@@ -508,9 +508,14 @@ Table of Contents
 
 8.2.  Informative References
 
+   [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
+              Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
+              Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
+              September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
+
    [INSTANCE-ID]
               McGuinness, K., "Client Instance Identification for
-              Attestation-Based Client Authentication", 11 September
+              Attestation-Based Client Authentication", 14 September
               2026, <https://mcguinness.github.io/draft-mcguinness-
               oauth-client-instance-assertion/draft-mcguinness-oauth-
               client-instance-id.html>.
@@ -580,19 +585,16 @@ CIMD Deployment Example
    }
 
    1.  The runtime proves its authorization to use this client
-       identifier and possession of its instance key to the attester.
-
-   2.  The attester issues an ATTEST credential with
+       identifier and possession of its instance key to the attester. 2.
+       The attester issues an ATTEST credential with
        iss=https://attester.example/tenant/acme,
        sub=https://platform.example/oauth-client, an expiration, and the
-       instance public key in cnf.jwk.
-
-   3.  After obtaining user authorization, the runtime redeems its code
-       with that client_id, the Client Attestation, and combined DPoP
-       proof.
-
-   4.  The AS validates the CIMD, accepted endorsement, attestation,
-       proof, and grant before issuing the access token.
+       instance public key in cnf.jwk. 3.  After obtaining user
+       authorization, the runtime redeems its code with that client_id,
+       the Client Attestation, and a combined Demonstrating Proof of
+       Possession (DPoP) proof [RFC9449]. 4.  The AS validates the CIMD,
+       accepted endorsement, attestation, proof, and grant before
+       issuing the access token.
 
    There is one client metadata document, not one per installation.  An
    endorsement for this client does not let the attester authenticate
