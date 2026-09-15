@@ -2,7 +2,8 @@
 
 # OAuth Drafts
 
-This is the working area for individual Internet-Drafts.
+This repository retains superseded individual Internet-Drafts. Active
+successor specifications are maintained in the repositories linked below.
 
 ## OAuth 2.0 Client Instance Assertion
 
@@ -34,8 +35,8 @@ require administrative agreement.
 
 ## OAuth 2.0 Client Attester Endorsement
 
-* [Draft source](draft-mcguinness-oauth-client-attesters.md)
-* [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html)
+* [Repository and draft source](https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters)
+* [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-attesters/draft-mcguinness-oauth-client-attesters.html)
 
 A companion profile of Attestation-Based Client Authentication defining
 `client_attesters` endorsements in CIMD or registered client metadata.
@@ -46,8 +47,8 @@ This draft has not yet been submitted to the IETF.
 
 ## Client Instance Identification for Attestation-Based Client Authentication
 
-* [Draft source](draft-mcguinness-oauth-client-instance-id.md)
-* [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-id.html)
+* [Repository and draft source](https://github.com/mcguinness/draft-mcguinness-oauth-client-instance-id)
+* [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-id/draft-mcguinness-oauth-client-instance-id.html)
 
 An optional claims profile for administratively configured deployments
 needing instance continuity across attestations and verified key changes.
