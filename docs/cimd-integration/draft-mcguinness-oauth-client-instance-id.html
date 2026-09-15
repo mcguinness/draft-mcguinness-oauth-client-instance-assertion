@@ -1467,7 +1467,7 @@ separate from a user account, device registration, or Logical Client.<a href="#s
 <p id="section-3-1">The client and Receiver <span class="bcp14">MUST</span> administratively configure:<a href="#section-3-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-2.1">
-          <p id="section-3-2.1.1">the Logical Client, authentication method, and authorized attesters;<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.1.1">the Logical Client, authentication method, and attester trust policy;<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-2.2">
           <p id="section-3-2.2.1">the instance granularity, continuity evidence, and freshness limits;<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
@@ -1482,12 +1482,15 @@ No discovery or client metadata parameter is added: profile selection
 is provisioned with the client-specific trust and evidence agreement.
 The shared error in <a href="#errors" class="auto internal xref">Section 5.1</a> reports rejection, not profile discovery.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <p id="section-3-4">The Receiver <span class="bcp14">MUST</span> bind each approved Attester Issuer to its validation
-keys and authorized Logical Clients. It <span class="bcp14">MUST</span> compare issuer and client
-identifiers as exact, case-sensitive strings without URI normalization.
-Neither a credential's <code>iss</code>, proof of possession, nor client-published
-metadata establishes attester authority. This includes metadata from
-<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> and <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>. Trust withdrawal <span class="bcp14">MUST</span> take effect on subsequent
-authentication; other trust management follows ATTEST.<a href="#section-3-4" class="pilcrow">¶</a></p>
+keys and authorized Logical Clients, using configured associations or,
+at an AS, accepted client endorsements under <span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span>.
+It <span class="bcp14">MUST</span> compare issuer and client identifiers as exact, case-sensitive
+strings without URI normalization. A credential's <code>iss</code>, proof of
+possession, or client-published metadata alone does not establish
+attester authority. Metadata from <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> or <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> requires the
+applicable trust policy's approval. Local trust withdrawal <span class="bcp14">MUST</span> take
+effect on subsequent authentication; endorsement updates follow
+<span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span> and other trust management follows ATTEST.<a href="#section-3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="claims">
@@ -1948,12 +1951,12 @@ distinguishes its installations or runtimes. <a href="#cimd-example" class="auto
 existing ATTEST metadata used for this composition.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
 <p id="section-8.1-4">CIMD can remove registration of client metadata at each AS; it does
 not remove this profile's trust agreement (<a href="#configuration" class="auto internal xref">Section 3</a>).
-Discovering which attester a client endorses, and deciding whether the
-AS accepts that endorsement, are separate from instance identification.
-This profile defines no client-published attester-delegation metadata.
-A deployment requiring that discovery needs a separate trust profile;
-it cannot infer delegation from a CIMD <code>jwks_uri</code> or the attestation's
-<code>iss</code>. The same trust rules apply to locally registered clients.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
+<span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span> supplies <code>client_attesters</code> metadata for clients
+to endorse attesters, subject to AS acceptance policy. It can establish
+the attester-to-client association without individually configured
+attesters, but does not select this optional identification profile or
+its continuity and privacy policy. Both profiles also support locally
+registered client metadata.<a href="#section-8.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="workload-and-agent-credentials">
@@ -2158,6 +2161,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="ATTESTER-DELEGATION">[ATTESTER-DELEGATION]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Delegation"</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="AAUTH">[AAUTH]</dt>
         <dd>
 <span class="refAuthor">Hardt, D.</span>, <span class="refTitle">"AAuth Protocol"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-hardt-oauth-aauth-protocol-10</span>, <time datetime="2026-08-06" class="refDate">6 August 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10">https://datatracker.ietf.org/doc/html/draft-hardt-oauth-aauth-protocol-10</a>&gt;</span>. </dd>
@@ -2374,8 +2381,10 @@ metadata at that URL, using the existing authentication method from
 <li id="appendix-B.1-3.1">
             <p id="appendix-B.1-3.1.1">The AS resolves and validates the document under CIMD, including
 exact URL matching, fetch restrictions, and cache handling. It
-supports the declared ATTEST method and separately configures the
-approved attester, its keys, and this instance profile for <code>C1</code>.<a href="#appendix-B.1-3.1.1" class="pilcrow">¶</a></p>
+supports the declared ATTEST method and configures the approved
+attester, its keys, and this instance profile for <code>C1</code>. Alternatively,
+the publisher includes <code>client_attesters</code> and the AS accepts the
+endorsement under <span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span>.<a href="#appendix-B.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-B.1-3.2">
             <p id="appendix-B.1-3.2.1">Each authorized installation obtains an attestation with <code>sub=C1</code>,
