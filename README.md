@@ -10,7 +10,7 @@ This is the working area for individual Internet-Drafts.
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-assertion)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.diff)
-* Status: superseded and not being progressed. Its client-published endorsement model moves to Client Attester Delegation and instance identification moves to Client Instance Identification below; agent representation moves to the agent federation profile and OAuth Actor Profile.
+* Status: superseded and not being progressed. Its client-published endorsement model moves to Client Attester Endorsement and instance identification moves to Client Instance Identification below; agent representation moves to the agent federation profile and OAuth Actor Profile.
 
 ## OAuth 2.0 AI Agent Instance Profile
 
@@ -20,7 +20,7 @@ This is the working area for individual Internet-Drafts.
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.diff)
 * Status: superseded and not being progressed. Replaced by the agent federation profile together with Client Instance Identification below.
 
-## OAuth 2.0 Client Attester Delegation
+## OAuth 2.0 Client Attester Endorsement
 
 * [Draft source](draft-mcguinness-oauth-client-attesters.md)
 

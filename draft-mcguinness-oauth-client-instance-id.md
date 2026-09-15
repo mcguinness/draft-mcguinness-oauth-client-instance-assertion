@@ -33,8 +33,8 @@ normative:
   RFC8693:
   RFC8725:
 informative:
-  ATTESTER-DELEGATION:
-    title: "OAuth 2.0 Client Attester Delegation"
+  ATTESTER-ENDORSEMENT:
+    title: "OAuth 2.0 Client Attester Endorsement"
     target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html
     author:
       - fullname: Karl McGuinness
@@ -175,14 +175,17 @@ The shared error in {{errors}} reports rejection, not profile discovery.
 
 The Receiver MUST bind each approved Attester Issuer to its validation
 keys and authorized Logical Clients, using configured associations or,
-at an AS, accepted client endorsements under {{ATTESTER-DELEGATION}}.
-It MUST compare issuer and client identifiers as exact, case-sensitive
-strings without URI normalization. A credential's `iss`, proof of
+at an AS, accepted client endorsements under {{ATTESTER-ENDORSEMENT}}.
+For requests governed by that profile, both a current client endorsement
+and AS policy approval are REQUIRED.
+
+The Receiver MUST compare issuer and client identifiers as exact,
+case-sensitive strings without URI normalization. A credential's `iss`, proof of
 possession, or client-published metadata alone does not establish
 attester authority. Metadata from {{RFC7591}} or {{CIMD}} requires the
 applicable trust policy's approval. Local trust withdrawal MUST take
 effect on subsequent authentication; endorsement updates follow
-{{ATTESTER-DELEGATION}} and other trust management follows ATTEST.
+{{ATTESTER-ENDORSEMENT}} and other trust management follows ATTEST.
 
 # Client Attestation Claims {#claims}
 
@@ -485,7 +488,7 @@ existing ATTEST metadata used for this composition.
 
 CIMD can remove registration of client metadata at each AS; it does
 not remove this profile's trust agreement ({{configuration}}).
-{{ATTESTER-DELEGATION}} supplies `client_attesters` metadata for clients
+{{ATTESTER-ENDORSEMENT}} supplies `client_attesters` metadata for clients
 to endorse attesters, subject to AS acceptance policy. It can establish
 the attester-to-client association without individually configured
 attesters, but does not select this optional identification profile or
@@ -711,7 +714,7 @@ metadata at that URL, using the existing authentication method from
    supports the declared ATTEST method and configures the approved
    attester, its keys, and this instance profile for `C1`. Alternatively,
    the publisher includes `client_attesters` and the AS accepts the
-   endorsement under {{ATTESTER-DELEGATION}}.
+   endorsement under {{ATTESTER-ENDORSEMENT}}.
 2. Each authorized installation obtains an attestation with `sub=C1`,
    its own AS-scoped `client_instance_id`, and its public key in `cnf`.
    Instance key renewal requires no change to the shared CIMD document.
