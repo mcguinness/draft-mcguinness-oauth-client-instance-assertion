@@ -22,3 +22,5 @@ draft-mcguinness-oauth-client-instance-assertion.xml
 package-lock.json
 report.xml
 !requirements.txt
+!docs/draft-mcguinness-oauth-client-attesters.html
+!docs/draft-mcguinness-oauth-client-instance-id.html
