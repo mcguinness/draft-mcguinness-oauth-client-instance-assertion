@@ -127,33 +127,51 @@ Table of Contents
 
    This optional profile adds two claims:
 
-   *  client_instance_id: an attester-assigned identifier retained
-      across verified key changes and scoped to a Receiver by default.
+   *  client_instance_id: identifies a particular client installation or
+      runtime in its Client Attestation.  The attester assigns it,
+      retains it across verified key changes, and scopes it to a
+      Receiver by default.
 
-   *  client_instance: optional downstream context identifying the
-      instance whose participation was validated for token issuance.
+   *  client_instance: carries a reference to that instance in a token
+      or introspection response, so a resource server can correlate
+      requests with the instance validated when the token was issued.
 
-   The attester maintains the enrollment and verifies continuity under
-   Section 6.  The Receiver validates the attestation; a Context
-   Consumer can use mapped context without receiving that attestation.
-   ATTEST alone is sufficient when correlation need only last for the
-   current key or can remain internal to one system.
+   For example, an authorization server validates a harness's
+   attestation and key-possession proof, then includes its own mapped
+   instance identifier in the access token.  The resource server can use
+   that identifier for audit without receiving the original attestation.
+   The claim alone does not prove who is presenting the token now; that
+   check follows the token's proof-of-possession mechanism.
+
+   The attester verifies continuity under Section 6.  ATTEST alone is
+   sufficient when correlation need only last for the current key or can
+   remain internal to one system.
 
 1.1.  Identity and Scope
 
-       +============================+==============================+
-       | Identity                   | Purpose                      |
-       +============================+==============================+
-       | Logical Client (client_id) | Identifies the OAuth client  |
-       +----------------------------+------------------------------+
-       | Authorization principal    | Identifies the subject or    |
-       |                            | delegated actor              |
-       +----------------------------+------------------------------+
-       | Client Instance            | Identifies an enrolled       |
-       |                            | installation or runtime unit |
-       +----------------------------+------------------------------+
+        +================+========================================+
+        | Identity       | Purpose                                |
+        +================+========================================+
+        | Logical Client | Identifies the OAuth client            |
+        | (client_id)    |                                        |
+        +----------------+----------------------------------------+
+        | Authorization  | Identifies the subject or delegated    |
+        | principal      | actor                                  |
+        +----------------+----------------------------------------+
+        | Client         | Identifies one particular installation |
+        | Instance       | or running copy of the client software |
+        +----------------+----------------------------------------+
 
                                   Table 1
+
+   The deployment chooses what counts as one instance.  An installation
+   can be one harness installation on a managed laptop, retaining its
+   identity across process restarts.  A runtime unit can be one process,
+   container, or Pod, retaining its identity only for that unit's
+   lifetime.  Enrollment records that choice and binds the instance to
+   its verified keys.  Several instances can share one client_id; their
+   identifiers distinguish the copies without creating separate OAuth
+   clients.
 
    This profile is for administratively configured deployments,
    including workloads and managed desktop or mobile applications.  It
@@ -162,12 +180,6 @@ Table of Contents
    key-rotation, or status-distribution protocol.  Direct resource-
    server presentation follows [ATTEST], Section 1.1, [ATTEST],
    Section 4, [ATTEST], Section 5.1, and [ATTEST], Section 7.
-
-   Together with [AGENT-FEDERATION], this draft replaces the relevant
-   parts of draft-mcguinness-oauth-client-instance-assertion and draft-
-   mcguinness-oauth-ai-agent-instance, without wire compatibility.
-   Agent authorization and actor representation belong to
-   [AGENT-FEDERATION] and [ACTOR-PROFILE], not this profile.
 
 2.  Conventions and Definitions
 
@@ -189,9 +201,11 @@ Table of Contents
       granularity.  Its identity is the ordered pair of the Attester
       Issuer and the Instance Identifier.
 
-   Instance Context:  A reference to an instance whose participation was
-      validated for token issuance.  It conveys identity, not
-      authorization or proof of current possession.
+   Instance Context:  The client_instance object in a token or
+      introspection response.  It identifies the instance associated
+      with the token through a validated attestation and proof, or
+      validated upstream context.  It grants no authority and does not
+      prove current possession.
 
    Receiver:  A party that validates a Client Attestation under this
       profile, such as an authorization server or resource server.  A
@@ -734,13 +748,6 @@ Table of Contents
               BCP 212, RFC 8252, DOI 10.17487/RFC8252, October 2017,
               <https://www.rfc-editor.org/rfc/rfc8252>.
 
-   [ACTOR-PROFILE]
-              McGuinness, K., "OAuth Actor Profile for Delegation", Work
-              in Progress, Internet-Draft, draft-mcguinness-oauth-actor-
-              profile-00, 30 April 2026,
-              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
-              oauth-actor-profile-00>.
-
    [SPIFFE-OAUTH]
               Schwenkschuster, A., Kasselman, P., Rose, S., Thorgersen,
               S., and N. Cam-Winget, "OAuth SPIFFE Client
@@ -762,12 +769,6 @@ Table of Contents
    [RFC9068]  Bertocci, V., "JSON Web Token (JWT) Profile for OAuth 2.0
               Access Tokens", RFC 9068, DOI 10.17487/RFC9068, October
               2021, <https://www.rfc-editor.org/rfc/rfc9068>.
-
-   [AGENT-FEDERATION]
-              McGuinness, K., "OAuth 2.0 Profile for Agent Federation",
-              11 September 2026, <https://mcguinness.github.io/draft-
-              mcguinness-oauth-workload-agent-federation/draft-
-              mcguinness-oauth-workload-agent-federation.html>.
 
 Wire Examples
 

@@ -1313,19 +1313,25 @@ as the same can merge unrelated audit histories and status decisions.<a href="#s
 <p id="section-1-2">This optional profile adds two claims:<a href="#section-1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-1-3.1">
-          <p id="section-1-3.1.1"><code>client_instance_id</code>: an attester-assigned identifier retained across
-verified key changes and scoped to a Receiver by default.<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
+          <p id="section-1-3.1.1"><code>client_instance_id</code>: identifies a particular client installation or
+runtime in its Client Attestation. The attester assigns it, retains
+it across verified key changes, and scopes it to a Receiver by default.<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-1-3.2">
-          <p id="section-1-3.2.1"><code>client_instance</code>: optional downstream context identifying the
-instance whose participation was validated for token issuance.<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
+          <p id="section-1-3.2.1"><code>client_instance</code>: carries a reference to that instance in a token or
+introspection response, so a resource server can correlate requests
+with the instance validated when the token was issued.<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-1-4">The attester maintains the enrollment and verifies continuity under
-<a href="#lifetime" class="auto internal xref">Section 6</a>. The Receiver validates the attestation; a Context Consumer
-can use mapped context without receiving that attestation. ATTEST alone
-is sufficient when correlation need only last for the current key or
-can remain internal to one system.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-4">For example, an authorization server validates a harness's attestation
+and key-possession proof, then includes its own mapped instance
+identifier in the access token. The resource server can use that
+identifier for audit without receiving the original attestation.
+The claim alone does not prove who is presenting the token now;
+that check follows the token's proof-of-possession mechanism.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<p id="section-1-5">The attester verifies continuity under <a href="#lifetime" class="auto internal xref">Section 6</a>. ATTEST alone is
+sufficient when correlation need only last for the current key or can
+remain internal to one system.<a href="#section-1-5" class="pilcrow">¶</a></p>
 <div id="identity-and-scope">
 <section id="section-1.1">
         <h3 id="name-identity-and-scope">
@@ -1350,22 +1356,24 @@ can remain internal to one system.<a href="#section-1-4" class="pilcrow">¶</a><
             </tr>
             <tr>
               <td class="text-left" rowspan="1" colspan="1">Client Instance</td>
-              <td class="text-left" rowspan="1" colspan="1">Identifies an enrolled installation or runtime unit</td>
+              <td class="text-left" rowspan="1" colspan="1">Identifies one particular installation or running copy of the client software</td>
             </tr>
           </tbody>
         </table>
-<p id="section-1.1-2">This profile is for administratively configured deployments, including
+<p id="section-1.1-2">The deployment chooses what counts as one instance. An installation
+can be one harness installation on a managed laptop, retaining its
+identity across process restarts. A runtime unit can be one process,
+container, or Pod, retaining its identity only for that unit's lifetime.
+Enrollment records that choice and binds the instance to its verified
+keys. Several instances can share one <code>client_id</code>; their identifiers
+distinguish the copies without creating separate OAuth clients.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+<p id="section-1.1-3">This profile is for administratively configured deployments, including
 workloads and managed desktop or mobile applications. It is not a
 general-purpose device or wallet identifier. It inherits ATTEST's proof
 and token-binding rules and defines no enrollment, key-rotation, or
 status-distribution protocol. Direct resource-server presentation
 follows <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-1.1" class="relref">Section 1.1</a></span>, <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-4" class="relref">Section 4</a></span>,
-<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.1" class="relref">Section 5.1</a></span>, and <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7" class="relref">Section 7</a></span>.<a href="#section-1.1-2" class="pilcrow">¶</a></p>
-<p id="section-1.1-3">Together with <span>[<a href="#AGENT-FEDERATION" class="cite xref">AGENT-FEDERATION</a>]</span>, this draft replaces the relevant
-parts of draft-mcguinness-oauth-client-instance-assertion and
-draft-mcguinness-oauth-ai-agent-instance, without wire compatibility.
-Agent authorization and actor representation belong to
-<span>[<a href="#AGENT-FEDERATION" class="cite xref">AGENT-FEDERATION</a>]</span> and <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>, not this profile.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
+<span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-5.1" class="relref">Section 5.1</a></span>, and <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7" class="relref">Section 7</a></span>.<a href="#section-1.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1398,9 +1406,10 @@ Instance Identifier.<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
         <dd class="break"></dd>
 <dt id="section-2-3.5">Instance Context:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.6">
-          <p id="section-2-3.6.1">A reference to an instance whose participation was validated for token
-issuance. It conveys identity, not authorization or proof of current
-possession.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+          <p id="section-2-3.6.1">The <code>client_instance</code> object in a token or introspection response.
+It identifies the instance associated with the token through a
+validated attestation and proof, or validated upstream context. It
+grants no authority and does not prove current possession.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-2-3.7">Receiver:</dt>
@@ -2107,10 +2116,6 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
         <dd>
 <span class="refAuthor">Denniss, W.</span> and <span class="refAuthor">J. Bradley</span>, <span class="refTitle">"OAuth 2.0 for Native Apps"</span>, <span class="seriesInfo">BCP 212</span>, <span class="seriesInfo">RFC 8252</span>, <span class="seriesInfo">DOI 10.17487/RFC8252</span>, <time datetime="2017-10" class="refDate">October 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8252">https://www.rfc-editor.org/rfc/rfc8252</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="ACTOR-PROFILE">[ACTOR-PROFILE]</dt>
-        <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth Actor Profile for Delegation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-actor-profile-00</span>, <time datetime="2026-04-30" class="refDate">30 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-00</a>&gt;</span>. </dd>
-<dd class="break"></dd>
 <dt id="SPIFFE-OAUTH">[SPIFFE-OAUTH]</dt>
         <dd>
 <span class="refAuthor">Schwenkschuster, A.</span>, <span class="refAuthor">Kasselman, P.</span>, <span class="refAuthor">Rose, S.</span>, <span class="refAuthor">Thorgersen, S.</span>, and <span class="refAuthor">N. Cam-Winget</span>, <span class="refTitle">"OAuth SPIFFE Client Authentication"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-oauth-spiffe-client-auth-02</span>, <time datetime="2026-06-15" class="refDate">15 June 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-spiffe-client-auth-02</a>&gt;</span>. </dd>
@@ -2124,12 +2129,8 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <span class="refAuthor">Backman, A., Ed.</span>, <span class="refAuthor">Jones, M., Ed.</span>, <span class="refAuthor">Scurtescu, M.</span>, <span class="refAuthor">Ansari, M.</span>, and <span class="refAuthor">A. Nadalin</span>, <span class="refTitle">"Push-Based Security Event Token (SET) Delivery Using HTTP"</span>, <span class="seriesInfo">RFC 8935</span>, <span class="seriesInfo">DOI 10.17487/RFC8935</span>, <time datetime="2020-11" class="refDate">November 2020</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8935">https://www.rfc-editor.org/rfc/rfc8935</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC9068">[RFC9068]</dt>
-        <dd>
-<span class="refAuthor">Bertocci, V.</span>, <span class="refTitle">"JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens"</span>, <span class="seriesInfo">RFC 9068</span>, <span class="seriesInfo">DOI 10.17487/RFC9068</span>, <time datetime="2021-10" class="refDate">October 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9068">https://www.rfc-editor.org/rfc/rfc9068</a>&gt;</span>. </dd>
-<dd class="break"></dd>
-<dt id="AGENT-FEDERATION">[AGENT-FEDERATION]</dt>
       <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Profile for Agent Federation"</span>, <time datetime="2026-09-11" class="refDate">11 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html">https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html</a>&gt;</span>. </dd>
+<span class="refAuthor">Bertocci, V.</span>, <span class="refTitle">"JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens"</span>, <span class="seriesInfo">RFC 9068</span>, <span class="seriesInfo">DOI 10.17487/RFC9068</span>, <time datetime="2021-10" class="refDate">October 2021</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9068">https://www.rfc-editor.org/rfc/rfc9068</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
