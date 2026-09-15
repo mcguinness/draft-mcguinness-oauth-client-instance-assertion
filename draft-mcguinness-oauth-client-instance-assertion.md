@@ -126,14 +126,18 @@ format. Its narrower trust model requires both a current client
 endorsement and AS policy approval; publisher-supplied key locations
 cannot override independently configured attester trust.
 
-Other concerns from this document are carried forward. Instance
-evidence for clients that cannot present a Client Attestation is noted
-as future work in the instance identification profile. The rule that
-client-published metadata alone, including dynamic registration and
-client identifier metadata documents, cannot establish an attester's
-authority is retained: accepted endorsements require AS policy approval.
-The requirement that tokens carrying instance identity be sender-constrained
-is adopted in the agent federation profile.
+Together with CLIENT-ATTEST, those companion profiles replace this
+draft's client-instance authentication, attester trust, and identification
+mechanisms. They are not wire-compatible or complete replacements for
+its authorization flows. Actor construction and grant semantics require
+consuming authorization profiles. Native SPIFFE authentication follows
+SPIFFE Client Authentication; this draft's direct SVID carriage and
+automatic instance-as-actor mapping are not carried forward.
+
+The companion profiles require administrative agreement; ATTEST method
+discovery alone does not establish their support. Endorsement withdrawal
+controls future authentication, while termination of existing access
+requires configured grant revocation covering access and refresh tokens.
 
 OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
 client. In deployments where a single OAuth client identifier
