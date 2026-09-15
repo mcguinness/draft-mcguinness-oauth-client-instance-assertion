@@ -39,17 +39,10 @@ informative:
   RFC7591:
   RFC7636:
   RFC8252:
-  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   RFC8417:
   RFC8935:
   RFC9068:
-  AGENT-FEDERATION:
-    title: "OAuth 2.0 Profile for Agent Federation"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html
-    author:
-      - fullname: Karl McGuinness
-    date: 2026-09-11
 --- abstract
 
 This specification defines an optional claims profile of OAuth 2.0
@@ -72,16 +65,23 @@ as the same can merge unrelated audit histories and status decisions.
 
 This optional profile adds two claims:
 
-* `client_instance_id`: an attester-assigned identifier retained across
-  verified key changes and scoped to a Receiver by default.
-* `client_instance`: optional downstream context identifying the
-  instance whose participation was validated for token issuance.
+* `client_instance_id`: identifies a particular client installation or
+  runtime in its Client Attestation. The attester assigns it, retains
+  it across verified key changes, and scopes it to a Receiver by default.
+* `client_instance`: carries a reference to that instance in a token or
+  introspection response, so a resource server can correlate requests
+  with the instance validated when the token was issued.
 
-The attester maintains the enrollment and verifies continuity under
-{{lifetime}}. The Receiver validates the attestation; a Context Consumer
-can use mapped context without receiving that attestation. ATTEST alone
-is sufficient when correlation need only last for the current key or
-can remain internal to one system.
+For example, an authorization server validates a harness's attestation
+and key-possession proof, then includes its own mapped instance
+identifier in the access token. The resource server can use that
+identifier for audit without receiving the original attestation.
+The claim alone does not prove who is presenting the token now;
+that check follows the token's proof-of-possession mechanism.
+
+The attester verifies continuity under {{lifetime}}. ATTEST alone is
+sufficient when correlation need only last for the current key or can
+remain internal to one system.
 
 ## Identity and Scope
 
@@ -89,7 +89,15 @@ can remain internal to one system.
 |---|---|
 | Logical Client (`client_id`) | Identifies the OAuth client |
 | Authorization principal | Identifies the subject or delegated actor |
-| Client Instance | Identifies an enrolled installation or runtime unit |
+| Client Instance | Identifies one particular installation or running copy of the client software |
+
+The deployment chooses what counts as one instance. An installation
+can be one harness installation on a managed laptop, retaining its
+identity across process restarts. A runtime unit can be one process,
+container, or Pod, retaining its identity only for that unit's lifetime.
+Enrollment records that choice and binds the instance to its verified
+keys. Several instances can share one `client_id`; their identifiers
+distinguish the copies without creating separate OAuth clients.
 
 This profile is for administratively configured deployments, including
 workloads and managed desktop or mobile applications. It is not a
@@ -98,12 +106,6 @@ and token-binding rules and defines no enrollment, key-rotation, or
 status-distribution protocol. Direct resource-server presentation
 follows {{ATTEST, Section 1.1}}, {{ATTEST, Section 4}},
 {{ATTEST, Section 5.1}}, and {{ATTEST, Section 7}}.
-
-Together with {{AGENT-FEDERATION}}, this draft replaces the relevant
-parts of draft-mcguinness-oauth-client-instance-assertion and
-draft-mcguinness-oauth-ai-agent-instance, without wire compatibility.
-Agent authorization and actor representation belong to
-{{AGENT-FEDERATION}} and {{ACTOR-PROFILE}}, not this profile.
 
 # Conventions and Definitions
 
@@ -123,9 +125,10 @@ Instance Identifier:
   Instance Identifier.
 
 Instance Context:
-: A reference to an instance whose participation was validated for token
-  issuance. It conveys identity, not authorization or proof of current
-  possession.
+: The `client_instance` object in a token or introspection response.
+  It identifies the instance associated with the token through a
+  validated attestation and proof, or validated upstream context. It
+  grants no authority and does not prove current possession.
 
 Receiver:
 : A party that validates a Client Attestation under this profile,
