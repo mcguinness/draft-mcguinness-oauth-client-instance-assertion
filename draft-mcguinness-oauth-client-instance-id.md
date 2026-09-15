@@ -5,7 +5,6 @@ category: std
 docname: draft-mcguinness-oauth-client-instance-id-latest
 submissiontype: IETF
 stand_alone: yes
-date: 2026-09-11
 ipr: trust200902
 area: "Security"
 workgroup: "Web Authorization Protocol"
@@ -41,7 +40,7 @@ informative:
     target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html
     author:
       - fullname: Karl McGuinness
-    date: 2026-09-15
+    date: 2026-09-14
   AAUTH: I-D.hardt-oauth-aauth-protocol
   RFC2104:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
@@ -81,11 +80,11 @@ This optional profile adds two claims:
   introspection response, so a resource server can correlate requests
   with the instance validated when the token was issued.
 
-For example, an authorization server (AS) validates a harness's attestation
-and proof, then includes a mapped instance identifier in its access token.
-A resource server can use that identifier for audit without receiving
-the attestation. The token's proof-of-possession mechanism authenticates
-its current presenter.
+For example, an authorization server (AS) validates a harness's
+attestation and proof, then includes a mapped instance identifier in
+its access token. A resource server can use that identifier for audit
+without receiving the attestation. The token's proof-of-possession
+mechanism authenticates its current presenter.
 
 The attester verifies continuity under {{lifetime}}. ATTEST alone is
 sufficient when correlation need only last for the current key or can
@@ -116,8 +115,9 @@ for access tokens carrying Instance Context ({{context-binding}}) but
 defines no enrollment, key-rotation, or status-distribution protocol.
 
 ATTEST supplies the authentication and proof methods. Direct
-resource-server presentation follows {{ATTEST, Section 1.1}}, {{ATTEST, Section 4}},
-{{ATTEST, Section 5.1}}, and {{ATTEST, Section 7}}.
+resource-server presentation follows {{ATTEST, Section 1.1}},
+{{ATTEST, Section 4}}, {{ATTEST, Section 5.1}}, and
+{{ATTEST, Section 7}}.
 
 When selected under {{configuration}}, this profile applies whether the
 Client Attestation is the client authentication method or an additional
@@ -211,11 +211,16 @@ management follows ATTEST.
 
 Conformance is role-specific:
 
-* Client Attesters implement claim, identifier, and enrollment requirements.
-* Clients implement scoped attestation use and the selected ATTEST proof method.
-* Receivers implement trust, validation, and applicable grant-continuity rules.
-* Token issuers conveying context implement mapping, binding, and preservation.
-* Context Consumers implement context validation and applicable proof checks.
+* Client Attesters implement claim, identifier, and enrollment
+  requirements.
+* Clients implement scoped attestation use and the selected ATTEST
+  proof method.
+* Receivers implement trust, validation, and applicable
+  grant-continuity rules.
+* Token issuers conveying context implement mapping, binding, and
+  preservation.
+* Context Consumers implement context validation and applicable proof
+  checks.
 
 An implementation serving several roles satisfies each role's
 requirements. Downstream context is optional.
@@ -239,7 +244,8 @@ The claims `exp` and `cnf` remain required; `iat` remains optional.
   not a limit on UTF-8 octets or JSON escape sequences.
   The instance identity is `(iss, client_instance_id)`.
 
-Assignment, Receiver scoping, and generation follow {{attester-requirements}}.
+Assignment, Receiver scoping, and generation follow
+{{attester-requirements}}.
 
 Receivers MUST treat identifiers as opaque, compare them as exact,
 case-sensitive strings without URI normalization, accept conforming
@@ -324,7 +330,7 @@ Possession of the original key alone does not permit a different identity.
 
 A refresh request for such a grant MUST NOT introduce or change the
 recorded instance identity without an explicitly authorized migration.
-The migration MUST establish continuity under {{processing}} and satisfy
+The migration MUST establish continuity under {{continuity}} and satisfy
 the applicable key-binding requirements; no migration protocol is defined
 here. An otherwise valid attestation that conflicts with the grant's
 instance binding MUST produce `invalid_grant` under {{RFC6749}}, without
@@ -432,10 +438,11 @@ Revoked tokens are inactive under {{RFC7662}}. This local enforcement
 does not itself notify resource servers validating tokens offline.
 
 Without a status channel, existing attestations can remain acceptable
-until expiration plus clock skew, and issued tokens for their own
-lifetimes. Security Event Tokens {{RFC8417}} and delivery under
-{{RFC8935}} can support a separate integration; this profile defines
-no status event, subject mapping, or revocation-delay guarantee.
+until expiration plus clock skew, and issued tokens remain valid for
+their own lifetimes. Security Event Tokens {{RFC8417}} and delivery
+under {{RFC8935}} can support a separate integration; this profile
+defines no status event, subject mapping, or revocation-delay
+guarantee.
 
 ## State and Retention {#state}
 
@@ -447,9 +454,10 @@ allow retired credentials to recreate their old identifiers.
 
 A validating Receiver need not maintain an instance allowlist. Local
 suspension, revocation, and mapped context require the corresponding
-status, token associations, and mappings. Issuers MUST retain or securely
-reproduce mappings while accepted attestations or continuing grants,
-including refresh tokens and allowed clock skew, require continuity.
+status, token associations, and mappings. Issuers MUST retain or
+securely reproduce a mapping for as long as any accepted attestation
+or continuing grant, including refresh tokens, requires its
+continuity, plus allowed clock skew.
 
 Random generation satisfies non-reassignment probabilistically without
 an indefinite retired-identifier list; derivation depends on never
@@ -497,10 +505,12 @@ context in a JWT access token and an introspection response.
 
 An AS MUST sender-constrain access tokens carrying `client_instance`,
 including when context is conveyed only through introspection, using
-DPoP {{RFC9449}}, mutual TLS {{RFC8705}}, or another mechanism defined by
-the consuming profile. A resource server consuming such a token MUST
-validate its binding and required proof, and reject an unconstrained token
-under {{context-errors}}. Proof errors follow the selected binding mechanism.
+Demonstrating Proof of Possession (DPoP) {{RFC9449}}, mutual TLS
+{{RFC8705}}, or another mechanism defined by the consuming profile. A
+resource server consuming such a token MUST validate its binding and
+required proof, and reject an unconstrained token under
+{{context-errors}}. Proof errors follow the selected binding
+mechanism.
 
 The binding authenticates the authorized token presenter. It does not
 establish that the presenter is the instance named in preserved upstream
@@ -630,10 +640,10 @@ not prove software integrity beyond the evaluated evidence.
 
 ## Forwarding and Privacy {#privacy}
 
-* **Proof binding:** the Client Attestation has no audience. Its PoP
-  JWT identifies the Receiver; combined DPoP binds the HTTP request.
-  Forwarding resistance depends on ATTEST proof validation, freshness,
-  and key possession, not identifier scope.
+* **Proof binding:** the Client Attestation has no audience. Its
+  proof-of-possession (PoP) JWT identifies the Receiver; combined DPoP
+  binds the HTTP request. Forwarding resistance depends on ATTEST proof
+  validation, freshness, and key possession, not identifier scope.
 * **Correlation:** {{identifier-scope}} requires separate identifiers
   and keys across Receiver scopes, consistent with
   {{ATTEST, Section 11.1}}. Receivers MUST NOT assume identifiers across
@@ -680,10 +690,10 @@ or actor profile values.
 {:numbered="false"}
 
 These examples are informative. The access-token and introspection
-examples use the managed-device flow in {{managed-device-example}}:
-the user is the authorization subject,
-and the installation is additional context. The AS maps the attester's
-identifier to a value scoped to `https://api.example`.
+examples use the managed-device flow in {{managed-device-example}}: the
+user is the authorization subject, and the installation is additional
+context. The AS maps the attester's identifier to a value scoped to
+`https://api.example`.
 
 ## Access Token Payload
 {:numbered="false"}
@@ -811,12 +821,12 @@ These informative sketches share three steps. `C1` is the Logical Client;
 {:numbered="false"}
 
 Let `C1` be `https://platform.example/oauth-client`. Its CIMD declares
-`attest_jwt_client_auth_dpop`; {{ATTESTER-ENDORSEMENT}} provides a metadata
-example. The AS validates the CIMD and uses configured attester trust or
-an accepted `client_attesters` endorsement. Instance-profile selection
-remains separately configured. Installations share `C1`, with distinct
-instance identifiers and keys; key renewal does not change the CIMD.
-User-authorized access follows {{managed-device-example}}.
+`attest_jwt_client_auth_dpop`; {{ATTESTER-ENDORSEMENT}} provides a
+metadata example. The AS validates the CIMD and uses configured attester
+trust or an accepted `client_attesters` endorsement. Instance-profile
+selection remains separately configured. Installations share `C1`, with
+distinct instance identifiers and keys; key renewal does not change the
+CIMD. User-authorized access follows {{managed-device-example}}.
 
 ## AAuth Agent Provider {#aauth-example}
 {:numbered="false"}

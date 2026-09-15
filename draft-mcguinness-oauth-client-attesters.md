@@ -5,7 +5,6 @@ category: std
 docname: draft-mcguinness-oauth-client-attesters-latest
 submissiontype: IETF
 stand_alone: yes
-date: 2026-09-15
 ipr: trust200902
 area: "Security"
 workgroup: "Web Authorization Protocol"
@@ -37,12 +36,13 @@ normative:
   RFC8725:
   RFC9111:
 informative:
+  RFC9449:
   INSTANCE-ID:
     title: "Client Instance Identification for Attestation-Based Client Authentication"
     target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-instance-id.html
     author:
       - fullname: Karl McGuinness
-    date: 2026-09-11
+    date: 2026-09-14
 --- abstract
 
 This specification profiles OAuth 2.0 Attestation-Based Client
@@ -74,12 +74,12 @@ Client metadata --endorses--> Attester --attests--> Client Instance
        +----- AS accepts endorsement and validates proof-+
 ~~~
 
-The profile applies at AS endpoints accepting Client Attestations for client
-authentication or as an additional security signal, using the profiling
-hook in {{ATTEST, Section 13}}. It retains ATTEST's wire format, proof
-methods, and token binding. Stable instance identification is defined
-separately in {{INSTANCE-ID}}; neither endorsement nor instance
-identification establishes user delegation.
+The profile applies at AS endpoints accepting Client Attestations for
+client authentication or as an additional security signal, using the
+profiling hook in {{ATTEST, Section 13}}. It retains ATTEST's wire
+format, proof methods, and token binding. Stable instance identification
+is defined separately in {{INSTANCE-ID}}; neither endorsement nor
+instance identification establishes user delegation.
 
 Resource servers validating Client Attestations directly rely on
 configured attester trust; this profile does not define endorsement
@@ -156,7 +156,7 @@ registered metadata under {{RFC7591}}. Its value is an array of objects:
 | Member | Requirement | Meaning |
 |---|---|---|
 | `issuer` | REQUIRED, nonempty StringOrURI {{RFC7519}} | Exact `iss` of the endorsed Client Attester |
-| `jwks_uri` | REQUIRED, HTTPS URL without userinfo or fragment | Location of the attester's public JWK Set {{RFC7517}} |
+| `jwks_uri` | REQUIRED, HTTPS URL without userinfo or fragment | Location of the attester's public JSON Web Key (JWK) Set {{RFC7517}} |
 
 An issuer occurs at most once in the array. A missing or empty array
 authorizes no attester. The AS MUST:
@@ -235,9 +235,10 @@ The AS MUST select keys according to its approval policy:
 * **Attester approval:** use the independently configured key source for
   the exact issuer and require the endorsed `jwks_uri` to match that URI
   exactly or an explicitly configured alias. An alias does not change
-  the key source. The AS MUST NOT substitute or fall back to publisher-selected
-  keys, even when the publisher is also approved. The configured key
-  source MAY use a different HTTPS origin from the issuer.
+  the key source. The AS MUST NOT substitute or fall back to
+  publisher-selected keys, even when the publisher is also approved.
+  The configured key source MAY use a different HTTPS origin from the
+  issuer.
 * **Publisher approval only:** use the endorsed key source. The `issuer`
   MUST be an HTTPS URL and `jwks_uri` MUST have the same origin
   {{RFC6454}}. This origin check neither isolates tenants sharing an
@@ -294,14 +295,14 @@ without waiting for cache expiration.
 
 For planned key rotation, publish the new key before using it and
 retain the old key while attestations signed with it should remain
-acceptable. Metadata caches and JWKS caches have separate propagation
+acceptable. Metadata caches and JWK Set caches have separate propagation
 windows; the AS's configured maximum ages bound stale acceptance.
 
 ## Existing Grants
 
 Endorsement withdrawal prevents future authentication under the removed
 endorsement; it does not itself revoke existing grants or access tokens.
-Refresh requests requiring client attestation are checked again under
+Refresh requests requiring a Client Attestation are checked again under
 {{processing}}.
 
 Deployments using withdrawal to terminate existing access MUST configure
@@ -411,15 +412,16 @@ The decoded Client Attestation header selects that key:
 ~~~
 
 1. The runtime proves its authorization to use this client identifier
-   and possession of its instance key to the attester.
-2. The attester issues an ATTEST credential with
-   `iss=https://attester.example/tenant/acme`,
-   `sub=https://platform.example/oauth-client`, an expiration, and the
-   instance public key in `cnf.jwk`.
-3. After obtaining user authorization, the runtime redeems its code
-   with that `client_id`, the Client Attestation, and combined DPoP proof.
-4. The AS validates the CIMD, accepted endorsement, attestation, proof,
-   and grant before issuing the access token.
+and possession of its instance key to the attester. 2. The attester
+issues an ATTEST credential with
+`iss=https://attester.example/tenant/acme`,
+`sub=https://platform.example/oauth-client`, an expiration, and the
+instance public key in `cnf.jwk`. 3. After obtaining user
+authorization, the runtime redeems its code with that `client_id`, the
+Client Attestation, and a combined Demonstrating Proof of Possession
+(DPoP) proof {{RFC9449}}. 4. The AS validates the CIMD, accepted
+endorsement, attestation, proof, and grant before issuing the access
+token.
 
 There is one client metadata document, not one per installation.
 An endorsement for this client does not let the attester authenticate
