@@ -1855,16 +1855,22 @@ Set. This signing key is distinct from the runtime key in <code>cnf.jwk</code>:<
 <ol start="1" type="1" class="normal type-1" id="appendix-A-9">
 <li id="appendix-A-9.1">
           <p id="appendix-A-9.1.1">The runtime proves its authorization to use this client identifier
-and possession of its instance key to the attester. 2. The attester
-issues an ATTEST credential with
+and possession of its instance key to the attester.<a href="#appendix-A-9.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-9.2">
+          <p id="appendix-A-9.2.1">The attester issues an ATTEST credential with
 <code>iss=https://attester.example/tenant/acme</code>,
 <code>sub=https://platform.example/oauth-client</code>, an expiration, and the
-instance public key in <code>cnf.jwk</code>. 3. After obtaining user
-authorization, the runtime redeems its code with that <code>client_id</code>, the
-Client Attestation, and a combined Demonstrating Proof of Possession
-(DPoP) proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>. 4. The AS validates the CIMD, accepted
-endorsement, attestation, proof, and grant before issuing the access
-token.<a href="#appendix-A-9.1.1" class="pilcrow">¶</a></p>
+instance public key in <code>cnf.jwk</code>.<a href="#appendix-A-9.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-9.3">
+          <p id="appendix-A-9.3.1">After obtaining user authorization, the runtime redeems its code
+with that <code>client_id</code>, the Client Attestation, and a combined
+Demonstrating Proof of Possession (DPoP) proof <span>[<a href="#RFC9449" class="cite xref">RFC9449</a>]</span>.<a href="#appendix-A-9.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="appendix-A-9.4">
+          <p id="appendix-A-9.4.1">The AS validates the CIMD, accepted endorsement, attestation,
+proof, and grant before issuing the access token.<a href="#appendix-A-9.4.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
 <p id="appendix-A-10">There is one client metadata document, not one per installation.

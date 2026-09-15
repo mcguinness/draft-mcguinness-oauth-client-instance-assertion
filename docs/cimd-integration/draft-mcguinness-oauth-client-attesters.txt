@@ -585,16 +585,19 @@ CIMD Deployment Example
    }
 
    1.  The runtime proves its authorization to use this client
-       identifier and possession of its instance key to the attester. 2.
-       The attester issues an ATTEST credential with
+       identifier and possession of its instance key to the attester.
+
+   2.  The attester issues an ATTEST credential with
        iss=https://attester.example/tenant/acme,
        sub=https://platform.example/oauth-client, an expiration, and the
-       instance public key in cnf.jwk. 3.  After obtaining user
-       authorization, the runtime redeems its code with that client_id,
-       the Client Attestation, and a combined Demonstrating Proof of
-       Possession (DPoP) proof [RFC9449]. 4.  The AS validates the CIMD,
-       accepted endorsement, attestation, proof, and grant before
-       issuing the access token.
+       instance public key in cnf.jwk.
+
+   3.  After obtaining user authorization, the runtime redeems its code
+       with that client_id, the Client Attestation, and a combined
+       Demonstrating Proof of Possession (DPoP) proof [RFC9449].
+
+   4.  The AS validates the CIMD, accepted endorsement, attestation,
+       proof, and grant before issuing the access token.
 
    There is one client metadata document, not one per installation.  An
    endorsement for this client does not let the attester authenticate
