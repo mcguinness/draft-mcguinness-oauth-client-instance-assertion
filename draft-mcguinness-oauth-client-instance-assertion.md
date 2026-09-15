@@ -69,6 +69,10 @@ informative:
 
 --- abstract
 
+This document has been superseded and is not being progressed; the
+Introduction names its replacements. This revision makes no other
+change.
+
 This specification defines the Client Instance Assertion: a signed
 JWT identifying a concrete runtime instance of an OAuth 2.0 client.
 It registers the `client_instance_assertion` request parameter for
@@ -100,6 +104,51 @@ sender-constrained to a key the instance possesses.
 --- middle
 
 # Introduction
+
+Note on status: This document is not being progressed beyond this
+revision. Instance identification is addressed by
+draft-mcguinness-oauth-client-instance-id, an optional claims profile
+of Attestation-Based Client Authentication that carries an
+attester-assigned instance identifier and optional instance context.
+Representation of an agent or client instance as a token subject or
+actor is addressed by the OAuth Actor Profile and by
+draft-mcguinness-oauth-workload-agent-federation. The
+`client_instance_assertion` parameter, the `client-instance-jwt` token
+type, the `client_instance_assertion` authentication method, and the
+subject syntax registry are withdrawn. The `instance_issuers` parameter
+and descriptor format are also withdrawn, while the endorsement concept
+continues as described below. The registrations requested in this draft's
+IANA Considerations are not being pursued.
+
+The client-published endorsement concept returns in OAuth 2.0 Client
+Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
+`client_attesters` with CLIENT-ATTEST rather than this draft's wire
+format. Its narrower trust model requires both a current client
+endorsement and AS policy approval; publisher-supplied key locations
+cannot override independently configured attester trust.
+
+Together with CLIENT-ATTEST, those companion profiles replace this
+draft's client-instance authentication, attester trust, and identification
+mechanisms. They are not wire-compatible or complete replacements for
+its authorization flows. Actor construction and grant semantics require
+consuming authorization profiles. Native SPIFFE authentication follows
+SPIFFE Client Authentication; this draft's direct SVID carriage and
+automatic instance-as-actor mapping are not carried forward.
+
+The companion profiles require administrative agreement; ATTEST method
+discovery alone does not establish their support. Endorsement withdrawal
+controls future authentication, while termination of existing access
+requires configured grant revocation covering access and refresh tokens.
+
+Migration requires new CLIENT-ATTEST credentials and proof handling,
+explicit endorsement approval, and enrollment under the identification
+profile where continuity is needed. Renaming `instance_issuers` or copying
+an old assertion's `sub` into `client_instance_id` is insufficient.
+Existing tokens and grants retain their original semantics until expiration
+or revocation; they are not reinterpreted as conforming to the new profiles.
+Deployments provision support at the AS and resource servers before issuing
+new access tokens with sender-constrained instance context. Moving an
+existing grant requires separately authorized migration.
 
 OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
 client. In deployments where a single OAuth client identifier
@@ -3312,6 +3361,15 @@ matches the access token's `cnf.x5t#S256`.
 {:numbered="false"}
 
 *RFC EDITOR: please remove this section before publication.*
+
+## -02 {#history-02}
+{:numbered="false"}
+
+* Marked this document as superseded by
+  draft-mcguinness-oauth-client-instance-id and
+  draft-mcguinness-oauth-workload-agent-federation; withdrew its
+  parameter, token type, authentication method, metadata, and
+  registry proposals from consideration; no other change.
 
 ## -01 {#history-01}
 {:numbered="false"}
