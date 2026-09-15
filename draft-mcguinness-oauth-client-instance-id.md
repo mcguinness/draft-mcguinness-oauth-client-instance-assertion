@@ -31,7 +31,9 @@ normative:
   RFC7519:
   RFC7662:
   RFC8693:
+  RFC8705:
   RFC8725:
+  RFC9449:
 informative:
   ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   ATTESTER-ENDORSEMENT:
@@ -56,9 +58,9 @@ This specification defines an optional claims profile of OAuth 2.0
 Attestation-Based Client Authentication. It adds an issuer-qualified
 client instance identifier, continuity and privacy rules, and optional
 instance context in tokens and introspection responses. The profile
-supports correlation across attestations and verified key changes;
-authentication, proof of possession, and token binding follow the base
-specification.
+supports correlation across attestations and verified key changes.
+Authentication and proof methods follow the base specification; access
+tokens carrying instance context are sender-constrained.
 
 --- middle
 
@@ -108,11 +110,17 @@ distinguish the copies without creating separate OAuth clients.
 
 This profile is for administratively configured deployments, including
 workloads and managed desktop or mobile applications. It is not a
-general-purpose device or wallet identifier. It inherits ATTEST's proof
-and token-binding rules and defines no enrollment, key-rotation, or
-status-distribution protocol. Direct resource-server presentation
-follows {{ATTEST, Section 1.1}}, {{ATTEST, Section 4}},
+general-purpose device or wallet identifier. It uses ATTEST's proof
+methods and additionally requires sender constraint for access tokens
+carrying Instance Context ({{context-binding}}). It defines no enrollment,
+key-rotation, or status-distribution protocol. Direct resource-server
+presentation follows {{ATTEST, Section 1.1}}, {{ATTEST, Section 4}},
 {{ATTEST, Section 5.1}}, and {{ATTEST, Section 7}}.
+
+When selected under {{configuration}}, this profile applies whether the
+Client Attestation is the client authentication method or an additional
+security signal under {{ATTEST, Section 7.6}}. Additional attestation
+does not replace the deployment's required client authentication.
 
 # Conventions and Definitions
 
@@ -180,6 +188,11 @@ at an AS, accepted client endorsements under {{ATTESTER-ENDORSEMENT}}.
 For requests governed by that profile, both a current client endorsement
 and AS policy approval are REQUIRED.
 
+A resource server validating Client Attestations directly uses configured
+attester-to-client and key associations. The endorsement profile defines
+acceptance at AS endpoints only; publishing `client_attesters` does not
+establish resource-server trust.
+
 The Receiver MUST compare issuer and client identifiers as exact,
 case-sensitive strings without URI normalization. A credential's `iss`, proof of
 possession, or client-published metadata alone does not establish
@@ -187,6 +200,17 @@ attester authority. Metadata from {{RFC7591}} or {{CIMD}} requires the
 applicable trust policy's approval. Local trust withdrawal MUST take
 effect on subsequent authentication; endorsement updates follow
 {{ATTESTER-ENDORSEMENT}} and other trust management follows ATTEST.
+
+## Conformance
+
+Conformance is role-specific. Client Attesters implement the claim,
+identifier, and enrollment requirements; clients implement scoped
+attestation use and the selected ATTEST proof method; Receivers implement
+trust, validation, and applicable grant-continuity rules. Token issuers
+conveying context implement its mapping, binding, and preservation rules;
+Context Consumers implement context validation and applicable proof
+checks. An implementation serving several roles satisfies each role's
+requirements. Conveying downstream context remains optional.
 
 # Client Attestation Claims {#claims}
 
@@ -267,8 +291,9 @@ trust in both authorities and continuity evidence.
 
 The Receiver MUST NOT set an access token's `sub`, add `act`, or extend
 an actor chain solely from instance evidence. Those relationships
-belong to the consuming authorization profile. Token binding follows
-ATTEST: when a separate token-binding key is permitted, context still
+belong to the consuming authorization profile. Key selection follows
+ATTEST, with access-token sender constraint required by {{context-binding}}:
+when a separate token-binding key is permitted, context still
 identifies the instance associated with the Client Instance Key.
 Continuity of that key does not transfer existing tokens or grants to
 a replacement key; such transfer requires separate authorization.
@@ -444,6 +469,20 @@ enrollment-specific input, and the consumer supplies the scope. Issuers
 MUST separate this derivation from attester identifiers, for example by
 using a distinct key or purpose label. {{wire-examples}} shows mapped
 context in a JWT access token and an introspection response.
+
+## Access Token Binding {#context-binding}
+
+An AS MUST sender-constrain access tokens carrying `client_instance`,
+including when context is conveyed only through introspection, using
+DPoP {{RFC9449}}, mutual TLS {{RFC8705}}, or another mechanism defined by
+the consuming profile. A resource server consuming such a token MUST
+validate its binding and required proof, and reject an unconstrained token
+under {{context-errors}}. Proof errors follow the selected binding mechanism.
+
+The binding authenticates the authorized token presenter. It does not
+establish that the presenter is the instance named in preserved upstream
+context. Key selection follows ATTEST; any presenter or key change during
+exchange requires authorization under the consuming exchange profile.
 
 ## Preservation and Authorization {#context-exchange}
 
@@ -733,110 +772,59 @@ Cache-Control: no-store
 # Deployment Examples {#deployment-examples}
 {:numbered="false"}
 
-These informative sketches share one OAuth flow. The authorization
-server (AS) trusts the attester for Logical Client `C1`. `I1` and `K1`
-are an identifier and Client Instance Key scoped to that AS; `M1` is
-the AS's mapping for the resource. Enrollment mechanisms are
-platform-specific.
+These informative sketches share three steps. `C1` is the Logical Client;
+`I1` and `K1` are an instance identifier and key scoped to the AS.
 
-~~~ ascii-art
-Client              Attester           OAuth AS          Resource
-     |                    |                 |                 |
-     |-(1) Evidence + PoP->                 |                 |
-     <-(2) Attestation----|                 |                 |
-     |-(3) Grant + attestation + proof------>                 |
-     <-(4) Token carrying instance context--|                 |
-     |-(5) Resource request + token + proof------------------->
-     <-Resource response--------------------------------------|
-~~~
-
-1. The attester verifies enrollment evidence and possession of `K1`,
-   using the configured AS scope, then assigns `I1`.
-2. It issues the Client Attestation in {{claims}}, with `sub=C1`,
+1. The attester verifies enrollment evidence and possession of `K1`, then
+   issues the attestation in {{claims}}: `sub=C1`,
    `client_instance_id=I1`, and `cnf.jwk` containing public key `K1`.
-3. The client directly presents an authorized grant, attestation, and
-   combined DPoP proof using `K1` to the token endpoint under {{ATTEST}}.
-4. The AS validates the grant and instance evidence and issues a
-   DPoP-bound token with `client_instance` containing its own `iss` and
-   `id=M1`.
-5. The resource validates the token, proof, and context. It can audit
-   `M1` without receiving enrollment evidence or trusting the attester.
+2. The client presents its authorized grant, attestation, and combined
+   DPoP proof using `K1` to the AS's token endpoint.
+3. The AS validates them and issues a DPoP-bound token with mapped
+   context `M1`, scoped to the resource. The resource validates the token,
+   proof, and context without receiving the enrollment evidence.
 
 ## CIMD Client {#cimd-example}
 {:numbered="false"}
 
-For the shared flow, let `C1` be
-`https://platform.example/oauth-client`. The publisher serves this
-metadata at that URL, using the existing authentication method from
-{{ATTEST, Section 9}}:
-
-~~~ json
-{
-  "client_id": "https://platform.example/oauth-client",
-  "client_name": "Managed Agent Harness",
-  "redirect_uris": ["https://platform.example/callback"],
-  "grant_types": ["authorization_code"],
-  "response_types": ["code"],
-  "token_endpoint_auth_method": "attest_jwt_client_auth_dpop"
-}
-~~~
-
-1. The AS resolves and validates the document under CIMD, including
-   exact URL matching, fetch restrictions, and cache handling. It
-   supports the declared ATTEST method and configures the approved
-   attester, its keys, and this instance profile for `C1`. Alternatively,
-   the publisher includes `client_attesters` and the AS accepts the
-   endorsement under {{ATTESTER-ENDORSEMENT}}.
-2. Each authorized installation obtains an attestation with `sub=C1`,
-   its own AS-scoped `client_instance_id`, and its public key in `cnf`.
-   Instance key renewal requires no change to the shared CIMD document.
-3. The client uses the user-authorized flow in {{managed-device-example}}
-   and presents the attestation and DPoP proof at the token endpoint.
-   The AS checks the configured attester-to-client association and
-   issues resource-scoped instance context as in the shared flow.
-
-Declaring an ATTEST authentication method does not signal that this
-optional identification profile is required; that remains configured.
-If a CIMD client uses another authentication method, additional
-attestation follows {{ATTEST, Section 7.6}} and does not replace the
-declared method.
+Let `C1` be `https://platform.example/oauth-client`. Its CIMD declares
+`attest_jwt_client_auth_dpop`; {{ATTESTER-ENDORSEMENT}} provides a metadata
+example. The AS validates the CIMD and uses configured attester trust or
+an accepted `client_attesters` endorsement. Instance-profile selection
+remains separately configured. Installations share `C1`, with distinct
+instance identifiers and keys; key renewal does not change the CIMD.
+User-authorized access follows {{managed-device-example}}.
 
 ## AAuth Agent Provider {#aauth-example}
 {:numbered="false"}
 
-The Agent Provider also acts as the Client Attester, using managed
-installation evidence at step 1. It issues a separate OAuth attestation;
-its native `aa-agent+jwt` and HTTP Message Signatures are not substituted
-for the attestation or OAuth proof. At step 3 the client uses a
-pre-authorized client credentials grant. AAuth metadata alone does not
-establish the AS's attester trust.
+The Agent Provider verifies managed installation evidence at step 1 and
+issues a separate Client Attestation. Native `aa-agent+jwt` credentials
+and HTTP Message Signatures do not replace the OAuth attestation or
+proof. Step 2 uses a pre-authorized client credentials grant; AAuth
+metadata alone does not establish attester trust.
 
 ## SPIFFE Workload {#spiffe-example}
 {:numbered="false"}
 
-The workload obtains an X.509-SVID through the Workload API and uses
-mutual TLS at step 1. The attester validates the SVID against its trusted
-SPIFFE domain and authenticated runtime evidence binding this container
-to the separate key `K1`. A shared SPIFFE ID alone cannot distinguish
-replicas. Step 3 uses client credentials with the new Client Attestation,
-not the SVID. At container granularity a restart creates a new enrollment;
-SVID renewal within a continuing container does not.
+At step 1 the workload uses an X.509-SVID from the Workload API for
+mutual TLS. The attester validates its trust domain and runtime evidence
+binding this container to `K1`; a shared SPIFFE ID cannot distinguish
+replicas. Step 2 uses client credentials with the resulting attestation.
+At container granularity, restart requires new enrollment; SVID renewal
+within a continuing container does not.
 
 ## Managed Device {#managed-device-example}
 {:numbered="false"}
 
 At step 1 a management component verifies the installed harness and its
-platform-protected `K1`. On a managed mobile device, app-attestation
-evidence can support that binding. Device enrollment or key storage
-alone does not identify the application installation.
-
-Before step 3, the harness obtains a user-authorized code through an
-external browser {{RFC8252}}, with PKCE using `S256` {{RFC7636}}. It
-then redeems the code directly with the verifier, redirect URI,
-`client_id=C1`, attestation, and DPoP proof. The browser receives neither
-the attestation nor its proof. Attestation does not replace user
-authorization or PKCE. Installation continuity can survive process
-restarts; reinstall creates a new enrollment.
+platform-protected `K1`, using app-attestation evidence where available.
+Device enrollment or key storage alone does not identify the installation.
+Before step 2, the harness obtains a code through an external browser
+{{RFC8252}} with PKCE `S256` {{RFC7636}}, then redeems it directly with
+the verifier, redirect URI, `C1`, attestation, and DPoP proof. The browser
+receives neither attestation nor proof. Process restarts can retain the
+installation identity; reinstall requires new enrollment.
 
 # Document History {#history}
 {:numbered="false"}

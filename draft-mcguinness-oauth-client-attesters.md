@@ -80,6 +80,9 @@ hook in {{ATTEST, Section 13}}. It retains ATTEST's
 wire format, proof methods, and token binding. It does not assign
 instance identifiers or establish user delegation; {{INSTANCE-ID}} is
 an optional, independent profile for stable instance identification.
+Resource servers validating Client Attestations directly rely on
+configured attester trust; this profile does not define endorsement
+discovery or acceptance for those endpoints.
 
 # Conventions and Trust Model {#trust}
 
@@ -123,6 +126,16 @@ presence or absence of `client_attesters`. ATTEST authentication-method
 discovery does not signal this trust policy; deployments relying on
 client endorsement enforcement establish that the AS applies this
 profile through their trust agreement.
+
+## Conformance
+
+Conformance is role-specific. Client publishers provide and maintain
+endorsements under {{metadata}} and {{updates}}; Client Attesters and
+clients implement their issuance and presentation requirements under
+{{processing}}. Authorization servers implement trust-policy selection,
+metadata and key validation, processing, and withdrawal. An implementation
+serving several roles satisfies each role's requirements. Conformance
+does not require the optional instance-identification profile.
 
 # Client Metadata {#metadata}
 

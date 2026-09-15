@@ -51,10 +51,10 @@ This draft has not yet been submitted to the IETF.
 An optional claims profile for administratively configured deployments
 needing instance continuity across attestations and verified key changes.
 Identifiers are scoped to individual Receivers by default, with optional
-mapped context for downstream consumers. ATTEST already supplies client
-instance authentication; its proof methods and token-binding rules remain
-unchanged. The profile applies to authorization servers and resource
-servers that validate Client Attestations. Deployments that need only
+mapped context for downstream consumers. ATTEST supplies client instance
+authentication and proof methods; this profile requires sender-constrained
+access tokens when instance context is conveyed. It applies to authorization
+servers and resource servers that validate Client Attestations. Deployments that need only
 authentication or can use internal correlation mappings do not require
 this profile.
 
