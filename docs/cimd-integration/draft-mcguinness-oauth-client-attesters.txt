@@ -8,7 +8,7 @@ Intended status: Standards Track                       15 September 2026
 Expires: 19 March 2027
 
 
-                  OAuth 2.0 Client Attester Delegation
+                 OAuth 2.0 Client Attester Endorsement
              draft-mcguinness-oauth-client-attesters-latest
 
 Abstract
@@ -16,7 +16,7 @@ Abstract
    This specification defines client metadata identifying the attesters
    that an OAuth client authorizes to attest its instances.  It profiles
    Attestation-Based Client Authentication for authorization servers
-   that accept such delegation, using Client ID Metadata Documents or
+   that accept such endorsements, using Client ID Metadata Documents or
    registered client metadata.  It defines endorsement, validation, and
    withdrawal rules without introducing a new credential or
    authentication method.
@@ -78,6 +78,7 @@ Table of Contents
    2.  Conventions and Trust Model
    3.  Client Metadata
    4.  Attestation and AS Processing
+     4.1.  Key Source Selection
    5.  Updates and Withdrawal
    6.  Security Considerations
    7.  IANA Considerations
@@ -95,7 +96,7 @@ Table of Contents
    Authentication [ATTEST] allows an attester to authenticate those
    instances, but leaves attester trust establishment to deployments.
    Client ID Metadata Documents [CIMD] publish client metadata but do
-   not specify how the client delegates this attestation authority.
+   not specify how the client endorses an attester for this purpose.
 
    This profile adds client_attesters: the client's endorsements of
    attesters and their verification keys.  An authorization server (AS)
@@ -104,14 +105,14 @@ Table of Contents
 
    Client metadata --endorses--> Attester --attests--> Client Instance
           |                         |                       |
-          +------ AS accepts delegation and validates proof-+
+          +----- AS accepts endorsement and validates proof-+
 
    The profile applies at AS endpoints accepting CLIENT-ATTEST for
-   client authentication or as an additional security signal.  It
-   retains ATTEST's wire format, proof methods, and token binding.  It
-   does not assign instance identifiers or establish user delegation;
-   [INSTANCE-ID] is an optional, independent profile for stable instance
-   identification.
+   client authentication or as an additional security signal, using the
+   profiling hook in [ATTEST], Section 13.  It retains ATTEST's wire
+   format, proof methods, and token binding.  It does not assign
+   instance identifiers or establish user delegation; [INSTANCE-ID] is
+   an optional, independent profile for stable instance identification.
 
 2.  Conventions and Trust Model
 
@@ -127,18 +128,37 @@ Table of Contents
    authorizes an attester to issue Client Attestations naming that
    client.
 
-   The AS MUST configure whether it accepts client-published delegation
-   and which client publishers, attesters, or evidence assurances its
-   policy permits.  It can, for example, accept endorsements from
-   approved client publishers without individually pre-registering their
-   attesters.  An endorsement MUST NOT by itself establish that the
-   client is trusted or authorized to access a resource.
+   The AS MUST configure whether this profile applies and the basis for
+   approving endorsements:
+
+   *  *Publisher approval:* the AS authorizes a publisher to select
+      attesters for specified clients.  For CIMD, configure exact client
+      URLs or HTTPS origins, optionally restricted to path segments.
+      Successful metadata retrieval does not establish publisher
+      approval.  Shared hosting requires a boundary that excludes other
+      publishers.
+
+   *  *Attester approval:* the AS independently trusts a particular
+      attester and configures its key source.  The endorsement
+      authorizes that attester to act for the client; it cannot supply
+      the trust anchor.
 
    For requests governed by this profile, both a current client
-   endorsement and AS policy approval are REQUIRED.  AS policy can
-   narrow the endorsed set; it MUST NOT add an unendorsed attester or
-   silently fall back to a different trust mechanism.  Other ATTEST
-   deployments can use separately configured trust without this profile.
+   endorsement and AS policy approval are REQUIRED.  An endorsement MUST
+   NOT by itself establish that the client is trusted or authorized to
+   access a resource.  AS policy can narrow the endorsed set; it MUST
+   NOT add an unendorsed attester or silently fall back to a different
+   trust mechanism.  Other ATTEST deployments can use separately
+   configured trust without this profile.  When combined with
+   [INSTANCE-ID], the same two requirements establish attester
+   authority; instance continuity remains independent.
+
+   Registered endorsements MUST originate from a party authenticated and
+   authorized to set them for that client, or be covered by a validated
+   software statement from an issuer approved for that purpose under
+   [RFC7591].  Open registration alone supplies neither assurance;
+   issuing a client credential does not retroactively approve its
+   endorsements.  The same restriction applies to endorsement updates.
 
    Profile applicability is an AS policy decision, not selected by the
    presence or absence of client_attesters.  ATTEST authentication-
@@ -173,12 +193,20 @@ Table of Contents
    weaken the meaning of an endorsement for implementations that ignore
    them.
 
-   Each entry delegates only attestation for the client_id whose
-   metadata contains it.  It does not authorize recursive delegation or
-   reuse for another client.  An issuer identifies a namespace, not a
-   discovery endpoint.  The jwks_uri within the entry is distinct from a
-   top-level client jwks_uri, which serves the client's own
-   authentication method.
+   Each entry endorses only attestation for the client_id whose metadata
+   contains it.  It does not authorize further delegation or reuse for
+   another client.  An issuer identifies a namespace, not a discovery
+   endpoint.  For an HTTPS issuer, jwks_uri MUST have the same origin
+   [RFC6454].  This check limits key-location substitution; it does not
+   isolate tenants sharing an origin or establish trust in an issuer
+   name.
+
+   [ATTEST], Section 10.8 recommends, among other options, resolving kid
+   through client metadata jwks_uri.  This profile extends that option
+   with a separate key location for each endorsed issuer.  A top-level
+   jwks_uri can contain several issuers' keys, but does not associate
+   them with named attesters or separate them from client authentication
+   keys.  It does not replace client_attesters under this profile.
 
    Clients using attestation as client authentication select
    attest_jwt_client_auth or attest_jwt_client_auth_dpop under [ATTEST],
@@ -196,25 +224,26 @@ Table of Contents
    authorized as an instance of the specified client, using
    authenticated enrollment or platform evidence.  Knowledge of a public
    client_id or possession of a newly generated key alone is
-   insufficient.  The attester MUST include its issuer value as iss and
-   the exact client identifier as sub; other claims and proof
-   requirements follow ATTEST.
+   insufficient.  The attester MUST include its issuer value as iss, the
+   exact client identifier as sub, and a nonempty kid header [RFC7515]
+   identifying its signing key; other claims and proof requirements
+   follow ATTEST.
 
    For each presentation, the AS MUST:
 
-   1.  Obtain authoritative metadata for the requested client_id,
-       following CIMD resolution and validation or its registered
-       metadata policy.  Selection between registered and fetched
-       metadata follows CIMD; the AS MUST NOT combine their endorsement
-       lists.
+   1.  Obtain authoritative metadata, from a fresh cache or by
+       retrieval, for the requested client_id, following CIMD resolution
+       and validation or its registered metadata policy, including
+       Section 2.  Selection between registered and fetched metadata
+       follows CIMD; the AS MUST NOT combine their endorsement lists.
 
    2.  Validate client_attesters and select the entry whose issuer
        exactly matches the attestation's nonempty iss.  Verify AS policy
-       permits that client-to-attester delegation.
+       permits that client-to-attester association.
 
-   3.  Resolve the selected entry's JWK Set and verify the attestation's
-       signature using an acceptable asymmetric algorithm and a public
-       key from that set.  Symmetric keys, private keys, and alg=none
+   3.  Select the key source under Section 4.1.  Resolve kid to one
+       eligible public key and verify the signature using an acceptable
+       asymmetric algorithm.  Symmetric keys, private keys, and alg=none
        MUST NOT be accepted under this profile.
 
    4.  Verify sub exactly equals the requested client_id, then validate
@@ -224,29 +253,55 @@ Table of Contents
    5.  Apply grant and authorization policy independently of the
        endorsement.
 
-   Issuer and client identifiers MUST use exact, case-sensitive
-   comparison without URI normalization.  Key selection and caches MUST
-   bind keys to the client identifier, endorsed issuer, and endorsed key
-   location; kid alone or a union of keys from different entries is
-   insufficient.  Token-controlled key locations MUST NOT override the
-   selected entry.
-
    Failures specific to endorsement or attestation validation MUST use
    invalid_client_attestation, without exposing policy details.  This
    profile deliberately also uses that error when a valid attestation's
    issuer lacks an accepted endorsement.  Other metadata-discovery,
    registration, authentication, and grant errors follow their base
-   specifications.  Unsupported or rejected delegation MUST NOT trigger
+   specifications.  Unsupported or rejected endorsement MUST NOT trigger
    an unauthenticated fallback.
+
+4.1.  Key Source Selection
+
+   When approval depends on trust in an attester, the AS MUST use its
+   independently configured key source for that exact issuer and MUST
+   NOT use the publisher's jwks_uri as a substitute or fallback.  The AS
+   MUST require the endorsed URI to exactly match its configured URI or
+   an explicitly configured alias; the alias does not change the
+   verification key source.  These rules apply even if the publisher is
+   also approved.
+
+   Only publisher approval that does not rely on independent attester
+   trust permits use of the endorsed key source.  For a non-HTTPS
+   issuer, the AS MUST use an independently configured issuer-to-key
+   association, since there is no HTTPS origin binding.  Publisher-
+   selected keys MUST NOT inherit assurance attributed to an
+   independently trusted attester merely because the issuer strings
+   match.
+
+   Issuer and client identifiers MUST use exact, case-sensitive
+   comparison without URI normalization.  Key selection and caches MUST
+   bind keys to the client identifier, issuer, approved key source, and
+   applicable trust policy; kid alone or a union of keys from different
+   entries is insufficient.  Token-controlled key locations MUST NOT
+   override that source.  Origin comparison does not change identifier
+   comparison.
 
 5.  Updates and Withdrawal
 
    The AS MUST enforce configured finite maximum ages for endorsement
-   metadata and JWK Sets used to accept presentations, applying HTTP
-   caching constraints [RFC9111] when stricter.  It MUST revalidate or
-   refresh expired entries before use and MUST NOT use stale entries if
-   that operation fails.  Network retrieval is not needed for each
-   request while the applicable entries remain fresh.
+   metadata and JWK Sets used to accept presentations, applying CIMD and
+   HTTP caching constraints [RFC9111] when stricter.  Maximum ages
+   SHOULD NOT exceed one hour; longer intervals require accepting the
+   corresponding withdrawal delay.  The AS MUST revalidate or refresh
+   expired entries before use and MUST NOT use stale entries if that
+   operation fails.  Network retrieval is not needed for each request
+   while the applicable entries remain fresh.
+
+   On observing that a CIMD has been removed (HTTP 404 or 410), the AS
+   MUST stop using previously cached endorsements from that document.
+   Removal cannot be detected while the AS continues to use an unexpired
+   cache.
 
    Once a metadata or key update is accepted, the AS MUST use it on the
    next presentation.  Removing an endorsement, removing a verification
@@ -268,17 +323,25 @@ Table of Contents
 
    The considerations in [ATTEST], [CIMD], and [RFC8725] apply.
 
-   *  *Publisher and attester compromise:* either can undermine client
-      authentication.  The AS's admission policy limits whose
-      endorsements it accepts.  Attesters serving several clients or
+   *  *Publisher compromise:* control of a CIMD URL permits changing its
+      endorsements, within AS policy.  The AS SHOULD monitor and alert
+      on endorsement changes and evaluate new attesters as policy
+      changes.  A separately specified signed-metadata mechanism could
+      bind publisher intent independently of the HTTPS host, if its
+      signing keys have an independent trust basis; this profile defines
+      no such mechanism.
+
+   *  *Attester compromise:* attesters serving several clients or
       tenants need issuance controls preventing one from obtaining
       attestations for another.
 
    *  *Key retrieval:* the AS MUST authenticate HTTPS servers, bound
       response sizes and request time, and prevent retrieval from
       prohibited network destinations.  It MUST NOT follow redirects for
-      jwks_uri retrieval.  Endorsed URLs remain subject to SSRF
-      defenses; endorsement does not make a network location safe.
+      jwks_uri retrieval.  This deliberately extends CIMD's no-
+      automatic-redirect rule to attester key retrieval.  Endorsed URLs
+      remain subject to SSRF defenses; endorsement does not make a
+      network location safe.
 
    *  *Withdrawal latency:* an already cached endorsement or key can
       remain acceptable until its allowed age expires.  Urgent incidents
@@ -327,6 +390,14 @@ Table of Contents
               RFC 6749, DOI 10.17487/RFC6749, October 2012,
               <https://www.rfc-editor.org/rfc/rfc6749>.
 
+   [RFC6454]  Barth, A., "The Web Origin Concept", RFC 6454,
+              DOI 10.17487/RFC6454, December 2011,
+              <https://www.rfc-editor.org/rfc/rfc6454>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/rfc/rfc7515>.
+
    [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
               DOI 10.17487/RFC7517, May 2015,
               <https://www.rfc-editor.org/rfc/rfc7517>.
@@ -370,9 +441,28 @@ Table of Contents
 
 CIMD Deployment Example
 
-   This example is informative.  The AS's policy permits endorsements
-   from this client publisher.  At https://platform.example/oauth-
-   client, the publisher serves:
+   This example is informative.  The AS has the following local
+   configuration; these are policy settings, not new protocol metadata:
+
+     +=======================+=======================================+
+     | Setting               | Value                                 |
+     +=======================+=======================================+
+     | Permitted CIMD        | https://platform.example              |
+     | publisher origin      |                                       |
+     +-----------------------+---------------------------------------+
+     | Independently trusted | https://attester.example/tenant/acme  |
+     | attester              |                                       |
+     +-----------------------+---------------------------------------+
+     | Configured key source | https://attester.example/tenant/acme/ |
+     | for that attester     | jwks                                  |
+     +-----------------------+---------------------------------------+
+     | Maximum metadata and  | 3600 seconds each                     |
+     | key cache ages        |                                       |
+     +-----------------------+---------------------------------------+
+
+                                  Table 2
+
+   At https://platform.example/oauth-client, the publisher serves:
 
    {
      "client_id": "https://platform.example/oauth-client",
@@ -387,6 +477,30 @@ CIMD Deployment Example
          "jwks_uri": "https://attester.example/tenant/acme/jwks"
        }
      ]
+   }
+
+   The attester's configured key endpoint publishes this illustrative
+   JWK Set. This signing key is distinct from the runtime key in
+   cnf.jwk:
+
+   {
+     "keys": [{
+       "kty": "EC",
+       "crv": "P-256",
+       "kid": "attester-1",
+       "use": "sig",
+       "alg": "ES256",
+       "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+       "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
+     }]
+   }
+
+   The decoded Client Attestation header selects that key:
+
+   {
+     "typ": "oauth-client-attestation+jwt",
+     "alg": "ES256",
+     "kid": "attester-1"
    }
 
    1.  The runtime proves its authorization to use this client
@@ -408,6 +522,17 @@ CIMD Deployment Example
    endorsement for this client does not let the attester authenticate
    another client, even if both use the same attestation service.  The
    flow does not require client_instance_id or an act claim.
+
+   An attestation from an unendorsed issuer, or an endorsement naming
+   the trusted issuer with an unapproved key location, produces the same
+   error:
+
+   HTTP/1.1 400 Bad Request
+   Content-Type: application/json
+   Cache-Control: no-store
+   Pragma: no-cache
+
+   {"error": "invalid_client_attestation"}
 
 Document History
 

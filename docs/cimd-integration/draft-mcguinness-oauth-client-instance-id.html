@@ -1483,14 +1483,16 @@ is provisioned with the client-specific trust and evidence agreement.
 The shared error in <a href="#errors" class="auto internal xref">Section 5.1</a> reports rejection, not profile discovery.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <p id="section-3-4">The Receiver <span class="bcp14">MUST</span> bind each approved Attester Issuer to its validation
 keys and authorized Logical Clients, using configured associations or,
-at an AS, accepted client endorsements under <span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span>.
-It <span class="bcp14">MUST</span> compare issuer and client identifiers as exact, case-sensitive
-strings without URI normalization. A credential's <code>iss</code>, proof of
+at an AS, accepted client endorsements under <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>.
+For requests governed by that profile, both a current client endorsement
+and AS policy approval are <span class="bcp14">REQUIRED</span>.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">The Receiver <span class="bcp14">MUST</span> compare issuer and client identifiers as exact,
+case-sensitive strings without URI normalization. A credential's <code>iss</code>, proof of
 possession, or client-published metadata alone does not establish
 attester authority. Metadata from <span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span> or <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> requires the
 applicable trust policy's approval. Local trust withdrawal <span class="bcp14">MUST</span> take
 effect on subsequent authentication; endorsement updates follow
-<span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span> and other trust management follows ATTEST.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span> and other trust management follows ATTEST.<a href="#section-3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="claims">
@@ -1951,7 +1953,7 @@ distinguishes its installations or runtimes. <a href="#cimd-example" class="auto
 existing ATTEST metadata used for this composition.<a href="#section-8.1-3" class="pilcrow">¶</a></p>
 <p id="section-8.1-4">CIMD can remove registration of client metadata at each AS; it does
 not remove this profile's trust agreement (<a href="#configuration" class="auto internal xref">Section 3</a>).
-<span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span> supplies <code>client_attesters</code> metadata for clients
+<span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span> supplies <code>client_attesters</code> metadata for clients
 to endorse attesters, subject to AS acceptance policy. It can establish
 the attester-to-client association without individually configured
 attesters, but does not select this optional identification profile or
@@ -2161,9 +2163,9 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
-<dt id="ATTESTER-DELEGATION">[ATTESTER-DELEGATION]</dt>
+<dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
         <dd>
-<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Delegation"</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="AAUTH">[AAUTH]</dt>
         <dd>
@@ -2384,7 +2386,7 @@ exact URL matching, fetch restrictions, and cache handling. It
 supports the declared ATTEST method and configures the approved
 attester, its keys, and this instance profile for <code>C1</code>. Alternatively,
 the publisher includes <code>client_attesters</code> and the AS accepts the
-endorsement under <span>[<a href="#ATTESTER-DELEGATION" class="cite xref">ATTESTER-DELEGATION</a>]</span>.<a href="#appendix-B.1-3.1.1" class="pilcrow">¶</a></p>
+endorsement under <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>.<a href="#appendix-B.1-3.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="appendix-B.1-3.2">
             <p id="appendix-B.1-3.2.1">Each authorized installation obtains an attestation with <code>sub=C1</code>,

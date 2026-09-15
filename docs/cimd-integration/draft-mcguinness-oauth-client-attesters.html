@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>OAuth 2.0 Client Attester Delegation</title>
+<title>OAuth 2.0 Client Attester Endorsement</title>
 <meta content="Karl McGuinness" name="author">
 <meta content="
        This specification defines client metadata identifying the attesters
 that an OAuth client authorizes to attest its instances. It profiles
 Attestation-Based Client Authentication for authorization servers that
-accept such delegation, using Client ID Metadata Documents or registered
+accept such endorsements, using Client ID Metadata Documents or registered
 client metadata. It defines endorsement, validation, and withdrawal
 rules without introducing a new credential or authentication method. 
     " name="description">
@@ -1047,7 +1047,7 @@ svg {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">Client Attester Delegation</td>
+<td class="center">Client Attester Endorsement</td>
 <td class="right">September 2026</td>
 </tr></thead>
 <tfoot><tr>
@@ -1080,13 +1080,13 @@ svg {
 </dd>
 </dl>
 </div>
-<h1 id="title">OAuth 2.0 Client Attester Delegation</h1>
+<h1 id="title">OAuth 2.0 Client Attester Endorsement</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
 <p id="section-abstract-1">This specification defines client metadata identifying the attesters
 that an OAuth client authorizes to attest its instances. It profiles
 Attestation-Based Client Authentication for authorization servers that
-accept such delegation, using Client ID Metadata Documents or registered
+accept such endorsements, using Client ID Metadata Documents or registered
 client metadata. It defines endorsement, validation, and withdrawal
 rules without introducing a new credential or authentication method.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
@@ -1165,6 +1165,11 @@ rules without introducing a new credential or authentication method.<a href="#se
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-attestation-and-as-processi" class="internal xref">Attestation and AS Processing</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-key-source-selection" class="internal xref">Key Source Selection</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-updates-and-withdrawal" class="internal xref">Updates and Withdrawal</a></p>
@@ -1209,7 +1214,7 @@ each holding a different key. Attestation-Based Client Authentication
 <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span> allows an attester to authenticate those instances, but
 leaves attester trust establishment to deployments. Client ID Metadata
 Documents <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span> publish client metadata but do not specify how the
-client delegates this attestation authority.<a href="#section-1-1" class="pilcrow">¶</a></p>
+client endorses an attester for this purpose.<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">This profile adds <code>client_attesters</code>: the client's endorsements of
 attesters and their verification keys. An authorization server (AS)
 accepts an endorsement only under its own trust policy. The resulting
@@ -1218,11 +1223,12 @@ chain is:<a href="#section-1-2" class="pilcrow">¶</a></p>
 <pre>
 Client metadata --endorses--&gt; Attester --attests--&gt; Client Instance
        |                         |                       |
-       +------ AS accepts delegation and validates proof-+
+       +----- AS accepts endorsement and validates proof-+
 </pre><a href="#section-1-3" class="pilcrow">¶</a>
 </div>
 <p id="section-1-4">The profile applies at AS endpoints accepting CLIENT-ATTEST for client
-authentication or as an additional security signal. It retains ATTEST's
+authentication or as an additional security signal, using the profiling
+hook in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-13" class="relref">Section 13</a></span>. It retains ATTEST's
 wire format, proof methods, and token binding. It does not assign
 instance identifiers or establish user delegation; <span>[<a href="#INSTANCE-ID" class="cite xref">INSTANCE-ID</a>]</span> is
 an optional, independent profile for stable instance identification.<a href="#section-1-4" class="pilcrow">¶</a></p>
@@ -1241,22 +1247,41 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 and Client Instance Key follow <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>. The client publisher controls
 the authoritative metadata for a <code>client_id</code>; an endorsement authorizes
 an attester to issue Client Attestations naming that client.<a href="#section-2-2" class="pilcrow">¶</a></p>
-<p id="section-2-3">The AS <span class="bcp14">MUST</span> configure whether it accepts client-published delegation
-and which client publishers, attesters, or evidence assurances its
-policy permits. It can, for example, accept endorsements from approved
-client publishers without individually pre-registering their attesters.
-An endorsement <span class="bcp14">MUST NOT</span> by itself establish that the client is trusted
-or authorized to access a resource.<a href="#section-2-3" class="pilcrow">¶</a></p>
-<p id="section-2-4">For requests governed by this profile, both a current client endorsement
-and AS policy approval are <span class="bcp14">REQUIRED</span>. AS policy can narrow the endorsed
-set; it <span class="bcp14">MUST NOT</span> add an unendorsed attester or silently fall back to a
-different trust mechanism. Other ATTEST deployments can use separately
-configured trust without this profile.<a href="#section-2-4" class="pilcrow">¶</a></p>
-<p id="section-2-5">Profile applicability is an AS policy decision, not selected by the
+<p id="section-2-3">The AS <span class="bcp14">MUST</span> configure whether this profile applies and the basis for
+approving endorsements:<a href="#section-2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-2-4.1">
+          <p id="section-2-4.1.1"><strong>Publisher approval:</strong> the AS authorizes a publisher to select
+attesters for specified clients. For CIMD, configure exact client URLs
+or HTTPS origins, optionally restricted to path segments. Successful
+metadata retrieval does not establish publisher approval. Shared
+hosting requires a boundary that excludes other publishers.<a href="#section-2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-2-4.2">
+          <p id="section-2-4.2.1"><strong>Attester approval:</strong> the AS independently trusts a particular
+attester and configures its key source. The endorsement authorizes
+that attester to act for the client; it cannot supply the trust anchor.<a href="#section-2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-2-5">For requests governed by this profile, both a current client endorsement
+and AS policy approval are <span class="bcp14">REQUIRED</span>. An endorsement <span class="bcp14">MUST NOT</span> by itself
+establish that the client is trusted or authorized to access a resource.
+AS policy can narrow the endorsed set; it <span class="bcp14">MUST NOT</span> add an unendorsed
+attester or silently fall back to a different trust mechanism. Other
+ATTEST deployments can use separately configured trust without this
+profile. When combined with <span>[<a href="#INSTANCE-ID" class="cite xref">INSTANCE-ID</a>]</span>, the same two requirements
+establish attester authority; instance continuity remains independent.<a href="#section-2-5" class="pilcrow">¶</a></p>
+<p id="section-2-6">Registered endorsements <span class="bcp14">MUST</span> originate from a party authenticated and
+authorized to set them for that client, or be covered by a validated
+software statement from an issuer approved for that purpose under
+<span>[<a href="#RFC7591" class="cite xref">RFC7591</a>]</span>. Open registration alone supplies neither assurance; issuing
+a client credential does not retroactively approve its endorsements.
+The same restriction applies to endorsement updates.<a href="#section-2-6" class="pilcrow">¶</a></p>
+<p id="section-2-7">Profile applicability is an AS policy decision, not selected by the
 presence or absence of <code>client_attesters</code>. ATTEST authentication-method
 discovery does not signal this trust policy; deployments relying on
 client endorsement enforcement establish that the AS applies this
-profile through their trust agreement.<a href="#section-2-5" class="pilcrow">¶</a></p>
+profile through their trust agreement.<a href="#section-2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="metadata">
@@ -1302,17 +1327,24 @@ entries or duplicate issuers <span class="bcp14">MUST</span> cause rejection of 
 this profile; implementations <span class="bcp14">MUST NOT</span> partially accept that list.
 Unrecognized members <span class="bcp14">MUST</span> be ignored; extensions <span class="bcp14">MUST NOT</span> weaken the
 meaning of an endorsement for implementations that ignore them.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4">Each entry delegates only attestation for the <code>client_id</code> whose metadata
-contains it. It does not authorize recursive delegation or reuse for
+<p id="section-3-4">Each entry endorses only attestation for the <code>client_id</code> whose metadata
+contains it. It does not authorize further delegation or reuse for
 another client. An <code>issuer</code> identifies a namespace, not a discovery
-endpoint. The <code>jwks_uri</code> within the entry is distinct from a top-level
-client <code>jwks_uri</code>, which serves the client's own authentication method.<a href="#section-3-4" class="pilcrow">¶</a></p>
-<p id="section-3-5">Clients using attestation as client authentication select
+endpoint. For an HTTPS <code>issuer</code>, <code>jwks_uri</code> <span class="bcp14">MUST</span> have the same origin
+<span>[<a href="#RFC6454" class="cite xref">RFC6454</a>]</span>. This check limits key-location substitution; it does not
+isolate tenants sharing an origin or establish trust in an issuer name.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5"><span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-10.8" class="relref">Section 10.8</a></span> recommends, among other options, resolving <code>kid</code>
+through client metadata <code>jwks_uri</code>. This profile extends that option
+with a separate key location for each endorsed issuer. A top-level
+<code>jwks_uri</code> can contain several issuers' keys, but does not associate
+them with named attesters or separate them from client authentication
+keys. It does not replace <code>client_attesters</code> under this profile.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-6">Clients using attestation as client authentication select
 <code>attest_jwt_client_auth</code> or <code>attest_jwt_client_auth_dpop</code> under
 <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-9" class="relref">Section 9</a></span>. When attestation supplements another method,
 that method remains required under <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-7.6" class="relref">Section 7.6</a></span>.
 <code>client_attesters</code> does not select a grant, proof method, or the optional
-instance-identification profile.<a href="#section-3-5" class="pilcrow">¶</a></p>
+instance-identification profile.<a href="#section-3-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="processing">
@@ -1326,26 +1358,28 @@ client metadata; the parameter alone is not authentication.<a href="#section-4-1
 authorized as an instance of the specified client, using authenticated
 enrollment or platform evidence. Knowledge of a public <code>client_id</code> or
 possession of a newly generated key alone is insufficient. The attester
-<span class="bcp14">MUST</span> include its <code>issuer</code> value as <code>iss</code> and the exact client identifier
-as <code>sub</code>; other claims and proof requirements follow ATTEST.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<span class="bcp14">MUST</span> include its <code>issuer</code> value as <code>iss</code>, the exact client identifier
+as <code>sub</code>, and a nonempty <code>kid</code> header <span>[<a href="#RFC7515" class="cite xref">RFC7515</a>]</span> identifying its signing
+key; other claims and proof requirements follow ATTEST.<a href="#section-4-2" class="pilcrow">¶</a></p>
 <p id="section-4-3">For each presentation, the AS <span class="bcp14">MUST</span>:<a href="#section-4-3" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4-4">
 <li id="section-4-4.1">
-          <p id="section-4-4.1.1">Obtain authoritative metadata for the requested <code>client_id</code>, following
-CIMD resolution and validation or its registered metadata policy.
+          <p id="section-4-4.1.1">Obtain authoritative metadata, from a fresh cache or by retrieval,
+for the requested <code>client_id</code>, following CIMD resolution and validation
+or its registered metadata policy, including <a href="#trust" class="auto internal xref">Section 2</a>.
 Selection between registered and fetched metadata follows CIMD;
 the AS <span class="bcp14">MUST NOT</span> combine their endorsement lists.<a href="#section-4-4.1.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-4-4.2">
           <p id="section-4-4.2.1">Validate <code>client_attesters</code> and select the entry whose <code>issuer</code>
 exactly matches the attestation's nonempty <code>iss</code>. Verify AS policy
-permits that client-to-attester delegation.<a href="#section-4-4.2.1" class="pilcrow">¶</a></p>
+permits that client-to-attester association.<a href="#section-4-4.2.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-4-4.3">
-          <p id="section-4-4.3.1">Resolve the selected entry's JWK Set and verify the attestation's
-signature using an acceptable asymmetric algorithm and a public key
-from that set. Symmetric keys, private keys, and <code>alg=none</code> <span class="bcp14">MUST NOT</span>
-be accepted under this profile.<a href="#section-4-4.3.1" class="pilcrow">¶</a></p>
+          <p id="section-4-4.3.1">Select the key source under <a href="#key-resolution" class="auto internal xref">Section 4.1</a>. Resolve <code>kid</code> to one
+eligible public key and verify the signature using an acceptable
+asymmetric algorithm. Symmetric keys, private keys, and <code>alg=none</code>
+            <span class="bcp14">MUST NOT</span> be accepted under this profile.<a href="#section-4-4.3.1" class="pilcrow">¶</a></p>
 </li>
         <li id="section-4-4.4">
           <p id="section-4-4.4.1">Verify <code>sub</code> exactly equals the requested <code>client_id</code>, then validate
@@ -1355,18 +1389,39 @@ the remaining attestation and proof under the selected ATTEST method.<a href="#s
           <p id="section-4-4.5.1">Apply grant and authorization policy independently of the endorsement.<a href="#section-4-4.5.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="section-4-5">Issuer and client identifiers <span class="bcp14">MUST</span> use exact, case-sensitive comparison
-without URI normalization. Key selection and caches <span class="bcp14">MUST</span> bind keys to
-the client identifier, endorsed issuer, and endorsed key location;
-<code>kid</code> alone or a union of keys from different entries is insufficient.
-Token-controlled key locations <span class="bcp14">MUST NOT</span> override the selected entry.<a href="#section-4-5" class="pilcrow">¶</a></p>
-<p id="section-4-6">Failures specific to endorsement or attestation validation <span class="bcp14">MUST</span> use
+<p id="section-4-5">Failures specific to endorsement or attestation validation <span class="bcp14">MUST</span> use
 <code>invalid_client_attestation</code>, without exposing policy details. This
 profile deliberately also uses that error when a valid attestation's
 issuer lacks an accepted endorsement. Other metadata-discovery,
 registration, authentication, and grant errors follow their base
-specifications. Unsupported or rejected delegation <span class="bcp14">MUST NOT</span> trigger
-an unauthenticated fallback.<a href="#section-4-6" class="pilcrow">¶</a></p>
+specifications. Unsupported or rejected endorsement <span class="bcp14">MUST NOT</span> trigger
+an unauthenticated fallback.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<div id="key-resolution">
+<section id="section-4.1">
+        <h3 id="name-key-source-selection">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-key-source-selection" class="section-name selfRef">Key Source Selection</a>
+        </h3>
+<p id="section-4.1-1">When approval depends on trust in an attester, the AS <span class="bcp14">MUST</span> use its
+independently configured key source for that exact issuer and <span class="bcp14">MUST NOT</span>
+use the publisher's <code>jwks_uri</code> as a substitute or fallback. The AS <span class="bcp14">MUST</span>
+require the endorsed URI to exactly match its configured URI or an
+explicitly configured alias; the alias does not change the verification
+key source.
+These rules apply even if the publisher is also approved.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">Only publisher approval that does not rely on independent attester trust
+permits use of the endorsed key source. For a non-HTTPS issuer, the AS
+<span class="bcp14">MUST</span> use an independently configured issuer-to-key association, since
+there is no HTTPS origin binding. Publisher-selected keys <span class="bcp14">MUST NOT</span>
+inherit assurance attributed to an independently trusted attester merely
+because the issuer strings match.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+<p id="section-4.1-3">Issuer and client identifiers <span class="bcp14">MUST</span> use exact, case-sensitive comparison
+without URI normalization. Key selection and caches <span class="bcp14">MUST</span> bind keys to
+the client identifier, issuer, approved key source, and applicable trust
+policy; <code>kid</code> alone or a union of keys from different entries is
+insufficient. Token-controlled key locations <span class="bcp14">MUST NOT</span> override that
+source. Origin comparison does not change identifier comparison.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="updates">
@@ -1375,24 +1430,28 @@ an unauthenticated fallback.<a href="#section-4-6" class="pilcrow">¶</a></p>
 <a href="#section-5" class="section-number selfRef">5. </a><a href="#name-updates-and-withdrawal" class="section-name selfRef">Updates and Withdrawal</a>
       </h2>
 <p id="section-5-1">The AS <span class="bcp14">MUST</span> enforce configured finite maximum ages for endorsement
-metadata and JWK Sets used to accept presentations, applying HTTP
-caching constraints <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> when stricter. It <span class="bcp14">MUST</span> revalidate or
-refresh expired entries before use and <span class="bcp14">MUST NOT</span> use stale entries if
+metadata and JWK Sets used to accept presentations, applying CIMD and
+HTTP caching constraints <span>[<a href="#RFC9111" class="cite xref">RFC9111</a>]</span> when stricter. Maximum ages <span class="bcp14">SHOULD NOT</span> exceed one hour; longer intervals require accepting the corresponding
+withdrawal delay. The AS <span class="bcp14">MUST</span> revalidate or refresh expired entries
+before use and <span class="bcp14">MUST NOT</span> use stale entries if
 that operation fails. Network retrieval is not needed for each request
 while the applicable entries remain fresh.<a href="#section-5-1" class="pilcrow">¶</a></p>
-<p id="section-5-2">Once a metadata or key update is accepted, the AS <span class="bcp14">MUST</span> use it on the
+<p id="section-5-2">On observing that a CIMD has been removed (HTTP 404 or 410), the AS <span class="bcp14">MUST</span>
+stop using previously cached endorsements from that document. Removal
+cannot be detected while the AS continues to use an unexpired cache.<a href="#section-5-2" class="pilcrow">¶</a></p>
+<p id="section-5-3">Once a metadata or key update is accepted, the AS <span class="bcp14">MUST</span> use it on the
 next presentation. Removing an endorsement, removing a verification
 key, or publishing an empty list prevents acceptance under that entry
 or key, including for attestations issued before the update. Local
 policy denial <span class="bcp14">MUST</span> take effect immediately on subsequent requests,
-without waiting for cache expiration.<a href="#section-5-2" class="pilcrow">¶</a></p>
-<p id="section-5-3">For planned key rotation, publish the new key before using it and
+without waiting for cache expiration.<a href="#section-5-3" class="pilcrow">¶</a></p>
+<p id="section-5-4">For planned key rotation, publish the new key before using it and
 retain the old key while attestations signed with it should remain
 acceptable. Metadata caches and JWKS caches have separate propagation
 windows; the AS's configured maximum ages bound stale acceptance.
 Withdrawal does not itself invalidate issued access tokens. Refresh
 requests requiring client attestation are checked again under
-<a href="#processing" class="auto internal xref">Section 4</a>; revoking already issued tokens requires separate action.<a href="#section-5-3" class="pilcrow">¶</a></p>
+<a href="#processing" class="auto internal xref">Section 4</a>; revoking already issued tokens requires separate action.<a href="#section-5-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
@@ -1403,29 +1462,37 @@ requests requiring client attestation are checked again under
 <p id="section-6-1">The considerations in <span>[<a href="#ATTEST" class="cite xref">ATTEST</a>]</span>, <span>[<a href="#CIMD" class="cite xref">CIMD</a>]</span>, and <span>[<a href="#RFC8725" class="cite xref">RFC8725</a>]</span> apply.<a href="#section-6-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-6-2.1">
-          <p id="section-6-2.1.1"><strong>Publisher and attester compromise:</strong> either can undermine client
-authentication. The AS's admission policy limits whose endorsements
-it accepts. Attesters serving several clients or tenants need issuance
-controls preventing one from obtaining attestations for another.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
+          <p id="section-6-2.1.1"><strong>Publisher compromise:</strong> control of a CIMD URL permits changing its
+endorsements, within AS policy. The AS <span class="bcp14">SHOULD</span> monitor and alert on
+endorsement changes and evaluate new attesters as policy changes.
+A separately specified signed-metadata mechanism could bind publisher
+intent independently of the HTTPS host, if its signing keys have an
+independent trust basis; this profile defines no such mechanism.<a href="#section-6-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.2">
-          <p id="section-6-2.2.1"><strong>Key retrieval:</strong> the AS <span class="bcp14">MUST</span> authenticate HTTPS servers, bound
-response sizes and request time, and prevent retrieval from prohibited
-network destinations. It <span class="bcp14">MUST NOT</span> follow redirects for <code>jwks_uri</code>
-retrieval. Endorsed URLs remain subject to SSRF defenses; endorsement
-does not make a network location safe.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
+          <p id="section-6-2.2.1"><strong>Attester compromise:</strong> attesters serving several clients or tenants
+need issuance controls preventing one from obtaining attestations
+for another.<a href="#section-6-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.3">
-          <p id="section-6-2.3.1"><strong>Withdrawal latency:</strong> an already cached endorsement or key can
-remain acceptable until its allowed age expires. Urgent incidents
-require local denial or another revocation channel; removing a key
-at its origin is not instantaneous revocation.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+          <p id="section-6-2.3.1"><strong>Key retrieval:</strong> the AS <span class="bcp14">MUST</span> authenticate HTTPS servers, bound
+response sizes and request time, and prevent retrieval from prohibited
+network destinations. It <span class="bcp14">MUST NOT</span> follow redirects for <code>jwks_uri</code>
+retrieval. This deliberately extends CIMD's no-automatic-redirect
+rule to attester key retrieval. Endorsed URLs remain subject to SSRF
+defenses; endorsement does not make a network location safe.<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-6-2.4">
-          <p id="section-6-2.4.1"><strong>Privacy:</strong> public metadata exposes client-to-attester relationships.
+          <p id="section-6-2.4.1"><strong>Withdrawal latency:</strong> an already cached endorsement or key can
+remain acceptable until its allowed age expires. Urgent incidents
+require local denial or another revocation channel; removing a key
+at its origin is not instantaneous revocation.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-6-2.5">
+          <p id="section-6-2.5.1"><strong>Privacy:</strong> public metadata exposes client-to-attester relationships.
 It <span class="bcp14">SHOULD NOT</span> enumerate instances or their keys. Caching reduces the
 request-timing information observable at metadata and key endpoints.
-No stable instance identifier is required by this profile.<a href="#section-6-2.4.1" class="pilcrow">¶</a></p>
+No stable instance identifier is required by this profile.<a href="#section-6-2.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 </section>
@@ -1476,6 +1543,14 @@ Attestations for this client, with their verification-key locations<a href="#sec
 <dt id="RFC6749">[RFC6749]</dt>
         <dd>
 <span class="refAuthor">Hardt, D., Ed.</span>, <span class="refTitle">"The OAuth 2.0 Authorization Framework"</span>, <span class="seriesInfo">RFC 6749</span>, <span class="seriesInfo">DOI 10.17487/RFC6749</span>, <time datetime="2012-10" class="refDate">October 2012</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6749">https://www.rfc-editor.org/rfc/rfc6749</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6454">[RFC6454]</dt>
+        <dd>
+<span class="refAuthor">Barth, A.</span>, <span class="refTitle">"The Web Origin Concept"</span>, <span class="seriesInfo">RFC 6454</span>, <span class="seriesInfo">DOI 10.17487/RFC6454</span>, <time datetime="2011-12" class="refDate">December 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6454">https://www.rfc-editor.org/rfc/rfc6454</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7515">[RFC7515]</dt>
+        <dd>
+<span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, and <span class="refAuthor">N. Sakimura</span>, <span class="refTitle">"JSON Web Signature (JWS)"</span>, <span class="seriesInfo">RFC 7515</span>, <span class="seriesInfo">DOI 10.17487/RFC7515</span>, <time datetime="2015-05" class="refDate">May 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7515">https://www.rfc-editor.org/rfc/rfc7515</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC7517">[RFC7517]</dt>
         <dd>
@@ -1528,10 +1603,43 @@ Attestations for this client, with their verification-key locations<a href="#sec
       <h2 id="name-cimd-deployment-example">
 <a href="#name-cimd-deployment-example" class="section-name selfRef">CIMD Deployment Example</a>
       </h2>
-<p id="appendix-A-1">This example is informative. The AS's policy permits endorsements from
-this client publisher. At <code>https://platform.example/oauth-client</code>, the
-publisher serves:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
-<div class="lang-json sourcecode" id="appendix-A-2">
+<p id="appendix-A-1">This example is informative. The AS has the following local configuration;
+these are policy settings, not new protocol metadata:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<table class="center" id="table-2">
+        <caption><a href="#table-2" class="selfRef">Table 2</a></caption>
+<thead>
+          <tr>
+            <th class="text-left" rowspan="1" colspan="1">Setting</th>
+            <th class="text-left" rowspan="1" colspan="1">Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Permitted CIMD publisher origin</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>https://platform.example</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Independently trusted attester</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>https://attester.example/tenant/acme</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Configured key source for that attester</td>
+            <td class="text-left" rowspan="1" colspan="1">
+              <code>https://attester.example/tenant/acme/jwks</code>
+</td>
+          </tr>
+          <tr>
+            <td class="text-left" rowspan="1" colspan="1">Maximum metadata and key cache ages</td>
+            <td class="text-left" rowspan="1" colspan="1">3600 seconds each</td>
+          </tr>
+        </tbody>
+      </table>
+<p id="appendix-A-3">At <code>https://platform.example/oauth-client</code>, the publisher serves:<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-4">
 <pre>
 {
   "client_id": "https://platform.example/oauth-client",
@@ -1547,32 +1655,71 @@ publisher serves:<a href="#appendix-A-1" class="pilcrow">¶</a></p>
     }
   ]
 }
-</pre><a href="#appendix-A-2" class="pilcrow">¶</a>
+</pre><a href="#appendix-A-4" class="pilcrow">¶</a>
 </div>
-<ol start="1" type="1" class="normal type-1" id="appendix-A-3">
-<li id="appendix-A-3.1">
-          <p id="appendix-A-3.1.1">The runtime proves its authorization to use this client identifier
-and possession of its instance key to the attester.<a href="#appendix-A-3.1.1" class="pilcrow">¶</a></p>
+<p id="appendix-A-5">The attester's configured key endpoint publishes this illustrative JWK
+Set. This signing key is distinct from the runtime key in <code>cnf.jwk</code>:<a href="#appendix-A-5" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-6">
+<pre>
+{
+  "keys": [{
+    "kty": "EC",
+    "crv": "P-256",
+    "kid": "attester-1",
+    "use": "sig",
+    "alg": "ES256",
+    "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+    "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
+  }]
+}
+</pre><a href="#appendix-A-6" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A-7">The decoded Client Attestation header selects that key:<a href="#appendix-A-7" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A-8">
+<pre>
+{
+  "typ": "oauth-client-attestation+jwt",
+  "alg": "ES256",
+  "kid": "attester-1"
+}
+</pre><a href="#appendix-A-8" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="appendix-A-9">
+<li id="appendix-A-9.1">
+          <p id="appendix-A-9.1.1">The runtime proves its authorization to use this client identifier
+and possession of its instance key to the attester.<a href="#appendix-A-9.1.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-3.2">
-          <p id="appendix-A-3.2.1">The attester issues an ATTEST credential with
+        <li id="appendix-A-9.2">
+          <p id="appendix-A-9.2.1">The attester issues an ATTEST credential with
 <code>iss=https://attester.example/tenant/acme</code>,
 <code>sub=https://platform.example/oauth-client</code>, an expiration, and the
-instance public key in <code>cnf.jwk</code>.<a href="#appendix-A-3.2.1" class="pilcrow">¶</a></p>
+instance public key in <code>cnf.jwk</code>.<a href="#appendix-A-9.2.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-3.3">
-          <p id="appendix-A-3.3.1">After obtaining user authorization, the runtime redeems its code
-with that <code>client_id</code>, the Client Attestation, and combined DPoP proof.<a href="#appendix-A-3.3.1" class="pilcrow">¶</a></p>
+        <li id="appendix-A-9.3">
+          <p id="appendix-A-9.3.1">After obtaining user authorization, the runtime redeems its code
+with that <code>client_id</code>, the Client Attestation, and combined DPoP proof.<a href="#appendix-A-9.3.1" class="pilcrow">¶</a></p>
 </li>
-        <li id="appendix-A-3.4">
-          <p id="appendix-A-3.4.1">The AS validates the CIMD, accepted endorsement, attestation, proof,
-and grant before issuing the access token.<a href="#appendix-A-3.4.1" class="pilcrow">¶</a></p>
+        <li id="appendix-A-9.4">
+          <p id="appendix-A-9.4.1">The AS validates the CIMD, accepted endorsement, attestation, proof,
+and grant before issuing the access token.<a href="#appendix-A-9.4.1" class="pilcrow">¶</a></p>
 </li>
       </ol>
-<p id="appendix-A-4">There is one client metadata document, not one per installation.
+<p id="appendix-A-10">There is one client metadata document, not one per installation.
 An endorsement for this client does not let the attester authenticate
 another client, even if both use the same attestation service.
-The flow does not require <code>client_instance_id</code> or an <code>act</code> claim.<a href="#appendix-A-4" class="pilcrow">¶</a></p>
+The flow does not require <code>client_instance_id</code> or an <code>act</code> claim.<a href="#appendix-A-10" class="pilcrow">¶</a></p>
+<p id="appendix-A-11">An attestation from an unendorsed issuer, or an endorsement naming the
+trusted issuer with an unapproved key location, produces the same error:<a href="#appendix-A-11" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A-12">
+<pre>
+HTTP/1.1 400 Bad Request
+Content-Type: application/json
+Cache-Control: no-store
+Pragma: no-cache
+
+{"error": "invalid_client_attestation"}
+</pre><a href="#appendix-A-12" class="pilcrow">¶</a>
+</div>
 </section>
 </div>
 <div id="document-history">
