@@ -39,17 +39,10 @@ informative:
   RFC7591:
   RFC7636:
   RFC8252:
-  ACTOR-PROFILE: I-D.mcguinness-oauth-actor-profile
   SPIFFE-OAUTH: I-D.ietf-oauth-spiffe-client-auth
   RFC8417:
   RFC8935:
   RFC9068:
-  AGENT-FEDERATION:
-    title: "OAuth 2.0 Profile for Agent Federation"
-    target: https://mcguinness.github.io/draft-mcguinness-oauth-workload-agent-federation/draft-mcguinness-oauth-workload-agent-federation.html
-    author:
-      - fullname: Karl McGuinness
-    date: 2026-09-11
 --- abstract
 
 This specification defines an optional claims profile of OAuth 2.0
@@ -98,12 +91,6 @@ and token-binding rules and defines no enrollment, key-rotation, or
 status-distribution protocol. Direct resource-server presentation
 follows {{ATTEST, Section 1.1}}, {{ATTEST, Section 4}},
 {{ATTEST, Section 5.1}}, and {{ATTEST, Section 7}}.
-
-Together with {{AGENT-FEDERATION}}, this draft replaces the relevant
-parts of draft-mcguinness-oauth-client-instance-assertion and
-draft-mcguinness-oauth-ai-agent-instance, without wire compatibility.
-Agent authorization and actor representation belong to
-{{AGENT-FEDERATION}} and {{ACTOR-PROFILE}}, not this profile.
 
 # Conventions and Definitions
 
