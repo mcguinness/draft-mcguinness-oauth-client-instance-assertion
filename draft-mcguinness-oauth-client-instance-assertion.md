@@ -114,10 +114,11 @@ Representation of an agent or client instance as a token subject or
 actor is addressed by the OAuth Actor Profile and by
 draft-mcguinness-oauth-workload-agent-federation. The
 `client_instance_assertion` parameter, the `client-instance-jwt` token
-type, the `client_instance_assertion` authentication method, the
-`instance_issuers` metadata, and the subject syntax registry defined
-here are withdrawn from consideration, and the registrations requested
-in the IANA Considerations are not being pursued.
+type, the `client_instance_assertion` authentication method, and the
+subject syntax registry are withdrawn. The `instance_issuers` parameter
+and descriptor format are also withdrawn, while the endorsement concept
+continues as described below. The registrations requested in this draft's
+IANA Considerations are not being pursued.
 
 The client-published endorsement concept returns in OAuth 2.0 Client
 Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
@@ -138,6 +139,16 @@ The companion profiles require administrative agreement; ATTEST method
 discovery alone does not establish their support. Endorsement withdrawal
 controls future authentication, while termination of existing access
 requires configured grant revocation covering access and refresh tokens.
+
+Migration requires new CLIENT-ATTEST credentials and proof handling,
+explicit endorsement approval, and enrollment under the identification
+profile where continuity is needed. Renaming `instance_issuers` or copying
+an old assertion's `sub` into `client_instance_id` is insufficient.
+Existing tokens and grants retain their original semantics until expiration
+or revocation; they are not reinterpreted as conforming to the new profiles.
+Deployments provision support at the AS and resource servers before issuing
+new access tokens with sender-constrained instance context. Moving an
+existing grant requires separately authorized migration.
 
 OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
 client. In deployments where a single OAuth client identifier
