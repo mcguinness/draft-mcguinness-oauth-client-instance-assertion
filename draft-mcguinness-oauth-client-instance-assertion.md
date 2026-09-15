@@ -119,14 +119,21 @@ type, the `client_instance_assertion` authentication method, the
 here are withdrawn from consideration, and the registrations requested
 in the IANA Considerations are not being pursued.
 
-Three concerns from this document are carried forward. Instance
+The client-published endorsement concept returns in OAuth 2.0 Client
+Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
+`client_attesters` with CLIENT-ATTEST rather than this draft's wire
+format. Its narrower trust model requires both a current client
+endorsement and AS policy approval; publisher-supplied key locations
+cannot override independently configured attester trust.
+
+Other concerns from this document are carried forward. Instance
 evidence for clients that cannot present a Client Attestation is noted
 as future work in the instance identification profile. The rule that
-client-published metadata, including dynamic registration and client
-identifier metadata documents, cannot establish an attester's
-authority is adopted there as a requirement. The requirement that
-tokens carrying instance identity be sender-constrained is adopted in
-the agent federation profile.
+client-published metadata alone, including dynamic registration and
+client identifier metadata documents, cannot establish an attester's
+authority is retained: accepted endorsements require AS policy approval.
+The requirement that tokens carrying instance identity be sender-constrained
+is adopted in the agent federation profile.
 
 OAuth 2.0 {{RFC6749}} defines `client_id` as the identifier of a
 client. In deployments where a single OAuth client identifier
