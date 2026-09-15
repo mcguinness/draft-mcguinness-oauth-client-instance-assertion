@@ -33,6 +33,12 @@ normative:
   RFC8693:
   RFC8725:
 informative:
+  ATTESTER-DELEGATION:
+    title: "OAuth 2.0 Client Attester Delegation"
+    target: https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html
+    author:
+      - fullname: Karl McGuinness
+    date: 2026-09-15
   AAUTH: I-D.hardt-oauth-aauth-protocol
   RFC2104:
   CIMD: I-D.ietf-oauth-client-id-metadata-document
@@ -157,7 +163,7 @@ Enrollment:
 
 The client and Receiver MUST administratively configure:
 
-* the Logical Client, authentication method, and authorized attesters;
+* the Logical Client, authentication method, and attester trust policy;
 * the instance granularity, continuity evidence, and freshness limits;
 * the intended Receiver and any explicitly shared correlation scope.
 
@@ -168,12 +174,15 @@ is provisioned with the client-specific trust and evidence agreement.
 The shared error in {{errors}} reports rejection, not profile discovery.
 
 The Receiver MUST bind each approved Attester Issuer to its validation
-keys and authorized Logical Clients. It MUST compare issuer and client
-identifiers as exact, case-sensitive strings without URI normalization.
-Neither a credential's `iss`, proof of possession, nor client-published
-metadata establishes attester authority. This includes metadata from
-{{RFC7591}} and {{CIMD}}. Trust withdrawal MUST take effect on subsequent
-authentication; other trust management follows ATTEST.
+keys and authorized Logical Clients, using configured associations or,
+at an AS, accepted client endorsements under {{ATTESTER-DELEGATION}}.
+It MUST compare issuer and client identifiers as exact, case-sensitive
+strings without URI normalization. A credential's `iss`, proof of
+possession, or client-published metadata alone does not establish
+attester authority. Metadata from {{RFC7591}} or {{CIMD}} requires the
+applicable trust policy's approval. Local trust withdrawal MUST take
+effect on subsequent authentication; endorsement updates follow
+{{ATTESTER-DELEGATION}} and other trust management follows ATTEST.
 
 # Client Attestation Claims {#claims}
 
@@ -476,12 +485,12 @@ existing ATTEST metadata used for this composition.
 
 CIMD can remove registration of client metadata at each AS; it does
 not remove this profile's trust agreement ({{configuration}}).
-Discovering which attester a client endorses, and deciding whether the
-AS accepts that endorsement, are separate from instance identification.
-This profile defines no client-published attester-delegation metadata.
-A deployment requiring that discovery needs a separate trust profile;
-it cannot infer delegation from a CIMD `jwks_uri` or the attestation's
-`iss`. The same trust rules apply to locally registered clients.
+{{ATTESTER-DELEGATION}} supplies `client_attesters` metadata for clients
+to endorse attesters, subject to AS acceptance policy. It can establish
+the attester-to-client association without individually configured
+attesters, but does not select this optional identification profile or
+its continuity and privacy policy. Both profiles also support locally
+registered client metadata.
 
 ## Workload and Agent Credentials
 
@@ -699,8 +708,10 @@ metadata at that URL, using the existing authentication method from
 
 1. The AS resolves and validates the document under CIMD, including
    exact URL matching, fetch restrictions, and cache handling. It
-   supports the declared ATTEST method and separately configures the
-   approved attester, its keys, and this instance profile for `C1`.
+   supports the declared ATTEST method and configures the approved
+   attester, its keys, and this instance profile for `C1`. Alternatively,
+   the publisher includes `client_attesters` and the AS accepts the
+   endorsement under {{ATTESTER-DELEGATION}}.
 2. Each authorized installation obtains an attestation with `sub=C1`,
    its own AS-scoped `client_instance_id`, and its public key in `cnf`.
    Instance key renewal requires no change to the shared CIMD document.
