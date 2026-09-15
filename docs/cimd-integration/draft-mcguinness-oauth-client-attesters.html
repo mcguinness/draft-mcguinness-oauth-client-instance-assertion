@@ -1330,9 +1330,11 @@ meaning of an endorsement for implementations that ignore them.<a href="#section
 <p id="section-3-4">Each entry endorses only attestation for the <code>client_id</code> whose metadata
 contains it. It does not authorize further delegation or reuse for
 another client. An <code>issuer</code> identifies a namespace, not a discovery
-endpoint. For an HTTPS <code>issuer</code>, <code>jwks_uri</code> <span class="bcp14">MUST</span> have the same origin
-<span>[<a href="#RFC6454" class="cite xref">RFC6454</a>]</span>. This check limits key-location substitution; it does not
-isolate tenants sharing an origin or establish trust in an issuer name.<a href="#section-3-4" class="pilcrow">¶</a></p>
+endpoint. For a publisher-selected key source, <code>issuer</code> <span class="bcp14">MUST</span> be an HTTPS
+URL and <code>jwks_uri</code> <span class="bcp14">MUST</span> have the same origin <span>[<a href="#RFC6454" class="cite xref">RFC6454</a>]</span>. An independently
+configured issuer-to-key association under <a href="#key-resolution" class="auto internal xref">Section 4.1</a> <span class="bcp14">MAY</span> use
+a different HTTPS origin. The origin check alone neither isolates tenants
+sharing an origin nor establishes trust in an issuer name.<a href="#section-3-4" class="pilcrow">¶</a></p>
 <p id="section-3-5"><span>[<a href="#ATTEST" class="cite xref">ATTEST</a>], <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-11#section-10.8" class="relref">Section 10.8</a></span> recommends, among other options, resolving <code>kid</code>
 through client metadata <code>jwks_uri</code>. This profile extends that option
 with a separate key location for each endorsed issuer. A top-level
@@ -1448,10 +1450,16 @@ without waiting for cache expiration.<a href="#section-5-3" class="pilcrow">¶</
 <p id="section-5-4">For planned key rotation, publish the new key before using it and
 retain the old key while attestations signed with it should remain
 acceptable. Metadata caches and JWKS caches have separate propagation
-windows; the AS's configured maximum ages bound stale acceptance.
-Withdrawal does not itself invalidate issued access tokens. Refresh
-requests requiring client attestation are checked again under
-<a href="#processing" class="auto internal xref">Section 4</a>; revoking already issued tokens requires separate action.<a href="#section-5-4" class="pilcrow">¶</a></p>
+windows; the AS's configured maximum ages bound stale acceptance.<a href="#section-5-4" class="pilcrow">¶</a></p>
+<p id="section-5-5">Endorsement withdrawal prevents future authentication under the removed
+endorsement; it does not itself revoke existing grants or access tokens.
+Refresh requests requiring client attestation are checked again under
+<a href="#processing" class="auto internal xref">Section 4</a>. Deployments using withdrawal to terminate existing access
+<span class="bcp14">MUST</span> configure the AS to revoke affected grants, including their access
+and refresh tokens, and prevent further refresh issuance. Introspection
+<span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span> reports revoked tokens inactive; offline token validation
+requires a separate revocation mechanism or expiration to enforce that
+decision.<a href="#section-5-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
@@ -1563,6 +1571,10 @@ Attestations for this client, with their verification-key locations<a href="#sec
 <dt id="RFC7591">[RFC7591]</dt>
         <dd>
 <span class="refAuthor">Richer, J., Ed.</span>, <span class="refAuthor">Jones, M.</span>, <span class="refAuthor">Bradley, J.</span>, <span class="refAuthor">Machulak, M.</span>, and <span class="refAuthor">P. Hunt</span>, <span class="refTitle">"OAuth 2.0 Dynamic Client Registration Protocol"</span>, <span class="seriesInfo">RFC 7591</span>, <span class="seriesInfo">DOI 10.17487/RFC7591</span>, <time datetime="2015-07" class="refDate">July 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7591">https://www.rfc-editor.org/rfc/rfc7591</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7662">[RFC7662]</dt>
+        <dd>
+<span class="refAuthor">Richer, J., Ed.</span>, <span class="refTitle">"OAuth 2.0 Token Introspection"</span>, <span class="seriesInfo">RFC 7662</span>, <span class="seriesInfo">DOI 10.17487/RFC7662</span>, <time datetime="2015-10" class="refDate">October 2015</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7662">https://www.rfc-editor.org/rfc/rfc7662</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8725">[RFC8725]</dt>
         <dd>

@@ -1188,7 +1188,10 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-request-processing" class="internal xref">Request Processing</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
-                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-errors" class="internal xref">Errors</a></p>
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-grant-continuity" class="internal xref">Grant Continuity</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-errors" class="internal xref">Errors</a></p>
 </li>
             </ul>
 </li>
@@ -1280,7 +1283,10 @@ specification.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
                 <p id="section-toc.1-1.12.2.2.1"><a href="#appendix-A.2" class="auto internal xref"></a><a href="#name-introspection-response" class="internal xref">Introspection Response</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.3">
-                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-attestation-rejection" class="internal xref">Attestation Rejection</a></p>
+                <p id="section-toc.1-1.12.2.3.1"><a href="#appendix-A.3" class="auto internal xref"></a><a href="#name-governed-actor-and-runtime-" class="internal xref">Governed Actor and Runtime Context</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12.2.4">
+                <p id="section-toc.1-1.12.2.4.1"><a href="#appendix-A.4" class="auto internal xref"></a><a href="#name-attestation-rejection" class="internal xref">Attestation Rejection</a></p>
 </li>
             </ul>
 </li>
@@ -1480,7 +1486,7 @@ separate from a user account, device registration, or Logical Client.<a href="#s
 Claims <span class="bcp14">MUST NOT</span> select this profile or change authentication methods.
 No discovery or client metadata parameter is added: profile selection
 is provisioned with the client-specific trust and evidence agreement.
-The shared error in <a href="#errors" class="auto internal xref">Section 5.1</a> reports rejection, not profile discovery.<a href="#section-3-3" class="pilcrow">¶</a></p>
+The shared error in <a href="#errors" class="auto internal xref">Section 5.2</a> reports rejection, not profile discovery.<a href="#section-3-3" class="pilcrow">¶</a></p>
 <p id="section-3-4">The Receiver <span class="bcp14">MUST</span> bind each approved Attester Issuer to its validation
 keys and authorized Logical Clients, using configured associations or,
 at an AS, accepted client endorsements under <span>[<a href="#ATTESTER-ENDORSEMENT" class="cite xref">ATTESTER-ENDORSEMENT</a>]</span>.
@@ -1531,7 +1537,7 @@ The instance identity is <code>(iss, client_instance_id)</code>.<a href="#sectio
 <p id="section-4.1-3">Receivers <span class="bcp14">MUST</span> treat identifiers as opaque, compare them as exact,
 case-sensitive strings without URI normalization, accept conforming
 values up to that limit, and reject longer values. They <span class="bcp14">MUST NOT</span>
-derive permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.1</a>.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
+derive permissions by parsing an identifier. Errors follow <a href="#errors" class="auto internal xref">Section 5.2</a>.<a href="#section-4.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="identifier-scope">
@@ -1610,19 +1616,43 @@ ATTEST: when a separate token-binding key is permitted, context still
 identifies the instance associated with the Client Instance Key.
 Continuity of that key does not transfer existing tokens or grants to
 a replacement key; such transfer requires separate authorization.<a href="#section-5-4" class="pilcrow">¶</a></p>
-<div id="errors">
+<div id="grant-continuity">
 <section id="section-5.1">
-        <h3 id="name-errors">
-<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
+        <h3 id="name-grant-continuity">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-grant-continuity" class="section-name selfRef">Grant Continuity</a>
         </h3>
-<p id="section-5.1-1">Missing or invalid required instance claims and rejection by instance
+<p id="section-5.1-1">When issuing a refresh token under this profile, the AS <span class="bcp14">MUST</span> record the
+validated <code>(iss, client_instance_id)</code> with the grant, in addition to
+ATTEST's client and key bindings. On refresh, it <span class="bcp14">MUST</span> validate the
+current attestation and require that pair to match the recorded identity.
+Possession of the original key alone does not permit a different identity.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">A refresh request <span class="bcp14">MUST NOT</span> introduce or change the recorded instance
+identity without an explicitly authorized grant-migration procedure.
+Such a procedure <span class="bcp14">MUST</span> establish continuity under <a href="#processing" class="auto internal xref">Section 5</a> and
+separately satisfy the applicable key-binding requirements; this profile
+defines no grant-migration protocol. A valid attestation inconsistent
+with the grant's instance binding <span class="bcp14">MUST</span> produce <code>invalid_grant</code> under
+<span>[<a href="#RFC6749" class="cite xref">RFC6749</a>]</span>, without disclosing the expected instance identity.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<p id="section-5.1-3">If authorization-time policy bound a code or other artifact to an
+instance, the AS <span class="bcp14">MUST</span> enforce that binding at redemption. Attestation
+does not replace the grant's authorization, redirect, PKCE, or replay
+checks. ATTEST's protocol-artifact binding guidance applies independently.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="errors">
+<section id="section-5.2">
+        <h3 id="name-errors">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-errors" class="section-name selfRef">Errors</a>
+        </h3>
+<p id="section-5.2-1">Missing or invalid required instance claims and rejection by instance
 policy <span class="bcp14">MUST</span> produce <code>invalid_client_attestation</code>, without disclosing
 whether an instance is known, suspended, or retired. This deliberately
 reuses ATTEST's validation error for policy rejection. Receivers <span class="bcp14">SHOULD</span>
 avoid distinguishable response timing. Unknown instances are rejected
-only when local policy requires prior enrollment at the Receiver.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">A failed profile check <span class="bcp14">MUST NOT</span> trigger fallback without the required
-evidence. Other authentication and freshness errors follow ATTEST.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+only when local policy requires prior enrollment at the Receiver.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">A failed profile check <span class="bcp14">MUST NOT</span> trigger fallback without the required
+evidence. Grant-binding errors follow <a href="#grant-continuity" class="auto internal xref">Section 5.1</a>; other
+authentication and freshness errors follow ATTEST.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1738,11 +1768,16 @@ A Receiver suspending an instance <span class="bcp14">SHOULD</span> revoke its i
 report them inactive through introspection <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. Attesters and
 Receivers <span class="bcp14">SHOULD</span> agree on short attestation lifetimes where timely
 status enforcement matters.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
-<p id="section-6.3-2">Without a status channel, existing attestations can remain acceptable
+<p id="section-6.3-2">When an AS revokes a grant because of instance suspension, retirement,
+or attester trust withdrawal, it <span class="bcp14">MUST</span> invalidate all access and refresh
+tokens associated with that grant and prevent further refresh issuance.
+Revoked tokens are inactive under <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. This local enforcement
+does not itself notify resource servers validating tokens offline.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<p id="section-6.3-3">Without a status channel, existing attestations can remain acceptable
 until expiration plus clock skew, and issued tokens for their own
 lifetimes. Security Event Tokens <span>[<a href="#RFC8417" class="cite xref">RFC8417</a>]</span> and delivery under
 <span>[<a href="#RFC8935" class="cite xref">RFC8935</a>]</span> can support a separate integration; this profile defines
-no status event, subject mapping, or revocation-delay guarantee.<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+no status event, subject mapping, or revocation-delay guarantee.<a href="#section-6.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="state">
@@ -1808,32 +1843,36 @@ response <span>[<a href="#RFC7662" class="cite xref">RFC7662</a>]</span>. Its JS
             </tr>
           </tbody>
         </table>
-<p id="section-7.1-3">The context <span class="bcp14">MUST</span> refer to validated instance participation; issuers
+<p id="section-7.1-3">For direct issuance from a validated Client Attestation, context <span class="bcp14">MUST</span>
+identify the authenticated presenting instance. On refresh, that identity
+is subject to <a href="#grant-continuity" class="auto internal xref">Section 5.1</a>. Token exchange follows
+<a href="#context-exchange" class="auto internal xref">Section 7.2</a> rather than implicitly inheriting this association.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<p id="section-7.1-4">The context <span class="bcp14">MUST</span> refer to validated instance participation; issuers
 <span class="bcp14">MUST NOT</span> copy unvalidated client-supplied context. From a Client
 Attestation, the issuer <span class="bcp14">MUST</span> map <code>(iss, client_instance_id)</code> to its own
-namespace. For each mapping, it <span class="bcp14">MUST</span>:<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+namespace. For each mapping, it <span class="bcp14">MUST</span>:<a href="#section-7.1-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-7.1-4.1">
-            <p id="section-7.1-4.1.1">keep distinct instances separate unless continuity is established;<a href="#section-7.1-4.1.1" class="pilcrow">¶</a></p>
+<li class="normal" id="section-7.1-5.1">
+            <p id="section-7.1-5.1.1">keep distinct instances separate unless continuity is established;<a href="#section-7.1-5.1.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.1-4.2">
-            <p id="section-7.1-4.2.1">generate opaque, unpredictable, non-reassignable identifiers under
+          <li class="normal" id="section-7.1-5.2">
+            <p id="section-7.1-5.2.1">generate opaque, unpredictable, non-reassignable identifiers under
 <a href="#attester-requirements" class="auto internal xref">Section 6.1</a> and retain them across attestation renewal
-and verified key changes;<a href="#section-7.1-4.2.1" class="pilcrow">¶</a></p>
+and verified key changes;<a href="#section-7.1-5.2.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.1-4.3">
-            <p id="section-7.1-4.3.1">scope identifiers to each Context Consumer, allowing sharing only
-within an explicitly configured set; and<a href="#section-7.1-4.3.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.1-5.3">
+            <p id="section-7.1-5.3.1">scope identifiers to each Context Consumer, allowing sharing only
+within an explicitly configured set; and<a href="#section-7.1-5.3.1" class="pilcrow">¶</a></p>
 </li>
-          <li class="normal" id="section-7.1-4.4">
-            <p id="section-7.1-4.4.1">retain or reproduce the mapping under <a href="#state" class="auto internal xref">Section 6.4</a>.<a href="#section-7.1-4.4.1" class="pilcrow">¶</a></p>
+          <li class="normal" id="section-7.1-5.4">
+            <p id="section-7.1-5.4.1">retain or reproduce the mapping under <a href="#state" class="auto internal xref">Section 6.4</a>.<a href="#section-7.1-5.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.1-5">For derived mappings, the source authority and identifier supply the
+<p id="section-7.1-6">For derived mappings, the source authority and identifier supply the
 enrollment-specific input, and the consumer supplies the scope. Issuers
 <span class="bcp14">MUST</span> separate this derivation from attester identifiers, for example by
 using a distinct key or purpose label. <a href="#wire-examples" class="auto internal xref">Appendix "Wire Examples"</a> shows mapped
-context in a JWT access token and an introspection response.<a href="#section-7.1-5" class="pilcrow">¶</a></p>
+context in a JWT access token and an introspection response.<a href="#section-7.1-6" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="context-exchange">
@@ -1841,22 +1880,28 @@ context in a JWT access token and an introspection response.<a href="#section-7.
         <h3 id="name-preservation-and-authorizat">
 <a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-preservation-and-authorizat" class="section-name selfRef">Preservation and Authorization</a>
         </h3>
-<p id="section-7.2-1">An issuer <span class="bcp14">MAY</span> preserve validated upstream <code>(iss, id)</code> instead of
+<p id="section-7.2-1">An exchange issuing Instance Context <span class="bcp14">MUST</span> use a consuming profile that
+selects whether the context identifies the authenticated presenting
+instance or an instance represented by validated input-token context.
+That profile <span class="bcp14">MUST</span> define the association with the subject, actor, or
+presenter, its validation, and when input context is replaced or preserved.
+An issuer <span class="bcp14">MUST NOT</span> silently treat upstream context as identifying a
+different presenting instance. The single object identifies one instance;
+it does not record a chain of participating instances.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<p id="section-7.2-2">An issuer <span class="bcp14">MAY</span> preserve validated upstream <code>(iss, id)</code> instead of
 mapping it when configured trust and correlation scope authorize its
 disclosure to the downstream consumer. Otherwise it <span class="bcp14">MUST</span> map or omit
-the context, subject to the consuming profile's requirements.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
-<p id="section-7.2-2">Preservation <span class="bcp14">MUST</span> be limited to input context whose <code>iss</code> equals the
+the context, subject to the consuming profile's requirements.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">Preservation <span class="bcp14">MUST</span> be limited to input context whose <code>iss</code> equals the
 authenticated input-token issuer. Context already preserved by an
 intermediary <span class="bcp14">MUST</span> be remapped or omitted unless a consuming profile
 specifies authenticated provenance, a finite hop limit, and enforcement
 rules. This permits one preservation hop by default; the two-member
-object itself carries no forwarding history.<a href="#section-7.2-2" class="pilcrow">¶</a></p>
-<p id="section-7.2-3">Context records participation at issuance, not current possession,
-actor identity, or a grant of authority. A consuming profile <span class="bcp14">MUST</span> define
-its association with the subject, actor, or presenter and how that
-association is validated during exchange. Proof of possession follows
+object itself carries no forwarding history.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4">Context records participation at issuance, not current possession,
+actor identity, or a grant of authority. Proof of possession follows
 the enclosing token's binding. Context <span class="bcp14">MUST NOT</span> be treated as a
-separate token or delegated actor.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+separate token or delegated actor.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="context-consumer-processing">
@@ -1903,7 +1948,7 @@ without changing the meaning of <code>iss</code> or <code>id</code>.<a href="#se
 or <code>invalid_request</code> for a subject or actor token rejected in an
 RFC 8693 exchange under <span>[<a href="#RFC8693" class="cite xref">RFC8693</a>], <a href="https://rfc-editor.org/rfc/rfc8693#section-2.2.2" class="relref">Section 2.2.2</a></span>. Other consuming
 profiles <span class="bcp14">MUST</span> define their error mapping. Direct Client Attestation
-failures follow <a href="#errors" class="auto internal xref">Section 5.1</a>.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
+failures follow <a href="#errors" class="auto internal xref">Section 5.2</a>.<a href="#section-7.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2026,7 +2071,7 @@ should omit this profile. Other claims and application data can also
 correlate clients despite scoped identifiers.<a href="#section-9.2-1.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-9.2-1.4">
-            <p id="section-9.2-1.4.1"><strong>Disclosure:</strong> status non-disclosure follows <a href="#errors" class="auto internal xref">Section 5.1</a> and retention
+            <p id="section-9.2-1.4.1"><strong>Disclosure:</strong> status non-disclosure follows <a href="#errors" class="auto internal xref">Section 5.2</a> and retention
 follows <a href="#state" class="auto internal xref">Section 6.4</a>. Error responses <span class="bcp14">SHOULD</span> avoid revealing unrelated
 instance identities. Logs <span class="bcp14">MUST NOT</span> contain raw credentials or private
 keys. Identifier unpredictability limits guessing and enumeration;
@@ -2163,6 +2208,10 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
 <a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
         </h3>
 <dl class="references">
+<dt id="ACTOR-PROFILE">[ACTOR-PROFILE]</dt>
+        <dd>
+<span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth Actor Profile for Delegation"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-mcguinness-oauth-actor-profile-00</span>, <time datetime="2026-04-30" class="refDate">30 April 2026</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-00">https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-actor-profile-00</a>&gt;</span>. </dd>
+<dd class="break"></dd>
 <dt id="ATTESTER-ENDORSEMENT">[ATTESTER-ENDORSEMENT]</dt>
         <dd>
 <span class="refAuthor">McGuinness, K.</span>, <span class="refTitle">"OAuth 2.0 Client Attester Endorsement"</span>, <time datetime="2026-09-15" class="refDate">15 September 2026</time>, <span>&lt;<a href="https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html">https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html</a>&gt;</span>. </dd>
@@ -2217,8 +2266,9 @@ or actor profile values.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
       <h2 id="name-wire-examples">
 <a href="#name-wire-examples" class="section-name selfRef">Wire Examples</a>
       </h2>
-<p id="appendix-A-1">These examples are informative. They use the managed-device flow in
-<a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>: the user is the authorization subject,
+<p id="appendix-A-1">These examples are informative. The access-token and introspection
+examples use the managed-device flow in <a href="#managed-device-example" class="auto internal xref">Appendix "Managed Device"</a>:
+the user is the authorization subject,
 and the installation is additional context. The AS maps the attester's
 identifier to a value scoped to <code>https://api.example</code>.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 <div id="access-token-payload">
@@ -2290,15 +2340,48 @@ Cache-Control: no-store
 </div>
 </section>
 </div>
-<div id="attestation-rejection">
+<div id="governed-actor-and-runtime-context">
 <section id="appendix-A.3">
+        <h3 id="name-governed-actor-and-runtime-">
+<a href="#name-governed-actor-and-runtime-" class="section-name selfRef">Governed Actor and Runtime Context</a>
+        </h3>
+<p id="appendix-A.3-1">An exchange profile can authorize instance B to continue work begun by
+instance A for the same governed agent. In this example, that profile
+selects the authenticated presenting instance for output context and
+authorizes <code>agent-42</code> to act for <code>user-17</code> under <span>[<a href="#ACTOR-PROFILE" class="cite xref">ACTOR-PROFILE</a>]</span>.
+The AS validates B's attestation and proof, replaces A's input context
+with B's resource-scoped mapping, and binds the output token under the
+exchange profile. The relevant output claims are:<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
+<div class="lang-json sourcecode" id="appendix-A.3-2">
+<pre>
+{
+  "sub": "user-17",
+  "act": {
+    "iss": "https://as.example",
+    "sub": "agent-42"
+  },
+  "client_instance": {
+    "iss": "https://as.example",
+    "id": "m-2b58e0d760954a5a9ce64f3e718d02ac"
+  }
+}
+</pre><a href="#appendix-A.3-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-A.3-3">The governed actor remains <code>agent-42</code>; the mapped identifier identifies
+B. Neither B's authentication nor continuity of the agent identity alone
+authorizes this exchange. A profile preserving A's context instead would
+have to define its upstream association explicitly.<a href="#appendix-A.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="attestation-rejection">
+<section id="appendix-A.4">
         <h3 id="name-attestation-rejection">
 <a href="#name-attestation-rejection" class="section-name selfRef">Attestation Rejection</a>
         </h3>
-<p id="appendix-A.3-1">Example token-endpoint response when a required instance claim is
-missing or instance policy rejects the request (<a href="#errors" class="auto internal xref">Section 5.1</a>). It does
-not disclose whether the instance is unknown, suspended, or retired.<a href="#appendix-A.3-1" class="pilcrow">¶</a></p>
-<div class="lang-http-message sourcecode" id="appendix-A.3-2">
+<p id="appendix-A.4-1">Example token-endpoint response when a required instance claim is
+missing or instance policy rejects the request (<a href="#errors" class="auto internal xref">Section 5.2</a>). It does
+not disclose whether the instance is unknown, suspended, or retired.<a href="#appendix-A.4-1" class="pilcrow">¶</a></p>
+<div class="lang-http-message sourcecode" id="appendix-A.4-2">
 <pre>
 HTTP/1.1 400 Bad Request
 Content-Type: application/json
@@ -2307,7 +2390,7 @@ Cache-Control: no-store
 {
   "error": "invalid_client_attestation"
 }
-</pre><a href="#appendix-A.3-2" class="pilcrow">¶</a>
+</pre><a href="#appendix-A.4-2" class="pilcrow">¶</a>
 </div>
 </section>
 </div>

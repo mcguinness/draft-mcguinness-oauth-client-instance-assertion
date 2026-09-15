@@ -84,7 +84,8 @@ Table of Contents
      4.2.  Receiver Scope
      4.3.  Example
    5.  Request Processing
-     5.1.  Errors
+     5.1.  Grant Continuity
+     5.2.  Errors
    6.  Attester Requirements
      6.1.  Identifier Generation
      6.2.  Continuity and Lifecycle
@@ -110,6 +111,7 @@ Table of Contents
    Wire Examples
      Access Token Payload
      Introspection Response
+     Governed Actor and Runtime Context
      Attestation Rejection
    Deployment Examples
      CIMD Client
@@ -248,7 +250,7 @@ Table of Contents
    Claims MUST NOT select this profile or change authentication methods.
    No discovery or client metadata parameter is added: profile selection
    is provisioned with the client-specific trust and evidence agreement.
-   The shared error in Section 5.1 reports rejection, not profile
+   The shared error in Section 5.2 reports rejection, not profile
    discovery.
 
    The Receiver MUST bind each approved Attester Issuer to its
@@ -289,7 +291,7 @@ Table of Contents
    case-sensitive strings without URI normalization, accept conforming
    values up to that limit, and reject longer values.  They MUST NOT
    derive permissions by parsing an identifier.  Errors follow
-   Section 5.1.
+   Section 5.2.
 
 4.2.  Receiver Scope
 
@@ -351,7 +353,31 @@ Table of Contents
    Continuity of that key does not transfer existing tokens or grants to
    a replacement key; such transfer requires separate authorization.
 
-5.1.  Errors
+5.1.  Grant Continuity
+
+   When issuing a refresh token under this profile, the AS MUST record
+   the validated (iss, client_instance_id) with the grant, in addition
+   to ATTEST's client and key bindings.  On refresh, it MUST validate
+   the current attestation and require that pair to match the recorded
+   identity.  Possession of the original key alone does not permit a
+   different identity.
+
+   A refresh request MUST NOT introduce or change the recorded instance
+   identity without an explicitly authorized grant-migration procedure.
+   Such a procedure MUST establish continuity under Section 5 and
+   separately satisfy the applicable key-binding requirements; this
+   profile defines no grant-migration protocol.  A valid attestation
+   inconsistent with the grant's instance binding MUST produce
+   invalid_grant under [RFC6749], without disclosing the expected
+   instance identity.
+
+   If authorization-time policy bound a code or other artifact to an
+   instance, the AS MUST enforce that binding at redemption.
+   Attestation does not replace the grant's authorization, redirect,
+   PKCE, or replay checks.  ATTEST's protocol-artifact binding guidance
+   applies independently.
+
+5.2.  Errors
 
    Missing or invalid required instance claims and rejection by instance
    policy MUST produce invalid_client_attestation, without disclosing
@@ -362,7 +388,8 @@ Table of Contents
    enrollment at the Receiver.
 
    A failed profile check MUST NOT trigger fallback without the required
-   evidence.  Other authentication and freshness errors follow ATTEST.
+   evidence.  Grant-binding errors follow Section 5.1; other
+   authentication and freshness errors follow ATTEST.
 
 6.  Attester Requirements
 
@@ -460,6 +487,13 @@ Table of Contents
    Receivers SHOULD agree on short attestation lifetimes where timely
    status enforcement matters.
 
+   When an AS revokes a grant because of instance suspension,
+   retirement, or attester trust withdrawal, it MUST invalidate all
+   access and refresh tokens associated with that grant and prevent
+   further refresh issuance.  Revoked tokens are inactive under
+   [RFC7662].  This local enforcement does not itself notify resource
+   servers validating tokens offline.
+
    Without a status channel, existing attestations can remain acceptable
    until expiration plus clock skew, and issued tokens for their own
    lifetimes.  Security Event Tokens [RFC8417] and delivery under
@@ -507,6 +541,11 @@ Table of Contents
 
                                   Table 3
 
+   For direct issuance from a validated Client Attestation, context MUST
+   identify the authenticated presenting instance.  On refresh, that
+   identity is subject to Section 5.1.  Token exchange follows
+   Section 7.2 rather than implicitly inheriting this association.
+
    The context MUST refer to validated instance participation; issuers
    MUST NOT copy unvalidated client-supplied context.  From a Client
    Attestation, the issuer MUST map (iss, client_instance_id) to its own
@@ -532,6 +571,16 @@ Table of Contents
 
 7.2.  Preservation and Authorization
 
+   An exchange issuing Instance Context MUST use a consuming profile
+   that selects whether the context identifies the authenticated
+   presenting instance or an instance represented by validated input-
+   token context.  That profile MUST define the association with the
+   subject, actor, or presenter, its validation, and when input context
+   is replaced or preserved.  An issuer MUST NOT silently treat upstream
+   context as identifying a different presenting instance.  The single
+   object identifies one instance; it does not record a chain of
+   participating instances.
+
    An issuer MAY preserve validated upstream (iss, id) instead of
    mapping it when configured trust and correlation scope authorize its
    disclosure to the downstream consumer.  Otherwise it MUST map or omit
@@ -545,11 +594,9 @@ Table of Contents
    two-member object itself carries no forwarding history.
 
    Context records participation at issuance, not current possession,
-   actor identity, or a grant of authority.  A consuming profile MUST
-   define its association with the subject, actor, or presenter and how
-   that association is validated during exchange.  Proof of possession
-   follows the enclosing token's binding.  Context MUST NOT be treated
-   as a separate token or delegated actor.
+   actor identity, or a grant of authority.  Proof of possession follows
+   the enclosing token's binding.  Context MUST NOT be treated as a
+   separate token or delegated actor.
 
 7.3.  Context Consumer Processing
 
@@ -586,7 +633,7 @@ Table of Contents
    invalid_request for a subject or actor token rejected in an RFC 8693
    exchange under [RFC8693], Section 2.2.2.  Other consuming profiles
    MUST define their error mapping.  Direct Client Attestation failures
-   follow Section 5.1.
+   follow Section 5.2.
 
 8.  Relationship to Other Identity Systems
 
@@ -676,7 +723,7 @@ Table of Contents
       should omit this profile.  Other claims and application data can
       also correlate clients despite scoped identifiers.
 
-   *  *Disclosure:* status non-disclosure follows Section 5.1 and
+   *  *Disclosure:* status non-disclosure follows Section 5.2 and
       retention follows Section 6.4.  Error responses SHOULD avoid
       revealing unrelated instance identities.  Logs MUST NOT contain
       raw credentials or private keys.  Identifier unpredictability
@@ -768,6 +815,13 @@ Table of Contents
 
 11.2.  Informative References
 
+   [ACTOR-PROFILE]
+              McGuinness, K., "OAuth Actor Profile for Delegation", Work
+              in Progress, Internet-Draft, draft-mcguinness-oauth-actor-
+              profile-00, 30 April 2026,
+              <https://datatracker.ietf.org/doc/html/draft-mcguinness-
+              oauth-actor-profile-00>.
+
    [ATTESTER-ENDORSEMENT]
               McGuinness, K., "OAuth 2.0 Client Attester Endorsement",
               15 September 2026, <https://mcguinness.github.io/draft-
@@ -828,10 +882,11 @@ Table of Contents
 
 Wire Examples
 
-   These examples are informative.  They use the managed-device flow in
-   Appendix "Managed Device": the user is the authorization subject, and
-   the installation is additional context.  The AS maps the attester's
-   identifier to a value scoped to https://api.example.
+   These examples are informative.  The access-token and introspection
+   examples use the managed-device flow in Appendix "Managed Device":
+   the user is the authorization subject, and the installation is
+   additional context.  The AS maps the attester's identifier to a value
+   scoped to https://api.example.
 
 Access Token Payload
 
@@ -888,10 +943,38 @@ Introspection Response
      }
    }
 
+Governed Actor and Runtime Context
+
+   An exchange profile can authorize instance B to continue work begun
+   by instance A for the same governed agent.  In this example, that
+   profile selects the authenticated presenting instance for output
+   context and authorizes agent-42 to act for user-17 under
+   [ACTOR-PROFILE].  The AS validates B's attestation and proof,
+   replaces A's input context with B's resource-scoped mapping, and
+   binds the output token under the exchange profile.  The relevant
+   output claims are:
+
+   {
+     "sub": "user-17",
+     "act": {
+       "iss": "https://as.example",
+       "sub": "agent-42"
+     },
+     "client_instance": {
+       "iss": "https://as.example",
+       "id": "m-2b58e0d760954a5a9ce64f3e718d02ac"
+     }
+   }
+
+   The governed actor remains agent-42; the mapped identifier identifies
+   B.  Neither B's authentication nor continuity of the agent identity
+   alone authorizes this exchange.  A profile preserving A's context
+   instead would have to define its upstream association explicitly.
+
 Attestation Rejection
 
    Example token-endpoint response when a required instance claim is
-   missing or instance policy rejects the request (Section 5.1).  It
+   missing or instance policy rejects the request (Section 5.2).  It
    does not disclose whether the instance is unknown, suspended, or
    retired.
 
