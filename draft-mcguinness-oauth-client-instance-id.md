@@ -454,6 +454,37 @@ failures follow {{errors}}.
 
 # Relationship to Other Identity Systems
 
+## Client ID Metadata Documents {#cimd}
+
+With {{CIMD}}, the metadata URL is the Logical Client's `client_id`.
+Many installations can use that URL. Fetching its public metadata does
+not prove that a caller is an authorized instance. CIMD also supports
+client authentication; the distinction is between discovering client
+metadata, authenticating a runtime, and retaining its identity:
+
+| Mechanism | Contribution |
+|---|---|
+| CIMD | Discovers Logical Client metadata and its authentication method |
+| ATTEST | Authenticates an attester-approved instance and possession of its key |
+| This profile | Retains instance identity across verified key changes and conveys optional downstream context |
+
+Use one CIMD URL for the Logical Client and keep instance identifiers
+in attestations, not separate metadata documents. The Client
+Attestation's `sub` remains that exact URL; `client_instance_id`
+distinguishes its installations or runtimes. {{cimd-example}} shows the
+existing ATTEST metadata used for this composition.
+
+CIMD can remove registration of client metadata at each AS; it does
+not remove this profile's trust agreement ({{configuration}}).
+Discovering which attester a client endorses, and deciding whether the
+AS accepts that endorsement, are separate from instance identification.
+This profile defines no client-published attester-delegation metadata.
+A deployment requiring that discovery needs a separate trust profile;
+it cannot infer delegation from a CIMD `jwks_uri` or the attestation's
+`iss`. The same trust rules apply to locally registered clients.
+
+## Workload and Agent Credentials
+
 An integration MUST NOT assert that a shared workload identity identifies
 an individual instance without additional authenticated evidence.
 Direct SVID authentication
@@ -646,6 +677,43 @@ Client              Attester           OAuth AS          Resource
    `id=M1`.
 5. The resource validates the token, proof, and context. It can audit
    `M1` without receiving enrollment evidence or trusting the attester.
+
+## CIMD Client {#cimd-example}
+{:numbered="false"}
+
+For the shared flow, let `C1` be
+`https://platform.example/oauth-client`. The publisher serves this
+metadata at that URL, using the existing authentication method from
+{{ATTEST, Section 9}}:
+
+~~~ json
+{
+  "client_id": "https://platform.example/oauth-client",
+  "client_name": "Managed Agent Harness",
+  "redirect_uris": ["https://platform.example/callback"],
+  "grant_types": ["authorization_code"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "attest_jwt_client_auth_dpop"
+}
+~~~
+
+1. The AS resolves and validates the document under CIMD, including
+   exact URL matching, fetch restrictions, and cache handling. It
+   supports the declared ATTEST method and separately configures the
+   approved attester, its keys, and this instance profile for `C1`.
+2. Each authorized installation obtains an attestation with `sub=C1`,
+   its own AS-scoped `client_instance_id`, and its public key in `cnf`.
+   Instance key renewal requires no change to the shared CIMD document.
+3. The client uses the user-authorized flow in {{managed-device-example}}
+   and presents the attestation and DPoP proof at the token endpoint.
+   The AS checks the configured attester-to-client association and
+   issues resource-scoped instance context as in the shared flow.
+
+Declaring an ATTEST authentication method does not signal that this
+optional identification profile is required; that remains configured.
+If a CIMD client uses another authentication method, additional
+attestation follows {{ATTEST, Section 7.6}} and does not replace the
+declared method.
 
 ## AAuth Agent Provider {#aauth-example}
 {:numbered="false"}
