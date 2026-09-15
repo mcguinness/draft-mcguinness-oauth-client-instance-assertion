@@ -35,6 +35,7 @@ require administrative agreement.
 ## OAuth 2.0 Client Attester Endorsement
 
 * [Draft source](draft-mcguinness-oauth-client-attesters.md)
+* [Editor's Draft (HTML)](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/draft-mcguinness-oauth-client-attesters.html)
 
 A companion profile of Attestation-Based Client Authentication defining
 `client_attesters` endorsements in CIMD or registered client metadata.
