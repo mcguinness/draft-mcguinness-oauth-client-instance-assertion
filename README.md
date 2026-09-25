@@ -11,15 +11,34 @@ successor specifications are maintained in the repositories linked below.
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-client-instance-assertion)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-client-instance-assertion)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-client-instance-assertion.diff)
-* Status: superseded and not being progressed. Its client-published endorsement model moves to Client Attester Endorsement and instance identification moves to Client Instance Identification below; agent representation moves to the agent federation profile and OAuth Actor Profile.
+* Status: superseded and not being progressed. Its client-published endorsement model moves to Client Attester Endorsement and instance identification moves to Client Instance Identification below. Delegation-chain nesting and depth limits move to the OAuth Actor Profile. No successor yet defines how an instance appears as an actor or subject.
 
-CLIENT-ATTEST and the two companion profiles replace CIA's client-instance
-authentication, attester trust, and identification mechanisms. They are
-not wire-compatible or complete replacements for its authorization flows.
-Actor construction and grant semantics belong to consuming authorization
-profiles; native SPIFFE authentication belongs to SPIFFE Client
-Authentication. Direct SVID carriage, automatic instance-as-actor mapping,
-and CIA's discovery parameters are not carried forward.
+Attestation-Based Client Authentication (ATTEST) and the two companion
+profiles replace CIA's client-instance authentication, attester trust, and
+identification mechanisms. They are not wire-compatible or complete
+replacements for its authorization flows. Actor construction and grant
+semantics belong to consuming authorization profiles; native SPIFFE
+authentication belongs to SPIFFE Client Authentication. Direct SVID
+carriage, automatic instance-as-actor mapping, and CIA's discovery
+parameters are not carried forward. The `client-instance-jwt` token type,
+the Client Instance Subject Syntaxes registry, and the `client_instance`
+entity-profile value are not carried forward.
+
+Behavioural differences a CIA deployment should expect:
+
+* Client metadata alone no longer establishes attester trust; the AS
+  either configures the attester or authorizes the client publisher to
+  select keys.
+* An endorsement cannot limit which instances or subjects an attester
+  may assert.
+* Withdrawing an endorsement stops new authentication but does not
+  invalidate issued tokens unless the deployment revokes them.
+* Access tokens need not be sender-constrained; CIA prohibited bearer
+  tokens.
+* Replay rejection of a repeated attestation becomes ATTEST's
+  recommended proof-of-possession replay check.
+* Inline `jwks` in an endorsement is not supported; `jwks_uri` is
+  required.
 
 ATTEST method discovery does not establish support for either companion
 profile. Their use, required downstream context, and revocation policy
@@ -31,7 +50,7 @@ require administrative agreement.
 * [Datatracker Page](https://datatracker.ietf.org/doc/draft-mcguinness-oauth-ai-agent-instance)
 * [Individual Draft](https://datatracker.ietf.org/doc/html/draft-mcguinness-oauth-ai-agent-instance)
 * [Compare Editor's Copy to Individual Draft](https://mcguinness.github.io/draft-mcguinness-oauth-client-instance-assertion/#go.draft-mcguinness-oauth-ai-agent-instance.diff)
-* Status: superseded and not being progressed. Replaced by the agent federation profile together with Client Instance Identification below.
+* Status: superseded and not being progressed. Agent principals are covered by the agent federation profile; per-instance identification is available through Client Instance Identification, but the federation profile does not yet compose with it.
 
 ## OAuth 2.0 Client Attester Endorsement
 
@@ -54,11 +73,12 @@ An optional claims profile for administratively configured deployments
 needing instance continuity across attestations and verified key changes.
 Identifiers are scoped to individual Receivers by default, with optional
 mapped context for downstream consumers. ATTEST supplies client instance
-authentication and proof methods; this profile requires sender-constrained
-access tokens when instance context is conveyed. It applies to authorization
-servers and resource servers that validate Client Attestations. Deployments that need only
-authentication or can use internal correlation mappings do not require
-this profile.
+authentication and proof methods. Attributing a token presentation to an
+instance requires a sender-constrained token; context on an unbound token
+records only participation. It applies to authorization servers and
+resource servers that validate Client Attestations. Deployments that need
+only authentication or can use internal correlation mappings do not
+require this profile.
 
 This draft has not yet been submitted to the IETF.
 

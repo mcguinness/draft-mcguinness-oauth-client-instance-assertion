@@ -58,6 +58,10 @@ informative:
 
 --- abstract
 
+This document has been superseded and is not being progressed; the
+Introduction names its replacements. This revision makes no other
+change.
+
 This specification profiles the OAuth 2.0 Client Instance Assertion
 for AI agent deployments, where a single OAuth client identifier
 represents an agent platform running many concurrent agent
@@ -73,6 +77,33 @@ Attestation-Based Client Authentication.
 --- middle
 
 # Introduction
+
+Note on status: This document is not being progressed beyond this
+revision. Governed agent identity, grant issuance, and the
+representation of an agent as a token subject or actor are addressed
+by draft-mcguinness-oauth-governed-agent-federation, the OAuth 2.0
+Profile for Governed Agent Federation, together with the OAuth Actor
+Profile. Instance identification is addressed by
+draft-mcguinness-oauth-client-instance-id, an optional claims profile
+of Attestation-Based Client Authentication. Neither is wire-compatible
+with this document. The successors are developed at
+https://github.com/mcguinness/governed-agent-profiles (OAuth 2.0
+Profile for Governed Agent Federation), https://github.com/mcguinness/
+draft-mcguinness-oauth-client-instance-id (Client Instance
+Identification for Attestation-Based Client Authentication), and
+https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters
+(OAuth 2.0 Client Attester Endorsement).
+
+The following concerns from this document are carried forward. The
+agent provenance claims are proposed as Agent Properties of the
+Workload Authorization Grant rather than as claims of this profile.
+The assurance tiers, and the rule against representing self-attested
+evidence as platform-verified or hardware-rooted, move to the instance
+identification profile. The local and public-client pattern, the
+carrier trust analysis, and the observation that an attested chain
+records which instance acted but does not make the action safe inform
+the agent federation profile's deployment flows and security
+considerations.
 
 AI agent platforms are OAuth clients. A platform registers a single
 `client_id` and then runs many concurrent agent instances under it:
@@ -1315,6 +1346,13 @@ fresh grant or exchange under its unchanged identity.)
 {:numbered="false"}
 
 *RFC EDITOR: please remove this section before publication.*
+
+## -01 {#history-01}
+{:numbered="false"}
+
+* Marked this document as superseded by
+  draft-mcguinness-oauth-governed-agent-federation and
+  draft-mcguinness-oauth-client-instance-id; no technical changes.
 
 ## -00 {#history-00}
 {:numbered="false"}
