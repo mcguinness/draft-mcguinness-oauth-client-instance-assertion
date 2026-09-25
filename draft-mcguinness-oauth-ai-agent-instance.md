@@ -81,11 +81,18 @@ Attestation-Based Client Authentication.
 Note on status: This document is not being progressed beyond this
 revision. Governed agent identity, grant issuance, and the
 representation of an agent as a token subject or actor are addressed
-by draft-mcguinness-oauth-workload-agent-federation together with the
-OAuth Actor Profile. Instance identification is addressed by
+by draft-mcguinness-oauth-governed-agent-federation, the OAuth 2.0
+Profile for Governed Agent Federation, together with the OAuth Actor
+Profile. Instance identification is addressed by
 draft-mcguinness-oauth-client-instance-id, an optional claims profile
 of Attestation-Based Client Authentication. Neither is wire-compatible
-with this document.
+with this document. The successors are developed at
+https://github.com/mcguinness/governed-agent-profiles (OAuth 2.0
+Profile for Governed Agent Federation), https://github.com/mcguinness/
+draft-mcguinness-oauth-client-instance-id (Client Instance
+Identification for Attestation-Based Client Authentication), and
+https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters
+(OAuth 2.0 Client Attester Endorsement).
 
 The following concerns from this document are carried forward. The
 agent provenance claims are proposed as Agent Properties of the
@@ -1344,7 +1351,7 @@ fresh grant or exchange under its unchanged identity.)
 {:numbered="false"}
 
 * Marked this document as superseded by
-  draft-mcguinness-oauth-workload-agent-federation and
+  draft-mcguinness-oauth-governed-agent-federation and
   draft-mcguinness-oauth-client-instance-id; no technical changes.
 
 ## -00 {#history-00}

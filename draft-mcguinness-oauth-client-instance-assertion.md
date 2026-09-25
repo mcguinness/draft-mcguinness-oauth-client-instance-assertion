@@ -112,13 +112,20 @@ of Attestation-Based Client Authentication that carries an
 attester-assigned instance identifier and optional instance context.
 Representation of an agent or client instance as a token subject or
 actor is addressed by the OAuth Actor Profile and by
-draft-mcguinness-oauth-workload-agent-federation. The
-`client_instance_assertion` parameter, the `client-instance-jwt` token
-type, the `client_instance_assertion` authentication method, and the
-subject syntax registry are withdrawn. The `instance_issuers` parameter
-and descriptor format are also withdrawn, while the endorsement concept
-continues as described below. The registrations requested in this draft's
-IANA Considerations are not being pursued.
+draft-mcguinness-oauth-governed-agent-federation, the OAuth 2.0
+Profile for Governed Agent Federation. The `client_instance_assertion`
+parameter, the `client-instance-jwt` token type, the
+`client_instance_assertion` authentication method, and the subject
+syntax registry are withdrawn. The `instance_issuers` parameter and
+descriptor format are also withdrawn, while the endorsement concept
+continues as described below. The registrations requested in this
+draft's IANA Considerations are not being pursued. The successors are
+developed at https://github.com/mcguinness/governed-agent-profiles
+(OAuth 2.0 Profile for Governed Agent Federation), https://github.com/
+mcguinness/draft-mcguinness-oauth-client-instance-id (Client Instance
+Identification for Attestation-Based Client Authentication), and
+https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters
+(OAuth 2.0 Client Attester Endorsement).
 
 The client-published endorsement concept returns in OAuth 2.0 Client
 Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
@@ -3367,7 +3374,7 @@ matches the access token's `cnf.x5t#S256`.
 
 * Marked this document as superseded by
   draft-mcguinness-oauth-client-instance-id and
-  draft-mcguinness-oauth-workload-agent-federation; withdrew its
+  draft-mcguinness-oauth-governed-agent-federation; withdrew its
   parameter, token type, authentication method, metadata, and
   registry proposals from consideration; no other change.
 
