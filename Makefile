@@ -1,3 +1,7 @@
+MOVED_DRAFTS := draft-mcguinness-oauth-client-attesters \
+               draft-mcguinness-oauth-client-instance-id
+GHPAGES_EXTRA += $(addsuffix .html,$(MOVED_DRAFTS))
+
 LIBDIR := lib
 -include $(LIBDIR)/main.mk
 
@@ -13,3 +17,7 @@ else
 	    https://github.com/martinthomson/i-d-template $(LIBDIR)
 endif
 endif
+
+# Preserve existing editor-copy URLs after the drafts move repositories.
+$(addsuffix .html,$(MOVED_DRAFTS)): %.html: docs/%.html
+	cp $< $@
