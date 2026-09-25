@@ -22,7 +22,7 @@ claims are carrier-independent: they may be conveyed in a Client
 Instance Assertion or in a Client Attestation defined by OAuth 2.0
 Attestation-Based Client Authentication. 
     " name="description">
-<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="xml2rfc 3.34.1" name="generator">
 <meta content="OAuth" name="keyword">
 <meta content="AI agent" name="keyword">
 <meta content="agent identity" name="keyword">
@@ -30,19 +30,19 @@ Attestation-Based Client Authentication.
 <meta content="attestation" name="keyword">
 <meta content="draft-mcguinness-oauth-ai-agent-instance-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.0
+  xml2rfc 3.34.1
     Python 3.14.7
-    ConfigArgParse 1.7.5
+    ConfigArgParse 1.7.7
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.7
+    platformdirs 4.11.10
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.3
+    wcwidth 0.8.4
 -->
 <link href="draft-mcguinness-oauth-ai-agent-instance.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1377,11 +1377,18 @@ Attestation-Based Client Authentication.<a href="#section-abstract-2" class="pil
 <p id="section-1-1">Note on status: This document is not being progressed beyond this
 revision. Governed agent identity, grant issuance, and the
 representation of an agent as a token subject or actor are addressed
-by draft-mcguinness-oauth-workload-agent-federation together with the
-OAuth Actor Profile. Instance identification is addressed by
+by draft-mcguinness-oauth-governed-agent-federation, the OAuth 2.0
+Profile for Governed Agent Federation, together with the OAuth Actor
+Profile. Instance identification is addressed by
 draft-mcguinness-oauth-client-instance-id, an optional claims profile
 of Attestation-Based Client Authentication. Neither is wire-compatible
-with this document.<a href="#section-1-1" class="pilcrow">¶</a></p>
+with this document. The successors are developed at
+https://github.com/mcguinness/governed-agent-profiles (OAuth 2.0
+Profile for Governed Agent Federation), https://github.com/mcguinness/
+draft-mcguinness-oauth-client-instance-id (Client Instance
+Identification for Attestation-Based Client Authentication), and
+https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters
+(OAuth 2.0 Client Attester Endorsement).<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">The following concerns from this document are carried forward. The
 agent provenance claims are proposed as Agent Properties of the
 Workload Authorization Grant rather than as claims of this profile.
@@ -3054,7 +3061,7 @@ fresh grant or exchange under its unchanged identity.)<a href="#appendix-B.5-1" 
 <ul class="normal">
 <li class="normal" id="appendix-C.1-1.1">
             <p id="appendix-C.1-1.1.1">Marked this document as superseded by
-draft-mcguinness-oauth-workload-agent-federation and
+draft-mcguinness-oauth-governed-agent-federation and
 draft-mcguinness-oauth-client-instance-id; no technical changes.<a href="#appendix-C.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
         </ul>

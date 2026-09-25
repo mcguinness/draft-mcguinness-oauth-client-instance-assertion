@@ -35,7 +35,7 @@ the access token's  sub , when the instance itself is the principal
 (e.g., a client credentials grant). The issued access token is
 sender-constrained to a key the instance possesses. 
     " name="description">
-<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="xml2rfc 3.34.1" name="generator">
 <meta content="OAuth" name="keyword">
 <meta content="CIMD" name="keyword">
 <meta content="Workload Identity" name="keyword">
@@ -43,19 +43,19 @@ sender-constrained to a key the instance possesses.
 <meta content="SPIFFE" name="keyword">
 <meta content="draft-mcguinness-oauth-client-instance-assertion-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.34.0
+  xml2rfc 3.34.1
     Python 3.14.7
-    ConfigArgParse 1.7.5
+    ConfigArgParse 1.7.7
     google-i18n-address 3.1.1
     intervaltree 3.2.1
     Jinja2 3.1.6
     lxml 6.1.1
     natsort 8.4.0
-    platformdirs 4.11.7
+    platformdirs 4.11.10
     pycountry 24.6.1
     PyYAML 6.0.3
     requests 2.33.1
-    wcwidth 0.8.3
+    wcwidth 0.8.4
 -->
 <link href="draft-mcguinness-oauth-client-instance-assertion.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
@@ -1542,13 +1542,20 @@ of Attestation-Based Client Authentication that carries an
 attester-assigned instance identifier and optional instance context.
 Representation of an agent or client instance as a token subject or
 actor is addressed by the OAuth Actor Profile and by
-draft-mcguinness-oauth-workload-agent-federation. The
-<code>client_instance_assertion</code> parameter, the <code>client-instance-jwt</code> token
-type, the <code>client_instance_assertion</code> authentication method, and the
-subject syntax registry are withdrawn. The <code>instance_issuers</code> parameter
-and descriptor format are also withdrawn, while the endorsement concept
-continues as described below. The registrations requested in this draft's
-IANA Considerations are not being pursued.<a href="#section-1-1" class="pilcrow">¶</a></p>
+draft-mcguinness-oauth-governed-agent-federation, the OAuth 2.0
+Profile for Governed Agent Federation. The <code>client_instance_assertion</code>
+parameter, the <code>client-instance-jwt</code> token type, the
+<code>client_instance_assertion</code> authentication method, and the subject
+syntax registry are withdrawn. The <code>instance_issuers</code> parameter and
+descriptor format are also withdrawn, while the endorsement concept
+continues as described below. The registrations requested in this
+draft's IANA Considerations are not being pursued. The successors are
+developed at https://github.com/mcguinness/governed-agent-profiles
+(OAuth 2.0 Profile for Governed Agent Federation), https://github.com/
+mcguinness/draft-mcguinness-oauth-client-instance-id (Client Instance
+Identification for Attestation-Based Client Authentication), and
+https://github.com/mcguinness/draft-mcguinness-oauth-client-attesters
+(OAuth 2.0 Client Attester Endorsement).<a href="#section-1-1" class="pilcrow">¶</a></p>
 <p id="section-1-2">The client-published endorsement concept returns in OAuth 2.0 Client
 Attester Endorsement (draft-mcguinness-oauth-client-attesters), using
 <code>client_attesters</code> with CLIENT-ATTEST rather than this draft's wire
@@ -5775,7 +5782,7 @@ matches the access token's <code>cnf.x5t#S256</code>.<a href="#appendix-B.6-11" 
 <li class="normal" id="appendix-C.1-1.1">
             <p id="appendix-C.1-1.1.1">Marked this document as superseded by
 draft-mcguinness-oauth-client-instance-id and
-draft-mcguinness-oauth-workload-agent-federation; withdrew its
+draft-mcguinness-oauth-governed-agent-federation; withdrew its
 parameter, token type, authentication method, metadata, and
 registry proposals from consideration; no other change.<a href="#appendix-C.1-1.1.1" class="pilcrow">¶</a></p>
 </li>
